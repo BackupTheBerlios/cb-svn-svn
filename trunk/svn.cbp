@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<!DOCTYPE Code::Blocks_project_file>
+<Code::Blocks_project_file>
+	<FileVersion major="1" minor="1"/>
+	<Project>
+		<Option title="svn plugin"/>
+		<Option makefile="Makefile"/>
+		<Option makefile_is_custom="0"/>
+		<Option compiler="0"/>
+		<Build>
+			<Target title="default">
+				<Option output="svn.dll"/>
+				<Option working_dir="."/>
+				<Option object_output=".objs"/>
+				<Option deps_output=".deps"/>
+				<Option external_deps=""/>
+				<Option type="3"/>
+				<Option compiler="0"/>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-D__GNUWIN32__"/>
+			<Add option="-DWXUSINGDLL"/>
+			<Add option="-DBUILDING_PLUGIN"/>
+		</Compiler>
+		<Linker>
+			<Add library="codeblocks"/>
+			<Add library="C:\CodeBlocks\wxmsw242.dll"/>
+			<Add directory="C:\CodeBlocks"/>
+		</Linker>
+		<ExtraCommands>
+			<Add before="icons\png2ico res\svn-icon.ico icons\svn.48.png icons\svn.32.png"/>
+			<Add before="zip -j build/share/CodeBlocks/svn.zip res\svn.xrc icons\log.png"/>
+		</ExtraCommands>
+		<Unit filename="dialogs.cpp">
+			<Option compilerVar="CPP"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="dialogs.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
+			<Option weight="100"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="res\resource.rc">
+			<Option compilerVar="WINDRES"/>
+			<Option objectName="res\resource.res"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="svn.cpp">
+			<Option compilerVar="CPP"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="svn.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
+			<Option weight="100"/>
+			<Option useBuildCommand="1"/>
+			<Option buildCommand="gcc $FILENAME"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="toolrunner.cpp">
+			<Option compilerVar="CPP"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="toolrunner.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
+			<Option weight="100"/>
+			<Option target="default"/>
+		</Unit>
+	</Project>
+</Code::Blocks_project_file>
