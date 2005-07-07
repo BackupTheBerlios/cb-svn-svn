@@ -27,7 +27,7 @@
 #include <simpletextlog.h>
 
 
-//#define LOTS_OF_DEBUG_OUTPUT
+#define LOTS_OF_DEBUG_OUTPUT
 
 
 
@@ -143,6 +143,7 @@ class ToolRunner
         wxYield();
 
 #ifdef LOTS_OF_DEBUG_OUTPUT
+
       outputLog->AddLog(wxString("--------------------------------------------"));
       outputLog->AddLog(runCommand);
       outputLog->AddLog(wxString("Command exits with ") << lastExitCode);
@@ -243,24 +244,25 @@ class SVNRunner : public ToolRunner
       prune_non_interactive = true;
     };
 
-    int  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
-    int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
+    int				SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
+    int				SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
 
-    int  SVNRunner::Status(const wxString& file);
-    int  SVNRunner::Update(const wxString& file, wxString& revision);
-    int  SVNRunner::Commit(const wxString& selected, const wxString& message);
+    int				SVNRunner::Status(const wxString& file);
+    int				SVNRunner::Update(const wxString& file, wxString& revision);
+    int				SVNRunner::Commit(const wxString& selected, const wxString& message);
 
-    int  SVNRunner::Move(const wxString& selected, const wxString& to);
-    int  SVNRunner::Add(const wxString& selected);
-    int  SVNRunner::Delete(const wxString& selected);
+    int				SVNRunner::Move(const wxString& selected, const wxString& to);
+    int				SVNRunner::Add(const wxString& selected);
+    int				SVNRunner::Delete(const wxString& selected);
 
-    int  SVNRunner::Revert(const wxString& file);
+    int  			SVNRunner::Revert(const wxString& file);
 
-    wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop);
+    wxString		SVNRunner::PropGet(const wxString& file, const wxString& prop);
+    int  			SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive);
 
-    wxArrayString  SVNRunner::GetPropertyList(const wxString& file);
+    wxArrayString	SVNRunner::GetPropertyList(const wxString& file);
 
-    virtual int SVNRunner::Run(wxString cmd);
+    virtual int		SVNRunner::Run(wxString cmd);
 
   private:
   }

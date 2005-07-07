@@ -99,11 +99,7 @@ class SubversionPlugin : public cbPlugin
 
     void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event);
 
-    void SubversionPlugin::EditProperty(wxEvent& event)
-    {
-      outputLog->AddLog(wxString("pfft... ") << event.GetId());
-      outputLog->AddLog(fileProperties[event.GetId()]);
-    }
+    void SubversionPlugin::EditProperty(wxEvent& event);
 
 
     wxArrayString SubversionPlugin::ParseStatusOutputForChar(const char what);

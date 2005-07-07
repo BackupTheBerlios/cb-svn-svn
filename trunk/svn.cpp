@@ -92,6 +92,10 @@ EVT_MENU(ID_MENU_KW_AUTHOR,			SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_HEAD,			SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_ID,				SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_PROP_NEW,			SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_SETALL,			SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_CLEARALL,		SubversionPlugin::PropKeywords)
+
+EVT_MENU(ID_MENU_PROP_NEW,			SubversionPlugin::EditProperty)
 
 
 END_EVENT_TABLE()
@@ -125,7 +129,12 @@ SubversionPlugin::SubversionPlugin()
 
   m_PluginInfo.name = "svn";
   m_PluginInfo.title = "Subversion";
-  m_PluginInfo.version = "0.2  $Revision$";
+
+  {
+    wxString rev("($Revision$$Date$)");	// let svn:keywords fill in the revision number
+    rev.Replace("$", "");					// but make it a bit prettier
+    m_PluginInfo.version = "0.2   " + rev;
+  }
   m_PluginInfo.description = "code::blocks revision control using subversion\n\n"
                              "Subversion is an advanced revision control system intended to replace CVS.\n\n"
                              "If you develop under Windows, do not forget to get TortoiseSVN as well.\n\n"
@@ -192,7 +201,7 @@ void SubversionPlugin::OnAttach()
 
 void SubversionPlugin::OnRelease(bool appShutDown)
 {
-  //WriteConfig();
+  WriteConfig();
 }
 
 
@@ -338,7 +347,7 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
       if(fm)
         comstr << fm << " file" << (fm == 1 ? "" : "s");
       if(pm)
-        comstr << (fm ? ", " : "") << pm << " properties";
+        comstr << (fm ? ", " : "") << pm << (pm == 1 ? " property" : " properties");
       comstr << " modified";
       if(fa)
         comstr << ((fm || pm) ? ", " : "") << fa << " file" << (fa == 1 ? "" : "s") << " added";
@@ -415,14 +424,24 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
   menu->AppendSeparator();
 
   wxMenu* keywords = new wxMenu;
-  keywords->Append( ID_MENU_KW_DATE, "Date", "", wxITEM_CHECK );
-  keywords->Append( ID_MENU_KW_REVISION, "Revision", "", wxITEM_CHECK );
-  keywords->Append( ID_MENU_KW_AUTHOR, "Author", "", wxITEM_CHECK );
-  keywords->Append( ID_MENU_KW_HEAD, "HeadURL", "", wxITEM_CHECK );
-  keywords->Append( ID_MENU_KW_ID, "Id", "", wxITEM_CHECK );
-
   wxMenu* svnprops = new wxMenu;
-  svnprops->Append( ID_MENU, isProject ? "Global->svn:keywords (recursive)" : "svn:keywords", keywords );
+  if(isProject)
+    {
+      keywords->Append( ID_MENU_KW_SETALL, "Set all" );
+      keywords->Append( ID_MENU_KW_CLEARALL, "Clear all" );
+      svnprops->Append( ID_MENU, "Global->svn:keywords", keywords );
+    }
+  else
+    {
+      keywords->Append( ID_MENU_KW_DATE, "Date", "", wxITEM_CHECK );
+      keywords->Append( ID_MENU_KW_REVISION, "Revision", "", wxITEM_CHECK );
+      keywords->Append( ID_MENU_KW_AUTHOR, "Author", "", wxITEM_CHECK );
+      keywords->Append( ID_MENU_KW_HEAD, "HeadURL", "", wxITEM_CHECK );
+      keywords->Append( ID_MENU_KW_ID, "Id", "", wxITEM_CHECK );
+      svnprops->Append( ID_MENU, "svn:keywords", keywords );
+    }
+
+
   if(isProject)
     {
       svnprops->Append( ID_MENU_PROP_IGNORE, has_ignore ? "svn:ignore" : "svn:ignore [none]" );
@@ -448,7 +467,6 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
   if(has_keywords)
     {
       wxString kw = svn->PropGet(target, "svn:keywords");
-      outputLog->AddLog(kw << "!! prop");
       keywords->Check(ID_MENU_KW_DATE,		kw.Contains("Date"));
       keywords->Check(ID_MENU_KW_REVISION,	kw.Contains("Revision"));
       keywords->Check(ID_MENU_KW_AUTHOR,	kw.Contains("Author"));
@@ -460,8 +478,6 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
   propsub->Append( ID_MENU, "svn", svnprops );
   propsub->Append( ID_MENU_PROP_NEW, "New Property", "" );
 
-
-  ///    sub->AppendSeparator();
 
   if(props.Count())
     {
@@ -587,7 +603,6 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
                         if (proj && proj->GetFileByFilename(missing[k], false, filenames_are_unix))
                           {
                             toAdd.Add(missing[k]);
-                            outputLog->AddLog(missing[k] + " is a file in a project");
                             break;
                           }
                       }
@@ -600,10 +615,13 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
       else
         toAdd = d.finalList;
 
-      for(unsigned int i = 0; i < toAdd.Count(); ++i)
-        svn->Add(toAdd[i]);
-      svn->Commit(selected, d.comment);
+      wxString concat;
+      for(unsigned int i = 0; i < toAdd.Count(); ++i)	// better call svn with 637 paramters than running svn 637 times...
+        concat << " \"" << toAdd[i] << "\" ";
+      concat = concat.Mid(2, concat.Length()-4);		// svn->Add() wraps in double quotes already
 
+      svn->Add(concat);
+      svn->Commit(selected, d.comment);
     }
 }
 
@@ -621,46 +639,49 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
         {
           if(::wxDirExists(d.checkoutDir) || ::wxMkdir(d.checkoutDir))
             if(!svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision) ))
-              if(d.autoOpen)
-                {
-                  outputLog->AddLog("Looking for projects...");
+              {
+                if(d.autoOpen)
+                  {
+                    outputLog->AddLog("Looking for projects...");
 
-                  wxArrayString dirs;
-                  wxString f;
+                    wxArrayString dirs;
+                    wxString f;
 
-                  f = wxFindFirstFile(d.checkoutDir + "/", wxDIR);
-                  dirs.Add(d.checkoutDir);
-                  while ( !f.IsEmpty() )
-                    {
-                      dirs.Add(f);
-                      f = wxFindNextFile();
-                    }
-                  for(int i = 0; i < dirs.Count(); ++i)
-                    {
-                      f = wxFindFirstFile(dirs[i] + "/*.cbp");
-                      while ( !f.IsEmpty() )
-                        {
-                          outputLog->AddLog("opening " + f);
-                          pmgr->LoadProject(f);
-                          f = wxFindNextFile();
-                        }
-                      f = wxFindFirstFile(dirs[i] + "/*.dev");
-                      while ( !f.IsEmpty() )
-                        {
-                          outputLog->AddLog("importing " + f);
-                          pmgr->LoadProject(f);
-                          f = wxFindNextFile();
-                        }
-                      f = wxFindFirstFile(dirs[i] + "/*.dsp");
-                      while ( !f.IsEmpty() )
-                        {
-                          outputLog->AddLog("importing " + f);
-                          pmgr->LoadProject(f);
-                          f = wxFindNextFile();
-                        }
-                    }
+                    f = wxFindFirstFile(d.checkoutDir + "/", wxDIR);
+                    dirs.Add(d.checkoutDir);
+                    while ( !f.IsEmpty() )
+                      {
+                        dirs.Add(f);
+                        f = wxFindNextFile();
+                      }
+                    for(int i = 0; i < dirs.Count(); ++i)
+                      {
+                        f = wxFindFirstFile(dirs[i] + "/*.cbp");
+                        while ( !f.IsEmpty() )
+                          {
+                            outputLog->AddLog("opening " + f);
+                            pmgr->LoadProject(f);
+                            f = wxFindNextFile();
+                          }
+                        f = wxFindFirstFile(dirs[i] + "/*.dev");
+                        while ( !f.IsEmpty() )
+                          {
+                            outputLog->AddLog("importing " + f);
+                            pmgr->LoadProject(f);
+                            f = wxFindNextFile();
+                          }
+                        f = wxFindFirstFile(dirs[i] + "/*.dsp");
+                        while ( !f.IsEmpty() )
+                          {
+                            outputLog->AddLog("importing " + f);
+                            pmgr->LoadProject(f);
+                            f = wxFindNextFile();
+                          }
+                      }
 
-                }
+                  }
+                repoHistory.Insert(d.repoURL, 0);
+              }
         }
     }
 }
@@ -676,6 +697,7 @@ void SubversionPlugin::Import(CodeBlocksEvent& event)
         svn->SetPassword(d.username, d.password);
 
       svn->Import(d.repoURL, d.importDir, d.comment);
+      repoHistory.Insert(d.repoURL, 0);
     }
 }
 
@@ -717,8 +739,7 @@ void SubversionPlugin::Preferences(CodeBlocksEvent& event)
   XRCCTRL(d, "no props", wxCheckBox)->SetValue(no_props);
   XRCCTRL(d, "show resolved", wxCheckBox)->SetValue(show_resolved);
   XRCCTRL(d, "cascade", wxCheckBox)->SetValue(cascade_menu);
-
-
+  d.RadioToggle(event);
 
   if(d.ShowModal() == wxID_OK)	// Great job wxOK and wxID_OK have similar names and different values. Since nothing in wxWindows is typedef'd
     {							// you can spend hours wondering what goes wrong and never get a compiler error.
@@ -728,7 +749,6 @@ void SubversionPlugin::Preferences(CodeBlocksEvent& event)
 
       svn->SetExecutable(svnbinary);
       tortoise->SetExecutable(tortoiseproc);
-
 
       auto_add					= XRCCTRL(d, "auto add", wxCheckBox)->GetValue();
       auto_add_only_project		= XRCCTRL(d, "autoadd only project", wxCheckBox)->GetValue();
@@ -830,9 +850,7 @@ void SubversionPlugin::WriteConfig()
 
 void SubversionPlugin::Add(CodeBlocksEvent& event)
 {
-  outputLog->AddLog("add...");
-  wxString selected(GetSelection());
-  svn->Add(selected);
+  svn->Add(GetSelection());
 }
 
 void SubversionPlugin::Delete(CodeBlocksEvent& event)
@@ -861,7 +879,46 @@ void SubversionPlugin::PropExec(CodeBlocksEvent& event)
 void SubversionPlugin::PropExt(CodeBlocksEvent& event)
 {}
 void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
-{}
+{
+  wxString item;
+
+  switch(event.GetId())
+    {
+    case ID_MENU_KW_DATE:
+      item << "Date";
+      break;
+    case ID_MENU_KW_REVISION:
+      item << "Revision";
+      break;
+    case ID_MENU_KW_AUTHOR:
+      item << "Author";
+      break;
+    case ID_MENU_KW_HEAD:
+      item << "HeadURL";
+      break;
+    case ID_MENU_KW_ID:
+      item << "Id";
+      break;
+    case ID_MENU_KW_SETALL:
+      svn->PropSet(GetSelection(), "svn:keywords", "Date Revision Author HeadURL Id", true);
+      return;
+    case ID_MENU_KW_CLEARALL:
+      svn->PropSet(GetSelection(), "svn:keywords", "", true);
+      return;
+    }
+  wxString kw = svn->PropGet(GetSelection(), "svn:keywords");
+
+  if(kw.Contains(item))
+    kw.Replace(item, "");
+  else
+    kw << "  " << item;
+
+  kw.Replace("\n", " ", true); // these are probably unneeded, but better do them anyway just in case
+  kw.Replace("  ", " ", true);
+  kw.Trim(false);
+
+  svn->PropSet(GetSelection(), "svn:keywords", kw, true);
+}
 
 
 
@@ -924,6 +981,11 @@ void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
   tortoise->Run(cmd);
 }
 
+void SubversionPlugin::EditProperty(wxEvent& event)
+{
+  outputLog->AddLog(wxString("pfft... ") << event.GetId());
+  outputLog->AddLog(fileProperties[event.GetId()]);
+}
 
 
 
@@ -939,8 +1001,32 @@ void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
 
 
 
-/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*-----------------------------------------------------------------------------------------------------------------
+*
 *  DO NOT LOOK ANY FURTHER. BEYOND THIS POINT, THINGS ARE REALLY EVIL. YOU HAVE BEEN WARNED.
+* 
 */
 
 void SubversionPlugin::OnFirstRun()
@@ -1020,7 +1106,7 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
   prefix.Add("C:\\Tools");
   prefix.Add("E:");
 
-  location.Add("\\subversion\\bin");							// a few more wild guesses to find the directory
+  location.Add("\\subversion\\bin");
   location.Add("\\TortoiseSVN\\bin");
   location.Add("\\TortoiseMerge\\bin");
   location.Add("\\subversion");
@@ -1029,10 +1115,9 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
   location.Add("\\svn\\bin");
   location.Add("\\svn");
   location.Add("\\bin");
-  location.Add("\\tools");
 
 
-  int lc = location.GetCount();
+  int lc = location.GetCount();  // I never trust these are really inline, are they...?
   int pc = prefix.GetCount();
 
   for(int i = 0; i < lc; i++)
@@ -1053,7 +1138,7 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
 
 #ifdef __linux__
 
-  wxArrayString location;			// so much easier compared to Windows
+  wxArrayString location;
   location.Add("/usr/bin");			// this is probably it, anyway
   location.Add("/usr/local/bin");
   location.Add("/usr/share/bin");
@@ -1069,7 +1154,7 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     }
 
   // similar to above - if we can't find svn, we will assume (hope) it is in $PATH and just call "svn"
-  // - most likely that will be the case
+  // - if the user actually works with svn at all, this should be the case
   return(name);
 
 #endif

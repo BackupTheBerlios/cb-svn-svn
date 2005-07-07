@@ -62,7 +62,9 @@ enum {  ID_MENU_SVN = 32000,
         ID_MENU_KW_HEAD,
         ID_MENU_KW_ID,
         ID_MENU_PROP_NEW,
-        ID_MENU_RESOLVEPROP
+        ID_MENU_RESOLVEPROP,
+        ID_MENU_KW_SETALL,
+        ID_MENU_KW_CLEARALL
      };
 
 class CheckoutDialog : public wxDialog
@@ -140,6 +142,7 @@ class PreferencesDialog : public wxDialog
     ~PreferencesDialog()
     {}
     ;
+    void RadioToggle(wxCommandEvent& event);
   private:
     void OnOKClick(wxCommandEvent& event);
     void OnCancelClick(wxCommandEvent& event);

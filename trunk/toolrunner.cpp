@@ -24,10 +24,10 @@ int SVNRunner::Run(wxString cmd)
   wxString ia(" --non-interactive");
 
   if(prune_non_interactive) // a few commands will refuse to run "non-interactively", although they are not interactive :S
-  {
-  ia.Empty();
-  prune_non_interactive = false;
-  }
+    {
+      ia.Empty();
+      prune_non_interactive = false;
+    }
 
   cmd.Replace("\\", "/");
 
@@ -106,14 +106,14 @@ int  SVNRunner::Move(const wxString& selected, const wxString& to)
 
 int  SVNRunner::Add(const wxString& selected)
 {
-NoInteractive();
+  NoInteractive();
   Run("add \"" + selected + "\"");
   return lastExitCode;
 }
 
 int  SVNRunner::Delete(const wxString& selected)
 {
-NoInteractive();
+  NoInteractive();
   Run("delete \"" + selected + "\"");
   return lastExitCode;
 }
@@ -142,10 +142,7 @@ int  SVNRunner::Update(const wxString& selected, wxString& revision)
 
 int  SVNRunner::Commit(const wxString& selected, const wxString& message)
 {
-  Status(selected);
-  wxString msg(message);
-  msg.Replace("\"", "\\\"");
-  TempFile c(msg);
+  TempFile c(message);
   Run("commit \"" + selected + "\" -F \"" + c.name +"\"");
   return lastExitCode;
 }
@@ -174,6 +171,14 @@ wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop)
     ret << std_out[i] << "\n";
 
   return ret;
+}
+
+int  SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive)
+{
+  TempFile t(value);
+
+return  Run("ps " + prop + " -F \"" + t.name + "\" \"" + file + (recursive ? "\" -R" : "\""));
+
 }
 
 

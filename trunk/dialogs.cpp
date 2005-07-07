@@ -206,6 +206,7 @@ void CommitDialog::OnCancelClick(wxCommandEvent& event)
 BEGIN_EVENT_TABLE(PreferencesDialog, wxDialog)
 EVT_BUTTON(XRCID("wxID_OK"), 	PreferencesDialog::OnOKClick)
 EVT_BUTTON(XRCID("wxID_CANCEL"), PreferencesDialog::OnCancelClick)
+EVT_CHECKBOX(-1,  PreferencesDialog::RadioToggle)
 END_EVENT_TABLE()
 
 
@@ -224,6 +225,12 @@ void PreferencesDialog::OnOKClick(wxCommandEvent& event)
 void PreferencesDialog::OnCancelClick(wxCommandEvent& event)
 {
   EndModal(wxID_CANCEL);
+}
+
+void PreferencesDialog::RadioToggle(wxCommandEvent& event)
+{
+  XRCCTRL(*this, "autoadd only project", wxCheckBox)->Enable(XRCCTRL(*this, "auto add", wxCheckBox)->GetValue());
+  XRCCTRL(*this, "prefill comments", wxCheckBox)->Enable(XRCCTRL(*this, "no emtpy comments", wxCheckBox)->GetValue());
 }
 
 
