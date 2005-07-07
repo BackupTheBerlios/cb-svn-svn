@@ -91,7 +91,6 @@ EVT_MENU(ID_MENU_KW_REVISION,		SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_AUTHOR,			SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_HEAD,			SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_ID,				SubversionPlugin::PropKeywords)
-EVT_MENU(ID_MENU_PROP_NEW,			SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_SETALL,			SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_CLEARALL,		SubversionPlugin::PropKeywords)
 
@@ -131,9 +130,14 @@ SubversionPlugin::SubversionPlugin()
   m_PluginInfo.title = "Subversion";
 
   {
-    wxString rev("($Revision$$Date$)");	// let svn:keywords fill in the revision number
+    wxString rev("$Revision$");	// let svn:keywords fill in the revision number
+    wxString date("$Date$");
     rev.Replace("$", "");					// but make it a bit prettier
-    m_PluginInfo.version = "0.2   " + rev;
+    wxRegEx reg("Date: ([0-9]{4}-[0-9]{2}-[0-9]{2})", wxRE_ICASE);
+    if(reg.Matches(date))
+      date = reg.GetMatch(date, 1);
+
+    m_PluginInfo.version = "0.2   " + rev + " / " + date;
   }
   m_PluginInfo.description = "code::blocks revision control using subversion\n\n"
                              "Subversion is an advanced revision control system intended to replace CVS.\n\n"
@@ -310,6 +314,12 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
 
   AppendCommonMenus(menu, target, false);
 
+  if(status == 'M' || status == 'A' || status == 'D' || pstatus == 'M')
+    {
+      menu->AppendSeparator();
+      menu->Append(ID_MENU_REVERT, "Revert");
+    }
+
   menu->AppendSeparator();
   menu->Append( ID_MENU_DELETE, "Delete", "Remove from project, delete, and schedule for deletion from repository. Can be reverted." );
 }
@@ -365,7 +375,6 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
       menu->AppendSeparator();
       menu->Append( ID_MENU_REVERT, "Revert..." );
       menu->AppendSeparator();
-      menu->Enable(ID_MENU_REVERT, false);
     }
 
   AppendCommonMenus(menu, target, true);
@@ -401,6 +410,9 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       fileProperties.clear();
     }
 
+  if(no_props)
+    return;
+
   wxArrayString props = svn->GetPropertyList(target);
 
 
@@ -419,7 +431,6 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       has_mime		|= (props[i] == "svn:mime-type");
       has_externals	|= (props[i] == "svn:externals");
     }
-
 
   menu->AppendSeparator();
 
@@ -462,8 +473,6 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       svnprops->Check(ID_MENU_PROP_EXECUTABLE, has_exec);
     }
 
-
-
   if(has_keywords)
     {
       wxString kw = svn->PropGet(target, "svn:keywords");
@@ -476,8 +485,14 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
 
   wxMenu* propsub = new wxMenu;
   propsub->Append( ID_MENU, "svn", svnprops );
-  propsub->Append( ID_MENU_PROP_NEW, "New Property", "" );
+  propsub->Append( ID_MENU_PROP_NEW, "New Property");
 
+
+  props.Remove("svn:ignore");
+  props.Remove("svn:keywords");
+  props.Remove("svn:executable");
+  props.Remove("svn:mime-type");
+  props.Remove("svn:externals");
 
   if(props.Count())
     {
@@ -616,7 +631,7 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
         toAdd = d.finalList;
 
       wxString concat;
-      for(unsigned int i = 0; i < toAdd.Count(); ++i)	// better call svn with 637 paramters than running svn 637 times...
+      for(unsigned int i = 0; i < toAdd.Count(); ++i)	// better call svn with 637 paramters than run svn 637 times...
         concat << " \"" << toAdd[i] << "\" ";
       concat = concat.Mid(2, concat.Length()-4);		// svn->Add() wraps in double quotes already
 
@@ -704,7 +719,64 @@ void SubversionPlugin::Import(CodeBlocksEvent& event)
 
 
 void SubversionPlugin::Revert(CodeBlocksEvent& event)
-{}
+{
+  wxString target(GetSelection());
+
+  svn->Status(target);
+
+  wxArrayString mods;
+
+  int n = svn->std_out.Count();
+  for(int i = 0; i < n; ++i)
+    {
+      wxString s;
+      if(svn->std_out[i][(size_t)0] == 'D')
+        s << "deletion";
+      if(svn->std_out[i][(size_t)0] == 'A')
+        s << (s.Length()? ", " : "") <<  "addition";
+      if(svn->std_out[i][(size_t)0] == 'M' || svn->std_out[i][(size_t)0] == 'C')
+        s << (s.Length()? ", " : "") <<  "local modification";
+      if(svn->std_out[i][(size_t)1] == 'M')
+        s << (s.Length()? ", " : "") <<  "property change";
+
+      s << " of " << svn->std_out[i].Mid(7);
+
+      if(svn->std_out[i].Length() > 8)
+        mods.Add(s);
+    }
+
+  if(::wxDirExists(target)) // seems like we have a project folder here
+    {
+      RevertDialog d(Manager::Get()->GetAppWindow(), mods);
+      d.Centre();
+      if(d.ShowModal() == wxID_OK)
+      {}
+    }
+  else
+    {
+      wxString localMods;
+      if(warn_revert && ParseStatusOutputForFile(target) == 'M')
+        localMods = "\nWARNING:\n\nThis file has local modifications which you will lose if you revert it.\n\n\n";
+
+      if(never_ask || wxMessageDialog(Manager::Get()->GetAppWindow(), localMods + "Do you want to revert the file " + target + "?", (localMods.IsEmpty() ? "Revert" : "Revert over Modifications"), wxYES_NO).ShowModal() == wxID_YES)
+        svn->Revert(target);
+    }
+
+}
+
+
+char SubversionPlugin::ParseStatusOutputForFile(const wxString& what)
+{
+  int n = svn->std_out.Count();
+  for(int i = 0; i < n; ++i)
+    {
+      if(svn->std_out[i].Mid(7) == what )
+        {
+          return (svn->std_out[i])[(size_t)0];
+        }
+    }
+  return 0;
+}
 
 wxArrayString SubversionPlugin::ParseStatusOutputForChar(const char what)
 {
@@ -857,6 +929,9 @@ void SubversionPlugin::Delete(CodeBlocksEvent& event)
 {
   wxString selected(GetSelection());
 
+  if(never_ask)
+    svn->Force();
+
   if(never_ask || no_ask_revertable || wxMessageDialog(Manager::Get()->GetAppWindow(), "Issue a 'svn delete' on the file " + selected + "?\n\nThis will not only delete the from disk, but also remove it from revision control.", "Delete File", wxYES_NO).ShowModal() == wxID_YES)
     {
       wxTreeCtrl* tree = Manager::Get()->GetProjectManager()->GetTree();
@@ -865,6 +940,8 @@ void SubversionPlugin::Delete(CodeBlocksEvent& event)
       p->RemoveFile(ftd->GetFileIndex());
       Manager::Get()->GetProjectManager()->RebuildTree();
       svn->Delete(selected);
+      if(svn->std_err.Count())
+        ; // display something
     }
 }
 
@@ -913,7 +990,7 @@ void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
   else
     kw << "  " << item;
 
-  kw.Replace("\n", " ", true); // these are probably unneeded, but better do them anyway just in case
+  kw.Replace("\n", " ", true); // this is probably unneeded, but better do it anyway just in case
   kw.Replace("  ", " ", true);
   kw.Trim(false);
 
@@ -925,14 +1002,7 @@ void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
 
 
 void SubversionPlugin::ProjectOpen(CodeBlocksEvent& event)
-{
-  return; /////////////////////////////////////////////////////////
-
-  wxString topdir(event.GetProject()->GetCommonTopLevelPath());
-
-  if(DirUnderVersionControl(topdir) && svn->Status(topdir) == 0)
-  {}
-}
+{}
 
 
 
@@ -969,11 +1039,6 @@ void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
 
   wxString p(GetSelection());
 
-  if(event.GetId() != ID_MENU_CREATE && !DirUnderVersionControl(p))
-    {
-      outputLog->AddLog("You need to select a project or have an active project that is under version control.");
-      return;
-    }
   if(! p.IsEmpty())
     {
       cmd << " /path:" << Escape(p);
@@ -981,10 +1046,37 @@ void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
   tortoise->Run(cmd);
 }
 
+
 void SubversionPlugin::EditProperty(wxEvent& event)
 {
-  outputLog->AddLog(wxString("pfft... ") << event.GetId());
-  outputLog->AddLog(fileProperties[event.GetId()]);
+  wxString name;
+  wxString value;
+  wxString file(GetSelection());
+
+  if(event.GetId() == ID_MENU_PROP_NEW)
+    {
+      name = "NewPropertyName";
+    }
+  else
+    {
+      name = fileProperties[event.GetId()];
+      value = svn->PropGet(file, name);
+    }
+
+  PropertyEditorDialog d(Manager::Get()->GetAppWindow(), name, value);
+  d.Centre();
+  file = LocalPath(file);
+  file = file == "" ? "[top dir]" : file;
+  d.SetTitle("Property editor: " + file);
+
+  if(d.ShowModal() == wxID_OK)
+    {
+      svn->PropSet(file, d.name, d.value, true);
+    }
+  else if(d.del && ( never_ask || no_ask_revertable || wxMessageDialog(Manager::Get()->GetAppWindow(), "Remove the property " + name + " from " + file + " ?", "Delete Property", wxYES_NO).ShowModal() == wxID_YES))
+    {
+      svn->PropDel(file, d.name);
+    }
 }
 
 

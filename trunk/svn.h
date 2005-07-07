@@ -101,8 +101,8 @@ class SubversionPlugin : public cbPlugin
 
     void SubversionPlugin::EditProperty(wxEvent& event);
 
-
-    wxArrayString SubversionPlugin::ParseStatusOutputForChar(const char what);
+    wxArrayString	SubversionPlugin::ParseStatusOutputForChar(const char what);
+	char 			SubversionPlugin::ParseStatusOutputForFile(const wxString& what);
 
     void SubversionPlugin::TamperWithWindowsRegistry();
     wxString SubversionPlugin::NastyFind(const wxString& name);
@@ -116,6 +116,18 @@ class SubversionPlugin : public cbPlugin
       t.Replace("\\", "/");
       return t;
     }
+
+    wxString SubversionPlugin::LocalPath(const wxString& target)
+    {
+      return LocalPath(GetSelectionsProject(), target);
+    };
+
+    wxString SubversionPlugin::LocalPath(const wxString& base, const wxString& target)
+    {
+      wxFileName fn(target);
+      fn.MakeRelativeTo(base);
+      return fn.GetFullPath();
+    };
 
     wxString SubversionPlugin::GetActiveProject()
     {

@@ -168,6 +168,47 @@ class PasswordDialog : public wxDialog
 
     DECLARE_EVENT_TABLE()
   };
+  
+class PropertyEditorDialog : public wxDialog
+  {
+  public:
+    PropertyEditorDialog(wxWindow* parent, const wxString& name, const wxString& value);
+    ~PropertyEditorDialog()
+    {}
+    ;
+
+    wxString name;
+    wxString value;
+    bool del;
+
+  private:
+    void OnOKClick(wxCommandEvent& event);
+    void OnCancelClick(wxCommandEvent& event);
+    void OnDeleteClick(wxCommandEvent& event);
+
+    DECLARE_EVENT_TABLE()
+  };
+
+
+
+class RevertDialog : public wxDialog
+  {
+  public:
+    RevertDialog(wxWindow* parent, const wxArrayString& revertList);
+    ~RevertDialog()
+    {}
+    ;
+
+    wxArrayString finalList;
+  private:
+    void OnOKClick(wxCommandEvent& event);
+    void OnCancelClick(wxCommandEvent& event);
+    void SelectNone(wxCommandEvent& event);
+    void SelectAll(wxCommandEvent& event);
+    void Selected(wxCommandEvent& event);
+    DECLARE_EVENT_TABLE()
+  };
+
 
 
 #endif

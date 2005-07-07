@@ -22,6 +22,7 @@
 int SVNRunner::Run(wxString cmd)
 {
   wxString ia(" --non-interactive");
+  wxString force;
 
   if(prune_non_interactive) // a few commands will refuse to run "non-interactively", although they are not interactive :S
     {
@@ -29,12 +30,17 @@ int SVNRunner::Run(wxString cmd)
       prune_non_interactive = false;
     }
 
+  if(do_force)
+    {
+      do_force = false;
+      force = " --force";
+    }
   cmd.Replace("\\", "/");
 
   wxString runCmd(cmd);
   if(username > "" && password > "")
     {
-      runCmd << " --username " << username << " --password \"" << password << "\"" << ia;
+      runCmd << " --username " << username << " --password \"" << password << "\"" << ia << force;
       username = password = "";
     }
   else
@@ -86,71 +92,57 @@ int SVNRunner::Status(const wxString& file)
 
 int  SVNRunner::Revert(const wxString& file)
 {
-  if(wxDirExists(file))
-    wxRmdir(file);
-  else
-    wxRemoveFile(file);
-  wxSleep(2);
-
-  Run("update -r BASE \"" + file + "\"");
-
-  return lastExitCode;
+  NoInteractive();
+  return Run("revert" + Q(file));
 }
 
 
 int  SVNRunner::Move(const wxString& selected, const wxString& to)
 {
-  Run("move \"" + selected + "\" \"" + to + "\"" );
-  return lastExitCode;
+  return Run("move" + Q(selected) + Q(to) );
 }
 
 int  SVNRunner::Add(const wxString& selected)
 {
   NoInteractive();
-  Run("add \"" + selected + "\"");
-  return lastExitCode;
+  return Run("add" + Q(selected));
 }
 
 int  SVNRunner::Delete(const wxString& selected)
 {
   NoInteractive();
-  Run("delete \"" + selected + "\"");
-  return lastExitCode;
+  return Run("delete" + Q(selected));
 }
 
 
 int  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision)
 {
-  Run("checkout \"" + repo + "\" \"" + dir + "\" -r " + revision);
-  return lastExitCode;
+  return Run("checkout" + Q(repo) + Q(dir) + "-r " + revision);
 }
 
 int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message)
 {
   TempFile c(message);
-  Run("import \"" + dir + "\" \"" + repo + "\" -F \"" + c.name + "\"");
-  return lastExitCode;
+  return Run("import" + Q(dir) + Q(repo) + "-F" + Q(c.name));
 }
 
 
 int  SVNRunner::Update(const wxString& selected, wxString& revision)
 {
-  Run("update \"" + selected + "\" -r " + revision);
-  return lastExitCode;
+  return Run("update" + Q(selected) + "-r " + revision);
 }
 
 
 int  SVNRunner::Commit(const wxString& selected, const wxString& message)
 {
   TempFile c(message);
-  Run("commit \"" + selected + "\" -F \"" + c.name +"\"");
-  return lastExitCode;
+  return Run("commit" + Q(selected) + "-F" + Q(c.name));
 }
 
 wxArrayString  SVNRunner::GetPropertyList(const wxString& file)
 {
   wxArrayString ret;
-  Run("pl \"" + file + "\"");
+  Run("pl" + Q(file));
 
   int n = std_out.Count();
   for(int i = 0; i < n; ++i)
@@ -162,7 +154,7 @@ wxArrayString  SVNRunner::GetPropertyList(const wxString& file)
 
 wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop)
 {
-  Run("pg " + prop + " \"" + file + "\"");
+  Run("pg" + Q(prop) + Q(file));
 
   wxString ret;
 
@@ -176,10 +168,17 @@ wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop)
 int  SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive)
 {
   TempFile t(value);
-
-return  Run("ps " + prop + " -F \"" + t.name + "\" \"" + file + (recursive ? "\" -R" : "\""));
+  return  Run("ps " + prop + " -F" + Q(t.name) + Q(file) + (recursive ? "-R" : ""));
 
 }
+
+int	SVNRunner::PropDel(const wxString& file, const wxString& prop)
+{
+  return  Run("pd" + Q(prop) + Q(file));
+}
+
+
+
 
 
 

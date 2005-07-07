@@ -27,7 +27,7 @@
 #include <simpletextlog.h>
 
 
-#define LOTS_OF_DEBUG_OUTPUT
+//#define LOTS_OF_DEBUG_OUTPUT
 
 
 
@@ -63,10 +63,11 @@ class ToolRunner
 
         virtual void OnTerminate(int pid, int status)
         {
-          running = false;
-
           if(std_out == 0) // StevieWonder() needs no output
-            return;
+            {
+              running = false;
+              return;
+            }
           assert(std_err);
           assert(blob);
 
@@ -102,10 +103,8 @@ class ToolRunner
                 }
 
             }
-          std_out->Add(wxEmptyString);
-          std_err->Add(wxEmptyString);
+        running = false;
         }
-
       };
 
 
@@ -217,6 +216,7 @@ class SVNRunner : public ToolRunner
 
     wxString username;
     wxString password;
+    bool do_force;
     bool prune_non_interactive;
     int wantProgressBar;
 
@@ -243,6 +243,17 @@ class SVNRunner : public ToolRunner
     {
       prune_non_interactive = true;
     };
+    void Force() // work around "subcommand does not support --non-interactive" error
+    {
+      do_force = true;
+    };
+
+    wxString Q(const wxString & in)
+    {
+      wxString out(" \"");
+      out << in << "\" ";
+      return out;
+    };
 
     int				SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
     int				SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
@@ -259,6 +270,7 @@ class SVNRunner : public ToolRunner
 
     wxString		SVNRunner::PropGet(const wxString& file, const wxString& prop);
     int  			SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive);
+    int				SVNRunner::PropDel(const wxString& file, const wxString& prop);
 
     wxArrayString	SVNRunner::GetPropertyList(const wxString& file);
 

@@ -263,3 +263,111 @@ void PasswordDialog::OnCancelClick(wxCommandEvent& event)
 
 
 
+// --- Property Dialog ---------------------------------------------------
+
+BEGIN_EVENT_TABLE(PropertyEditorDialog, wxDialog)
+EVT_BUTTON(XRCID("wxID_OK"), PropertyEditorDialog::OnOKClick)
+EVT_BUTTON(XRCID("wxID_CANCEL"), PropertyEditorDialog::OnCancelClick)
+EVT_BUTTON(XRCID("delete"), PropertyEditorDialog::OnDeleteClick)
+END_EVENT_TABLE()
+
+
+PropertyEditorDialog::PropertyEditorDialog(wxWindow* parent, const wxString& n, const wxString& v) : del(0)
+{
+  wxXmlResource::Get()->LoadDialog(this, parent, "PropertyEditor");
+  XRCCTRL(*this, "value", wxTextCtrl)->SetValue(v);
+  XRCCTRL(*this, "property", wxTextCtrl)->SetValue(n);
+}
+
+
+void PropertyEditorDialog::OnOKClick(wxCommandEvent& event)
+{
+  value	= XRCCTRL(*this, "value", wxTextCtrl)->GetValue();
+  name	= XRCCTRL(*this, "property", wxTextCtrl)->GetValue();
+  name.Replace("\"", ""); // sure a validator would be better, if only they worked as you need them
+  name.Replace(" ", "");
+  EndModal(wxID_OK);
+}
+
+void PropertyEditorDialog::OnDeleteClick(wxCommandEvent& event)
+{
+  del = true;
+  EndModal( wxID_CANCEL );
+}
+
+void PropertyEditorDialog::OnCancelClick(wxCommandEvent& event)
+{
+  EndModal(wxID_CANCEL);
+}
+
+
+
+
+
+
+// --- Revert Dialog ---------------------------------------------------
+
+BEGIN_EVENT_TABLE(RevertDialog, wxDialog)
+EVT_BUTTON(XRCID("wxID_OK"), RevertDialog::OnOKClick)
+EVT_BUTTON(XRCID("wxID_CANCEL"), RevertDialog::OnCancelClick)
+
+EVT_CHECKBOX(XRCID("select all"),  RevertDialog::SelectAll)
+EVT_CHECKBOX(XRCID("select none"), RevertDialog::SelectNone)
+EVT_CHECKLISTBOX(-1, RevertDialog::Selected)
+
+END_EVENT_TABLE()
+
+
+RevertDialog::RevertDialog(wxWindow* parent, const wxArrayString& revertList)
+{
+  wxXmlResource::Get()->LoadDialog(this, parent, "Revert");
+  wxCheckListBox* list = XRCCTRL(*this, "listcontrol", wxCheckListBox);
+  assert(list);
+  for(int i = 0; i < revertList.Count(); ++i)
+    {
+      list->Append(revertList[i]);
+      list->Check(i, true);
+    }
+}
+
+void RevertDialog::Selected(wxCommandEvent& event)
+{
+  XRCCTRL(*this, "select all", wxCheckBox)->SetValue(false);
+  XRCCTRL(*this, "select none", wxCheckBox)->SetValue(false);
+}
+
+void RevertDialog::SelectNone(wxCommandEvent& event)
+{
+  wxCheckListBox* clist = XRCCTRL(*this, "listcontrol", wxCheckListBox);
+  for(int i = 0; i < clist->GetCount(); ++i)
+    {
+      clist->Check(i, false);
+    }
+  XRCCTRL(*this, "select all", wxCheckBox)->SetValue(false);
+}
+
+void RevertDialog::SelectAll(wxCommandEvent& event)
+{
+  wxCheckListBox* clist = XRCCTRL(*this, "listcontrol", wxCheckListBox);
+  for(int i = 0; i < clist->GetCount(); ++i)
+    {
+      clist->Check(i, true);
+    }
+  XRCCTRL(*this, "select none", wxCheckBox)->SetValue(false);
+}
+
+void RevertDialog::OnOKClick(wxCommandEvent& event)
+{
+  wxCheckListBox* clist = XRCCTRL(*this, "listcontrol", wxCheckListBox);
+  for(int i = 0; i < clist->GetCount(); ++i)
+    {
+      if(clist->IsChecked(i))
+        finalList.Add(clist->GetString(i));
+    }
+  EndModal(wxID_OK);
+}
+
+void RevertDialog::OnCancelClick(wxCommandEvent& event)
+{
+  EndModal(wxID_CANCEL);
+}

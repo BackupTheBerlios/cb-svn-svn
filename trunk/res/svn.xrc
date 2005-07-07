@@ -831,11 +831,8 @@ Please select the ones you wish to add:</label>
 <object class="sizeritem">
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
-<object class="wxComboBox" name="property">
+<object class="wxTextCtrl" name="property">
 <size>100,-1</size>
-<style>wxCB_DROPDOWN</style>
-<content>
-</content>
 </object>
 </object>
 <object class="sizeritem">
@@ -936,10 +933,8 @@ Please select the ones you wish to add:</label>
 </object>
 </object>
 
-
-
 <object class="wxDialog" name="Revert">
-<title>Revert</title>
+<title>Revert changes</title>
 <object class="wxBoxSizer">
 <orient>wxVERTICAL</orient>
 <object class="sizeritem">
@@ -951,17 +946,47 @@ Please select the ones you wish to add:</label>
 <flag>wxALIGN_CENTER_VERTICAL|wxLEFT</flag>
 <border>10</border>
 <object class="wxStaticText">
-<label>Please select the actions that you wish to revert:</label>
+<label>Please select the changes you wish to revert:</label>
 </object>
 </object>
 <object class="sizeritem">
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>10</border>
 <object class="wxCheckListBox" name="listcontrol">
-<size>140,200</size>
+<size>520,300</size>
 <style>wxSUNKEN_BORDER</style>
 </object>
 </object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL</flag>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>2</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxCheckBox" name="select all">
+<label>Select all</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxCheckBox" name="select none">
+<label>Select none</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxLEFT|wxRIGHT|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
 <object class="sizeritem">
 <flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
@@ -988,5 +1013,5 @@ Please select the ones you wish to add:</label>
 </object>
 </object>
 
-
 </resource>
+
