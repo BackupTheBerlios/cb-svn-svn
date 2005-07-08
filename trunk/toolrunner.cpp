@@ -44,7 +44,7 @@ int SVNRunner::Run(wxString cmd)
       username = password = "";
     }
   else
-    runCmd << ia;
+    runCmd << ia << force;
 
   ToolRunner::Run(runCmd);
 
@@ -75,7 +75,7 @@ int SVNRunner::Run(wxString cmd)
             return true;
 
           runCmd = cmd;
-          runCmd << " --username " << p.username << " --password \"" << p.password << "\"" << ia;
+          runCmd << " --username " << p.username << " --password \"" << p.password << "\"" << ia << force;
           ToolRunner::Run(runCmd);
         }
       while(lastExitCode && reg.Matches(blob));
@@ -155,14 +155,7 @@ wxArrayString  SVNRunner::GetPropertyList(const wxString& file)
 wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop)
 {
   Run("pg" + Q(prop) + Q(file));
-
-  wxString ret;
-
-  int n = std_out.Count();
-  for(int i = 0; i < n; ++i)
-    ret << std_out[i] << "\n";
-
-  return ret;
+  return blob;
 }
 
 int  SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive)

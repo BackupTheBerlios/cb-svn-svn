@@ -20,7 +20,7 @@
 #endif
 #include <cbplugin.h>
 #include <settings.h>
-
+#include <messagemanager.h>
 #include <wx/dir.h>
 
 #include <manager.h>
@@ -187,6 +187,11 @@ class SubversionPlugin : public cbPlugin
       wxString s =  wxFileName(arg).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + ".svn";
       return wxFileName::DirExists(s);
     }
+
+    void SubversionPlugin::fg()
+    {
+    Manager::Get()->GetMessageManager()->SwitchTo(tabIndex);
+    };
 
 
     wxString defaultCheckoutDir;

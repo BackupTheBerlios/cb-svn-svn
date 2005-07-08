@@ -178,7 +178,7 @@
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
 <border>10</border>
 <object class="wxTextCtrl" name="comment">
-<size>400,120</size>
+<size>620,120</size>
 <style>wxTE_MULTILINE</style>
 </object>
 </object>
@@ -719,7 +719,7 @@ Please select the ones you wish to add:</label>
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
 <border>10</border>
 <object class="wxTextCtrl" name="comment">
-<size>-1,120</size>
+<size>620,120</size>
 <style>wxTE_MULTILINE</style>
 </object>
 </object>
@@ -1014,4 +1014,3 @@ Please select the ones you wish to add:</label>
 </object>
 
 </resource>
-

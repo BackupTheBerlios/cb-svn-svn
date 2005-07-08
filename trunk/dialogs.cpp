@@ -318,7 +318,7 @@ EVT_CHECKLISTBOX(-1, RevertDialog::Selected)
 END_EVENT_TABLE()
 
 
-RevertDialog::RevertDialog(wxWindow* parent, const wxArrayString& revertList)
+RevertDialog::RevertDialog(wxWindow* parent, const wxArrayString& revertList, const wxArrayString& fileNames)
 {
   wxXmlResource::Get()->LoadDialog(this, parent, "Revert");
   wxCheckListBox* list = XRCCTRL(*this, "listcontrol", wxCheckListBox);
@@ -326,8 +326,8 @@ RevertDialog::RevertDialog(wxWindow* parent, const wxArrayString& revertList)
   for(int i = 0; i < revertList.Count(); ++i)
     {
       list->Append(revertList[i]);
-      list->Check(i, true);
     }
+    files = fileNames;
 }
 
 void RevertDialog::Selected(wxCommandEvent& event)
@@ -362,7 +362,7 @@ void RevertDialog::OnOKClick(wxCommandEvent& event)
   for(int i = 0; i < clist->GetCount(); ++i)
     {
       if(clist->IsChecked(i))
-        finalList.Add(clist->GetString(i));
+        finalList.Add(files[i]);
     }
   EndModal(wxID_OK);
 }

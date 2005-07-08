@@ -194,11 +194,11 @@ class PropertyEditorDialog : public wxDialog
 class RevertDialog : public wxDialog
   {
   public:
-    RevertDialog(wxWindow* parent, const wxArrayString& revertList);
+    RevertDialog(wxWindow* parent, const wxArrayString& revertList, const wxArrayString& files);
     ~RevertDialog()
     {}
     ;
-
+    wxArrayString files;
     wxArrayString finalList;
   private:
     void OnOKClick(wxCommandEvent& event);

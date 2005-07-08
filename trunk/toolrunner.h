@@ -103,7 +103,7 @@ class ToolRunner
                 }
 
             }
-        running = false;
+          running = false;
         }
       };
 
@@ -138,21 +138,19 @@ class ToolRunner
         }
 
 
+      wxEnableTopLevelWindows(FALSE);
       while(process->running)
         wxYield();
+      wxEnableTopLevelWindows(TRUE);
 
 #ifdef LOTS_OF_DEBUG_OUTPUT
-
-      outputLog->AddLog(wxString("--------------------------------------------"));
       outputLog->AddLog(runCommand);
-      outputLog->AddLog(wxString("Command exits with ") << lastExitCode);
       outputLog->AddLog(wxString("stdout:"));
       for(int i = 0; i < std_out.Count(); ++i)
         outputLog->AddLog(std_out[i]);
       outputLog->AddLog(wxString("stderr:"));
       for(int i = 0; i < std_err.Count(); ++i)
         outputLog->AddLog(std_err[i]);
-      outputLog->AddLog(wxString("--------------------------------------------"));
 #endif
 
       delete process;
@@ -275,6 +273,13 @@ class SVNRunner : public ToolRunner
     wxArrayString	SVNRunner::GetPropertyList(const wxString& file);
 
     virtual int		SVNRunner::Run(wxString cmd);
+
+    void			SVNRunner::DumpErrors()
+    {
+      for(unsigned int i = 0; i < std_err.Count(); ++i)
+        outputLog->AddLog(std_err[i]);
+    };
+
 
   private:
   }

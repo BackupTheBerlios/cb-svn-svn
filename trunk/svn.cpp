@@ -725,32 +725,41 @@ void SubversionPlugin::Revert(CodeBlocksEvent& event)
   svn->Status(target);
 
   wxArrayString mods;
+  wxArrayString files;
 
   int n = svn->std_out.Count();
   for(int i = 0; i < n; ++i)
     {
+      wxString f(LocalPath(svn->std_out[i].Mid(7)));
       wxString s;
       if(svn->std_out[i][(size_t)0] == 'D')
-        s << "deletion";
+        s << "deleted";
       if(svn->std_out[i][(size_t)0] == 'A')
-        s << (s.Length()? ", " : "") <<  "addition";
+        s << (s.Length()? ", " : "") <<  "added";
       if(svn->std_out[i][(size_t)0] == 'M' || svn->std_out[i][(size_t)0] == 'C')
-        s << (s.Length()? ", " : "") <<  "local modification";
+        s << (s.Length()? ", " : "") <<  "modified";
       if(svn->std_out[i][(size_t)1] == 'M')
-        s << (s.Length()? ", " : "") <<  "property change";
+        s << (s.Length()? ", " : "") <<  "has property changes";
+      s = " (" + s + ")";
 
-      s << " of " << svn->std_out[i].Mid(7);
-
-      if(svn->std_out[i].Length() > 8)
-        mods.Add(s);
+      if(svn->std_out[i].Length())
+        {
+          mods.Add(s);
+          files.Add(svn->std_out[i].Mid(7));
+        }
     }
 
   if(::wxDirExists(target)) // seems like we have a project folder here
     {
-      RevertDialog d(Manager::Get()->GetAppWindow(), mods);
+      RevertDialog d(Manager::Get()->GetAppWindow(), mods, files);
       d.Centre();
       if(d.ShowModal() == wxID_OK)
-      {}
+        {
+          wxString toRevert;
+          for(int i = 0; i < d.finalList.Count(); i++)
+            toRevert << " \"" + d.finalList[i] + "\" ";
+          svn->Revert(toRevert.Mid(2, toRevert.Length()-4));
+        }
     }
   else
     {
@@ -934,14 +943,21 @@ void SubversionPlugin::Delete(CodeBlocksEvent& event)
 
   if(never_ask || no_ask_revertable || wxMessageDialog(Manager::Get()->GetAppWindow(), "Issue a 'svn delete' on the file " + selected + "?\n\nThis will not only delete the from disk, but also remove it from revision control.", "Delete File", wxYES_NO).ShowModal() == wxID_YES)
     {
-      wxTreeCtrl* tree = Manager::Get()->GetProjectManager()->GetTree();
-      FileTreeData* ftd	= (FileTreeData*) tree->GetItemData(tree->GetSelection());
-      cbProject *p = ftd->GetProject();
-      p->RemoveFile(ftd->GetFileIndex());
-      Manager::Get()->GetProjectManager()->RebuildTree();
       svn->Delete(selected);
-      if(svn->std_err.Count())
-        ; // display something
+      if(!svn->std_err.Count())
+        {
+          wxTreeCtrl* tree = Manager::Get()->GetProjectManager()->GetTree();
+          FileTreeData* ftd	= (FileTreeData*) tree->GetItemData(tree->GetSelection());
+          cbProject *p = ftd->GetProject();
+          p->RemoveFile(ftd->GetFileIndex());
+          Manager::Get()->GetProjectManager()->RebuildTree();
+        }
+      else
+        {
+          outputLog->AddLog("Warning: delete failed.");
+          svn->DumpErrors();
+          fg();
+        }
     }
 }
 
@@ -949,12 +965,40 @@ void SubversionPlugin::Delete(CodeBlocksEvent& event)
 
 void SubversionPlugin::PropIgnore(CodeBlocksEvent& event)
 {}
+
 void SubversionPlugin::PropMime(CodeBlocksEvent& event)
-{}
+{
+  wxString target = GetSelection();
+  wxString mime = svn->PropGet(target, "svn:mime-type");
+
+  wxTextEntryDialog d(Manager::Get()->GetAppWindow(),
+                      "Please provide a mime-type for the file " + LocalPath(target) +
+                      "\n or leave empty to use the default type.\n\n"
+                      "Note that a mime type outside text/* will effectively disable all merging capabilities.",
+                      "svn:mime-type on " + LocalPath(target), mime);
+
+  if(d.ShowModal() ==  wxID_OK)
+    {
+      mime = d.GetValue();
+      if(mime.IsEmpty())
+        svn->PropDel(target, "svn:mime-type");
+      else
+        svn->PropSet(target, "svn:mime-type", mime, false);
+    }
+
+}
+
 void SubversionPlugin::PropExec(CodeBlocksEvent& event)
-{}
+{
+  if(event.IsChecked())
+    svn->PropDel(GetSelection(), "svn:executable");
+  else
+    svn->PropSet(GetSelection(), "svn:executable", "", false);
+}
+
 void SubversionPlugin::PropExt(CodeBlocksEvent& event)
 {}
+
 void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
 {
   wxString item;
