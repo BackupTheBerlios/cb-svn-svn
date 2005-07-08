@@ -158,7 +158,6 @@ class ToolRunner
     };
 
 
-
     /*
      * Even if you don't see what happens around you, you can still do something good.
      * This function asynchronously starts svn during OnAttach(). No output is needed or wanted. We don't even see if we succeeded.
