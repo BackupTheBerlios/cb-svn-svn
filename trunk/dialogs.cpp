@@ -16,6 +16,8 @@
 	#include <wx/wx.h>
 #endif
 #include <wx/checklst.h>
+#include <wx/textctrl.h>
+#include <wx/regex.h>
 
 #include "dialogs.h"
 #include "svn.h"
@@ -292,12 +294,65 @@ void PropertyEditorDialog::OnOKClick(wxCommandEvent& event)
 void PropertyEditorDialog::OnDeleteClick(wxCommandEvent& event)
 {
   del = true;
+  name	= XRCCTRL(*this, "property", wxTextCtrl)->GetValue();
   EndModal( wxID_CANCEL );
 }
 
 void PropertyEditorDialog::OnCancelClick(wxCommandEvent& event)
 {
   EndModal(wxID_CANCEL);
+}
+
+
+
+
+// --- Ignore Dialog ---------------------------------------------------
+
+BEGIN_EVENT_TABLE(IgnoreEditorDialog, wxDialog)
+EVT_BUTTON(XRCID("wxID_OK"), IgnoreEditorDialog::OnOKClick)
+EVT_BUTTON(XRCID("wxID_CANCEL"), IgnoreEditorDialog::OnCancelClick)
+EVT_BUTTON(XRCID("select"), IgnoreEditorDialog::OnSelectClick)
+END_EVENT_TABLE()
+
+
+IgnoreEditorDialog::IgnoreEditorDialog(wxWindow* parent, const wxString& n, const wxString& v, const wxString& d)
+{
+  wxXmlResource::Get()->LoadDialog(this, parent, "svnIgnore");
+  XRCCTRL(*this, "value", wxTextCtrl)->SetValue(v);
+  SetTitle(n);
+  dir = d;
+}
+
+
+void IgnoreEditorDialog::OnOKClick(wxCommandEvent& event)
+{
+  value	= XRCCTRL(*this, "value", wxTextCtrl)->GetValue();
+  EndModal(wxID_OK);
+}
+
+void IgnoreEditorDialog::OnCancelClick(wxCommandEvent& event)
+{
+  EndModal(wxID_CANCEL);
+}
+
+void IgnoreEditorDialog::OnSelectClick(wxCommandEvent& event)
+{
+  wxFileDialog fd(this, "Choose files to be added to the ignore list", dir, "", "*.*", wxMULTIPLE);
+  if(fd.ShowModal() == wxID_OK)
+    {
+      wxArrayString p;
+      fd.GetPaths(p);
+
+      value	= XRCCTRL(*this, "value", wxTextCtrl)->GetValue();
+      for(int i = 0; i < p.Count(); ++i)
+        {
+          wxFileName fn(p[i]);
+          fn.MakeRelativeTo(dir);
+
+          value.Append(fn.GetFullPath()+"\n");
+        }
+      XRCCTRL(*this, "value", wxTextCtrl)->SetValue(value);
+    }
 }
 
 
@@ -327,7 +382,7 @@ RevertDialog::RevertDialog(wxWindow* parent, const wxArrayString& revertList, co
     {
       list->Append(revertList[i]);
     }
-    files = fileNames;
+  files = fileNames;
 }
 
 void RevertDialog::Selected(wxCommandEvent& event)
@@ -371,3 +426,140 @@ void RevertDialog::OnCancelClick(wxCommandEvent& event)
 {
   EndModal(wxID_CANCEL);
 }
+
+
+
+
+
+
+
+// --- Diff Dialog ---------------------------------------------------
+
+DiffDialog::DiffDialog(wxWindow *parent, SVNRunner *s)
+    : wxDialog(parent, -1, "Poor Man's 'diff' viewer", wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER, ""), svn(s)
+{
+  wxFlexGridSizer *flex = new wxFlexGridSizer( 1, 0, 0 );
+  flex->AddGrowableCol( 0 );
+  flex->AddGrowableCol( 1 );
+  flex->AddGrowableRow( 1 );
+
+  wxBoxSizer *box = new wxBoxSizer( wxHORIZONTAL );
+
+  wxStaticText *txt = new wxStaticText( this, -1, "Compare", wxDefaultPosition, wxDefaultSize, 0 );
+  box->Add( txt, 0, wxALIGN_CENTER|wxALL, 5 );
+
+  wxString strs[] =
+    {
+      "Local Version",
+      "Editor Contents",
+      "HEAD Revision"
+    };
+  wxComboBox *src = new wxComboBox( this, ID_COMBO_SRC, "", wxDefaultPosition, wxSize(100,-1), 3, strs, wxCB_DROPDOWN );
+  src->Enable(false);
+  box->Add( src, 0, wxALIGN_CENTER|wxALL, 5 );
+
+  txt = new wxStaticText( this, -1, "against", wxDefaultPosition, wxDefaultSize, 0 );
+  box->Add( txt, 0, wxALIGN_CENTER|wxALL, 5 );
+
+  wxComboBox *dest = new wxComboBox( this, ID_COMBO_DEST, "", wxDefaultPosition, wxSize(100,-1), 0, NULL, wxCB_DROPDOWN );
+  box->Add( dest, 0, wxALIGN_CENTER|wxALL, 5 );
+  dest->Enable(false);
+
+  flex->Add( box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+
+  diff = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxDefaultSize,
+                        wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH | wxHSCROLL);
+
+  flex->Add( diff, 0, wxGROW|wxALL, 5 );
+
+  SetSizer( flex );
+  flex->SetSizeHints( this );
+
+}
+
+
+void   DiffDialog::LoadDiff(const wxString& selected, const wxString& revision)
+{
+  wxArrayString text;
+
+  wxTextAttr black(*wxBLACK);
+  wxTextAttr red(*wxRED);
+  wxTextAttr blue(*wxBLUE);
+
+  diff->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, wxFont(8, wxMODERN, wxNORMAL, wxNORMAL, false)));
+
+  if(revision.Contains(":"))
+    svn->Cat(selected, revision.Mid(0, revision.Index(':')));
+  else
+    svn->Cat(selected, "");
+
+  if(svn->lastExitCode)
+    {
+      diff->SetDefaultStyle(red);
+      for(int i = 0; i < svn->std_err.Count(); ++i)
+        diff->AppendText(svn->std_err[i] + "\n");
+      return;
+    }
+  text = svn->std_out;
+
+  svn->Diff(selected, revision);
+
+  if(!svn->blob.Contains("@@"))
+    {
+      diff->AppendText("No changes.\n");
+      return;
+    }
+
+  if(svn->lastExitCode)
+    {
+      diff->SetDefaultStyle(red);
+      for(int i = 0; i < svn->std_err.Count(); ++i)
+        diff->AppendText(svn->std_err[i] + "\n");
+      return;
+    }
+
+  wxRegEx reg("@@.*\\+([0-9]+),.*@@");
+
+  int textPos = 0;
+
+  int count = svn->std_out.Count();
+  for(int i = 0; i < count; ++i)
+    {
+      if(svn->std_out[i].IsEmpty())
+        break;
+      if(svn->std_out[i].Contains("@@"))
+        if(reg.Matches(svn->std_out[i]))
+          {
+            unsigned long pos = 0;
+            reg.GetMatch(svn->std_out[i], 1).ToULong(&pos);
+
+            while(textPos < pos && textPos < text.Count())
+              diff->AppendText(text[textPos++] + "\n");
+
+            ++i;
+            while(svn->std_out[i][(size_t)0] == ' '
+                  || svn->std_out[i][(size_t)0] == '+'
+                  || svn->std_out[i][(size_t)0] == '-')
+              {
+                if(svn->std_out[i][(size_t)0] == ' ')
+                  diff->SetDefaultStyle(black);
+                else if(svn->std_out[i][(size_t)0] == '+')
+                  diff->SetDefaultStyle(red);
+                else
+                  diff->SetDefaultStyle(blue);
+
+                diff->AppendText(svn->std_out[i].Mid(1) + "\n");
+
+                ++i;
+                ++textPos;
+              }
+          }
+    }
+  while(textPos < text.Count())
+    diff->AppendText(text[textPos++] + "\n");
+
+}
+
+
+
+

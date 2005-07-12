@@ -19,11 +19,14 @@
 			</Target>
 		</Build>
 		<Compiler>
+			<Add option="-fexpensive-optimizations"/>
+			<Add option="-O3"/>
 			<Add option="-D__GNUWIN32__"/>
 			<Add option="-DWXUSINGDLL"/>
 			<Add option="-DBUILDING_PLUGIN"/>
 		</Compiler>
 		<Linker>
+			<Add option="-s"/>
 			<Add library="codeblocks"/>
 			<Add library="C:\CodeBlocks\wxmsw242.dll"/>
 			<Add directory="C:\CodeBlocks"/>
@@ -43,9 +46,25 @@
 			<Option weight="100"/>
 			<Option target="default"/>
 		</Unit>
+		<Unit filename="log.cpp">
+			<Option compilerVar="CPP"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="log.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
+			<Option target="default"/>
+		</Unit>
 		<Unit filename="res\resource.rc">
 			<Option compilerVar="WINDRES"/>
 			<Option objectName="res\resource.res"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="singleton.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
 			<Option target="default"/>
 		</Unit>
 		<Unit filename="svn.cpp">

@@ -20,7 +20,10 @@
 
 #include "svn.h"
 
-enum {  ID_MENU_SVN = 32000,
+
+#include <wx/html/htmlwin.h>
+
+enum {  ID_MENU_USER = 32000,
         ID_MENU_CHECKOUT,
         ID_MENU_IMPORT,
         ID_MENU,
@@ -64,11 +67,15 @@ enum {  ID_MENU_SVN = 32000,
         ID_MENU_PROP_NEW,
         ID_MENU_RESOLVEPROP,
         ID_MENU_KW_SETALL,
-        ID_MENU_KW_CLEARALL
+        ID_MENU_KW_CLEARALL,
+
+        ID_COMBO_SRC = 32600,
+        ID_COMBO_DEST
      };
 
 class CheckoutDialog : public wxDialog
   {
+    SVNRunner *svn;
   public:
     CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, const wxString & );
     ~CheckoutDialog()
@@ -168,7 +175,7 @@ class PasswordDialog : public wxDialog
 
     DECLARE_EVENT_TABLE()
   };
-  
+
 class PropertyEditorDialog : public wxDialog
   {
   public:
@@ -186,6 +193,26 @@ class PropertyEditorDialog : public wxDialog
     void OnCancelClick(wxCommandEvent& event);
     void OnDeleteClick(wxCommandEvent& event);
 
+    DECLARE_EVENT_TABLE()
+  };
+
+
+class IgnoreEditorDialog : public wxDialog
+  {
+    wxString dir;
+  public:
+    IgnoreEditorDialog(wxWindow* parent, const wxString& target, const wxString& value, const wxString& d);
+    ~IgnoreEditorDialog()
+    {}
+    ;
+
+    wxString value;
+    bool del;
+
+  private:
+    void OnOKClick(wxCommandEvent& event);
+    void OnCancelClick(wxCommandEvent& event);
+    void OnSelectClick(wxCommandEvent& event);
     DECLARE_EVENT_TABLE()
   };
 
@@ -208,6 +235,27 @@ class RevertDialog : public wxDialog
     void Selected(wxCommandEvent& event);
     DECLARE_EVENT_TABLE()
   };
+
+
+
+#include "diffcontrol.h"
+
+class DiffDialog : public wxDialog
+  {
+    SVNRunner *svn;
+  public:
+    DiffDialog(wxWindow *parent, SVNRunner *s);
+    ~DiffDialog()
+    {}
+    ;
+    void LoadDiff(const wxString& selected, const wxString& revision);
+
+
+  private:
+    wxTextCtrl *diff;
+  };
+
+
 
 
 

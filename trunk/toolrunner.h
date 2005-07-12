@@ -24,7 +24,8 @@
 #include <wx/stream.h>
 #include <wx/file.h>
 #include <wx/filename.h>
-#include <simpletextlog.h>
+
+#include "log.h"
 
 
 //#define LOTS_OF_DEBUG_OUTPUT
@@ -36,30 +37,62 @@ class ToolRunner
   {
     /*
     * The implementation of ToolRunner is fucking braindead and inefficient, in particular the spinlock around wxYield()
-    * is some nasty stuff. This, however, is purely a wxWindows SNAFU, so not much one can do really.
-    * The spinlock is needed to pass the stdout pipe via the message queue. Unless you spin, you get no output redirection.
-    * This is one gigantic con called "asynchronous" notification.
-    * You might think you could put a sem->Post() into Process::OnTerminate() and sem->Wait() into ToolRunner::Run().
-    * After all we're notified asynchronously, aren't we. Well, if only that was the case... :(
-     * This class definitely needs a complete, rewrite some day.
+    * is some nasty stuff. In addition to the SNAFU given by wxWindows, this version also opens and closes several hundred
+    * input streams while spinning. Some serious rewrite needs to be done here some day.
     */
   class Process : public wxProcess
       {
         wxArrayString *std_out;
         wxArrayString *std_err;
         wxString *blob;
+        wxString *out;
+
+        wxInputStream *stream_stdout;
+        wxInputStream *stream_stderr;
+
 
       public:
         bool running;
+        int exitCode;
 
-        Process::Process(wxArrayString *out, wxArrayString *err, wxString *blb)
+        Process::Process(wxArrayString *sout, wxArrayString *err, wxString *blb, wxString *o)
         {
           Redirect();
-          std_out = out;
+
+          std_out = sout;
           std_err = err;
           blob = blb;
+          out = o;
           running = true;
+
+          if(std_out == 0)
+            Detach();			// Auto-delete a blind Process object, we'll have to trust this is really done
         }
+
+        void FlushPipe()
+        {
+          wxString line;
+          stream_stdout = GetInputStream();
+          stream_stderr = GetErrorStream();
+          wxTextInputStream t_stream_stdout(*stream_stdout);
+          wxTextInputStream t_stream_stderr(*stream_stderr);
+          assert(stream_stdout);
+          assert(stream_stderr);
+          while(! stream_stdout->Eof() )
+            {
+              line = t_stream_stdout.ReadLine();
+              blob->Append(line);
+              std_out->Add(line);
+            }
+
+          while(! stream_stderr->Eof() )
+            {
+              line = t_stream_stderr.ReadLine();
+              blob->Append(line);
+              std_out->Add(line);
+            }
+        }
+        ;
 
         virtual void OnTerminate(int pid, int status)
         {
@@ -71,38 +104,13 @@ class ToolRunner
           assert(std_err);
           assert(blob);
 
-          std_out->Empty();
-          std_err->Empty();
-          blob->Empty();
+          FlushPipe();
 
-          if(!status)
-            {
-              wxInputStream *s = GetInputStream();
-              assert(s);
-              wxTextInputStream tis(*s);
-              wxString line;
-              while(! s->Eof() )
-                {
-                  line = tis.ReadLine();
-                  blob->Append(line);
-                  std_out->Add(line);
-                }
-            }
-          else
-            {
-              wxInputStream *s = GetErrorStream();
-              assert(s);
-              wxTextInputStream tis(*s);
-
-              wxString line;
-              while(! s->Eof() )
-                {
-                  line = tis.ReadLine();
-                  blob->Append(line);
-                  std_err->Add(line);
-                }
-
-            }
+          int count = std_out->Count() -1;
+          out->Append(std_out->Item(0));
+          for(int i = 1; i < count; ++i)
+            out->Append("\n" + std_out->Item(i));
+          exitCode = status;
           running = false;
         }
       };
@@ -112,8 +120,10 @@ class ToolRunner
     wxArrayString		std_out;		// Oh yes, we're public once again. Assume we won't do much harm though.
     wxArrayString		std_err;
     wxString			blob;			// "blob" concats everything so searching is somewhat easier
+    wxString			out;			// "out" likewise, but preserving linebreaks, and empty on errors
+    int lastExitCode;
     ToolRunner() :  lastExitCode(0)
-    {}
+  {}
     ;
     virtual ~ToolRunner()
     {}
@@ -124,33 +134,50 @@ class ToolRunner
       exec = executable;
     };
 
+    wxString GetExecutable()
+    {
+      return exec;
+    };
+
     int ToolRunner::Run(wxString cmd)
     {
+      std_out.Empty();
+      std_err.Empty();
+      blob.Empty();
+      out.Empty();
+
       wxString runCommand(exec + " " + cmd);
 
-      Process *process = new Process(&std_out, &std_err, &blob);
+      Process *process = new Process(&std_out, &std_err, &blob, &out);
 
       if ( !wxExecute(runCommand, wxEXEC_ASYNC, process) )
         {
-          outputLog->AddLog("Execution failed.");
+          Log::Instance()->Add("Execution failed.");
           delete process;
           return -1;
         }
 
 
       wxEnableTopLevelWindows(FALSE);
+
       while(process->running)
-        wxYield();
+        {
+          wxYield();
+          process->FlushPipe();
+        }
+
       wxEnableTopLevelWindows(TRUE);
+      lastExitCode = process->exitCode;
 
 #ifdef LOTS_OF_DEBUG_OUTPUT
-      outputLog->AddLog(runCommand);
-      outputLog->AddLog(wxString("stdout:"));
+
+      Log::Instance()->Add(runCommand);
+      Log::Instance()->Add(wxString("stdout:"));
       for(int i = 0; i < std_out.Count(); ++i)
-        outputLog->AddLog(std_out[i]);
-      outputLog->AddLog(wxString("stderr:"));
+        Log::Instance()->Add(std_out[i]);
+      Log::Instance()->Add(wxString("stderr:"));
       for(int i = 0; i < std_err.Count(); ++i)
-        outputLog->AddLog(std_err[i]);
+        Log::Instance()->Add(std_err[i]);
 #endif
 
       delete process;
@@ -163,29 +190,18 @@ class ToolRunner
      * This function asynchronously starts svn during OnAttach(). No output is needed or wanted. We don't even see if we succeeded.
      * The sole reason svn is run is to force Windows to get its butt moving, as it will otherwise take a virtually endless time
      * when you first click on the project manager (right, dynamic linkage and stuff). On Linux we probably don't need this at all.
-     * Note that this function leaks a Process object. THIS IS DELIBERATE as we will otherwise crash the application
-     * -- there is no notification from the running child process, so no way of telling when it will be safe to delete the process.
-     * Unluckily, we cannot just pass NULL to wxExecute() as this would pop up an annoying DOS window.
+     * Note that this function leaks a Process object. It seems like Detach() will make the object auto-delete. Let's hope that is true. 
      */
     int ToolRunner::StevieWonder(wxString cmd)
     {
-      Process *process = new Process(0, 0, 0);
+      Process *process = new Process(0, 0, 0, 0);
       wxString runCommand(exec + " " + cmd);
       wxExecute(runCommand, wxEXEC_ASYNC, process);
       return 0;
     };
 
-
-
-
   protected:
     wxString exec;
-    SimpleTextLog* outputLog;
-
-    int lastExitCode;
-
-    wxProgressDialog*	progressBar;
-    unsigned int		count;
   };
 
 
@@ -201,7 +217,7 @@ class SVNRunner : public ToolRunner
           wxFile f;
           name = wxFileName::CreateTempFileName("", &f);
           if(!f.Write(comment))
-            ::wxBell();	// oh yes, this is truly some good error checking
+            Log::Instance()->Add("Error: unable to open tempfile.");
         };
 
         ~TempFile()
@@ -218,10 +234,9 @@ class SVNRunner : public ToolRunner
     int wantProgressBar;
 
   public:
-    SVNRunner(const wxString& executable, SimpleTextLog* log)
+    SVNRunner(const wxString& executable)
     {
       SetExecutable(executable);
-      ToolRunner::outputLog = log;
       wantProgressBar = false;
     }
     ;
@@ -240,7 +255,8 @@ class SVNRunner : public ToolRunner
     {
       prune_non_interactive = true;
     };
-    void Force() // work around "subcommand does not support --non-interactive" error
+
+    void Force() // work around "file has local modifications, use --force switch" error
     {
       do_force = true;
     };
@@ -255,13 +271,16 @@ class SVNRunner : public ToolRunner
     int				SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
     int				SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
 
-    int				SVNRunner::Status(const wxString& file);
+    int				SVNRunner::Status(const wxString& file, bool minusU = false);
     int				SVNRunner::Update(const wxString& file, wxString& revision);
     int				SVNRunner::Commit(const wxString& selected, const wxString& message);
 
     int				SVNRunner::Move(const wxString& selected, const wxString& to);
     int				SVNRunner::Add(const wxString& selected);
     int				SVNRunner::Delete(const wxString& selected);
+
+    wxString		SVNRunner::Cat(const wxString& selected, const wxString& rev);
+    wxString		SVNRunner::Diff(const wxString& selected, const wxString& rev);
 
     int  			SVNRunner::Revert(const wxString& file);
 
@@ -276,7 +295,7 @@ class SVNRunner : public ToolRunner
     void			SVNRunner::DumpErrors()
     {
       for(unsigned int i = 0; i < std_err.Count(); ++i)
-        outputLog->AddLog(std_err[i]);
+        Log::Instance()->Add(std_err[i]);
     };
 
 
@@ -287,10 +306,9 @@ class SVNRunner : public ToolRunner
 class TortoiseRunner : public ToolRunner
   {
   public:
-    TortoiseRunner(const wxString& executable, SimpleTextLog* log)
+    TortoiseRunner(const wxString& executable)
     {
       SetExecutable(executable);
-      outputLog = log;
     }
     ;
 

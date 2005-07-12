@@ -78,11 +78,10 @@ class SubversionPlugin : public cbPlugin
 
     void SubversionPlugin::OnFirstRun();
     void SubversionPlugin::Preferences(CodeBlocksEvent& event);
+    void SubversionPlugin::SetUser(CodeBlocksEvent& event);
 
     void SubversionPlugin::Add(CodeBlocksEvent& event);
     void SubversionPlugin::Delete(CodeBlocksEvent& event);
-
-    void SubversionPlugin::ProjectOpen(CodeBlocksEvent& event);
 
     void SubversionPlugin::PropIgnore(CodeBlocksEvent& event);
     void SubversionPlugin::PropMime(CodeBlocksEvent& event);
@@ -96,13 +95,13 @@ class SubversionPlugin : public cbPlugin
     void SubversionPlugin::Commit(CodeBlocksEvent& event);
     void SubversionPlugin::Update(CodeBlocksEvent& event);
     void SubversionPlugin::Revert(CodeBlocksEvent& event);
-
+    void SubversionPlugin::Diff(CodeBlocksEvent& event);
     void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event);
 
     void SubversionPlugin::EditProperty(wxEvent& event);
 
     wxArrayString	SubversionPlugin::ParseStatusOutputForChar(const char what);
-	char 			SubversionPlugin::ParseStatusOutputForFile(const wxString& what);
+    char 			SubversionPlugin::ParseStatusOutputForFile(const wxString& what);
 
     void SubversionPlugin::TamperWithWindowsRegistry();
     wxString SubversionPlugin::NastyFind(const wxString& name);
@@ -134,7 +133,6 @@ class SubversionPlugin : public cbPlugin
       cbProject* currentProject = Manager::Get()->GetProjectManager()->GetActiveProject();
       if (!currentProject)
         return wxEmptyString;
-      ;
       return currentProject->GetCommonTopLevelPath();
     };
 
@@ -190,7 +188,7 @@ class SubversionPlugin : public cbPlugin
 
     void SubversionPlugin::fg()
     {
-    Manager::Get()->GetMessageManager()->SwitchTo(tabIndex);
+      Manager::Get()->GetMessageManager()->SwitchTo(tabIndex);
     };
 
 

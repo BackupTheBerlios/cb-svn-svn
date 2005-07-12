@@ -13,6 +13,7 @@
 
 #include "toolrunner.h"
 #include "svn.h"
+#include "log.h"
 #include "dialogs.h"
 
 #include <wx/regex.h>
@@ -57,8 +58,11 @@ int SVNRunner::Run(wxString cmd)
       wxMessageDialog(NULL, "Subversion returned 'Connection is read-only'."
                       " This means you either provided no authentication tokens at all (the likely case), "
                       "or you are correctly logged in but do not have write access enabled (check conf/svnserve.conf).\n"
-                      "This is NOT an authentication failure.",
+                      "If you did not authenticate, try 'Set User...' from the project manager menu.\n\n"
+                      "Note that this is NOT an authentication failure, so if you already did provide some credentials,\n"
+                      "submitting these again will not help.",
                       "Oops...", wxOK );
+      return -1;
     }
 
 
@@ -69,8 +73,11 @@ int SVNRunner::Run(wxString cmd)
         {
           PasswordDialog p(Manager::Get()->GetAppWindow());
           p.Centre();
-          p.ShowModal();
-
+          if(p.ShowModal() == wxID_CANCEL)
+            {
+              Log::Instance()->Add("User cancelled authentication.");
+              return -1;
+            }
           if(p.username == "")
             return true;
 
@@ -84,9 +91,9 @@ int SVNRunner::Run(wxString cmd)
 }
 
 
-int SVNRunner::Status(const wxString& file)
+int SVNRunner::Status(const wxString& file, bool minusU)
 {
-  return Run("status \"" + file + "\"");
+  return Run("status \"" + file + "\"" + (minusU ? " -u" : ""));
 }
 
 
@@ -155,7 +162,7 @@ wxArrayString  SVNRunner::GetPropertyList(const wxString& file)
 wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop)
 {
   Run("pg" + Q(prop) + Q(file));
-  return blob;
+  return out;
 }
 
 int  SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive)
@@ -165,10 +172,31 @@ int  SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxStri
 
 }
 
-int	SVNRunner::PropDel(const wxString& file, const wxString& prop)
+int SVNRunner::PropDel(const wxString& file, const wxString& prop)
 {
   return  Run("pd" + Q(prop) + Q(file));
 }
+
+wxString SVNRunner::Cat(const wxString& selected, const wxString& rev)
+{
+  if(rev.IsEmpty())
+    Run("cat" + Q(selected));
+  else
+    Run("cat" + Q(selected) + "-r" +Q(rev) );
+  return out;
+}
+
+wxString SVNRunner::Diff(const wxString& selected, const wxString& rev)
+{
+  if(rev.IsEmpty())
+    Run("diff" + Q(selected));
+  else
+    Run("diff" + Q(selected) + "-r" +Q(rev) );
+  return out;
+}
+
+
+
 
 
 

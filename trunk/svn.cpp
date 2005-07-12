@@ -59,12 +59,20 @@ EVT_MENU(ID_MENU_PREFS, SubversionPlugin::Preferences)
 EVT_MENU(ID_MENU_IMPORT,			SubversionPlugin::Import)
 EVT_MENU(ID_MENU_CHECKOUT,			SubversionPlugin::Checkout)
 
+EVT_MENU(ID_MENU_USER,				SubversionPlugin::SetUser)
+
 EVT_MENU(ID_MENU_COMMIT, 			SubversionPlugin::Commit)
 EVT_MENU(ID_MENU_UPDATE,			SubversionPlugin::Update)
 EVT_MENU(ID_MENU_UP_P,				SubversionPlugin::Update)
 EVT_MENU(ID_MENU_UP_C,				SubversionPlugin::Update)
 EVT_MENU(ID_MENU_UP_B,				SubversionPlugin::Update)
 EVT_MENU(ID_MENU_UP_REV,			SubversionPlugin::Update)
+
+EVT_MENU(ID_MENU_D_H,				SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_P,				SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_C,				SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_B,				SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_REV,				SubversionPlugin::Diff)
 
 EVT_MENU(ID_MENU_RESTORE,			SubversionPlugin::Update)
 
@@ -162,30 +170,12 @@ SubversionPlugin::SubversionPlugin()
 
 void SubversionPlugin::OnAttach()
 {
-  MessageManager* msgMan = Manager::Get()->GetMessageManager();
-
-  outputLog = new SimpleTextLog(msgMan, m_PluginInfo.title);
-
-  outputLog->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE, wxFont(8, wxMODERN, wxNORMAL, wxNORMAL)));
-
-  tabIndex = msgMan->AddLog(outputLog);
-
-  wxBitmap bmp;
-  wxFileSystem fs;
-  wxString zip(ConfigManager::Get()->Read("data_path") + "/svn.zip#zip:\\");
-
-  if(wxFSFile* file = fs.OpenFile(zip + "log.png"))
-    {
-      bmp = wxBitmap(wxImage(*(file->GetStream()), wxBITMAP_TYPE_PNG));
-      delete file;
-    }
-
-  Manager::Get()->GetMessageManager()->SetLogImage(outputLog, bmp);
-
   ReadConfig();
 
+  // avoid lazy creation
+  Log::Instance();
 
-  svn = new SVNRunner(svnbinary, outputLog);
+  svn = new SVNRunner(svnbinary);
   svn->StevieWonder("help"); // get svn into the file cache asynchronously, as we'll need it soon
 
 
@@ -199,7 +189,7 @@ void SubversionPlugin::OnAttach()
   *  I would use popen() as the much better alternative (not only does it work, it also reduces code size by 20kB!),
   *  but could not live with a DOS window constantly popping up under Windows.
   */
-  tortoise = tortoiseproc.IsEmpty() ? 0 : new TortoiseRunner("cmd /C " + tortoiseproc, outputLog);
+  tortoise = tortoiseproc.IsEmpty() ? 0 : new TortoiseRunner("cmd /C " + tortoiseproc);
 
 }
 
@@ -387,8 +377,8 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
       menu->Append( ID_MENU_MERGE,		"Merge..." );
       menu->Append( ID_MENU_RELOCATE,	"Relocate..." );
     }
-
-
+  menu->AppendSeparator();
+  menu->Append( ID_MENU_USER, "Set User...", "Set (or change) username and password for the next transaction.");
 }
 
 
@@ -573,14 +563,61 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
             rev = r.GetMatch(svn->blob, 1);
             wxFileName fn(selected);
             if(event.GetId() == ID_MENU_RESTORE)
-              outputLog->AddLog( "Restored missing file " + fn.GetFullName() + " to revision " + rev);
+              Log::Instance()->Add( "Restored missing file " + fn.GetFullName() + " to revision " + rev);
             else
-              outputLog->AddLog( ( fn.IsDir() ? "Project" : fn.GetFullName() )+ " is at revision " + rev);
+              Log::Instance()->Add( ( fn.IsDir() ? "Project" : fn.GetFullName() )+ " is at revision " + rev);
           }
     }
 
   Manager::Get()->GetEditorManager()->CheckForExternallyModifiedFiles();
 }
+
+
+void SubversionPlugin::Diff(CodeBlocksEvent& event)
+{
+  wxString	revision("HEAD");
+  wxString	selected(GetSelection());
+
+  switch(event.GetId())
+    {
+    case ID_MENU_D_P:
+      revision = "PREV";
+      break;
+    case ID_MENU_D_C:
+      revision = "COMMITTED";
+      break;
+    case ID_MENU_D_B:
+      revision = "BASE";
+      break;
+    case ID_MENU_D_REV:
+      {
+        wxTextEntryDialog d(NULL,
+                            "Please enter:\n"
+                            "- a revision number,\n"
+                            "- a revision keyword (HEAD, COMMITTED, PREV, BASE),\n"
+                            "- a revision date, time, or date-time in curly braces.\n\n"
+                            "Examples of valid revision dates are:\n"
+                            "{2002-02-17}  {15:30}  {2002-02-17 15:30}  {20020217T1530}",
+                            "Compare to revision...");
+        d.ShowModal();
+
+        revision = d.GetValue();
+        if(revision == wxEmptyString)
+          return;
+      }
+      break;
+    }
+  DiffDialog d(Manager::Get()->GetAppWindow(), svn);
+  wxSetCursor(wxCURSOR_WAIT);
+  d.LoadDiff(selected, revision);
+  wxSetCursor(wxCURSOR_ARROW);
+  d.SetSize(800,600);
+  d.CentreOnParent();
+  d.ShowModal();
+}
+
+
+
 
 void SubversionPlugin::Commit(CodeBlocksEvent& event)
 {
@@ -635,8 +672,13 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
         concat << " \"" << toAdd[i] << "\" ";
       concat = concat.Mid(2, concat.Length()-4);		// svn->Add() wraps in double quotes already
 
-      svn->Add(concat);
-      svn->Commit(selected, d.comment);
+      if(!concat.IsEmpty())
+        svn->Add(concat);
+
+      if(svn->Commit(selected, d.comment))
+        {
+          Log::Instance()->Add(svn->out);
+        };
     }
 }
 
@@ -657,7 +699,7 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
               {
                 if(d.autoOpen)
                   {
-                    outputLog->AddLog("Looking for projects...");
+                    Log::Instance()->Add("Looking for projects...");
 
                     wxArrayString dirs;
                     wxString f;
@@ -674,21 +716,21 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
                         f = wxFindFirstFile(dirs[i] + "/*.cbp");
                         while ( !f.IsEmpty() )
                           {
-                            outputLog->AddLog("opening " + f);
+                            Log::Instance()->Add("opening " + f);
                             pmgr->LoadProject(f);
                             f = wxFindNextFile();
                           }
                         f = wxFindFirstFile(dirs[i] + "/*.dev");
                         while ( !f.IsEmpty() )
                           {
-                            outputLog->AddLog("importing " + f);
+                            Log::Instance()->Add("importing " + f);
                             pmgr->LoadProject(f);
                             f = wxFindNextFile();
                           }
                         f = wxFindFirstFile(dirs[i] + "/*.dsp");
                         while ( !f.IsEmpty() )
                           {
-                            outputLog->AddLog("importing " + f);
+                            Log::Instance()->Add("importing " + f);
                             pmgr->LoadProject(f);
                             f = wxFindNextFile();
                           }
@@ -717,6 +759,17 @@ void SubversionPlugin::Import(CodeBlocksEvent& event)
 }
 
 
+void SubversionPlugin::SetUser(CodeBlocksEvent& event)
+{
+
+  PasswordDialog p(Manager::Get()->GetAppWindow());
+  p.Centre();
+  if(p.ShowModal() == wxID_OK)
+    svn->SetPassword(p.username, p.password);
+  svn->Status(GetSelection(), true);
+}
+
+
 
 void SubversionPlugin::Revert(CodeBlocksEvent& event)
 {
@@ -731,6 +784,8 @@ void SubversionPlugin::Revert(CodeBlocksEvent& event)
   for(int i = 0; i < n; ++i)
     {
       wxString f(LocalPath(svn->std_out[i].Mid(7)));
+      if(f.StartsWith(".."))
+        f = "[project]";
       wxString s;
       if(svn->std_out[i][(size_t)0] == 'D')
         s << "deleted";
@@ -740,7 +795,7 @@ void SubversionPlugin::Revert(CodeBlocksEvent& event)
         s << (s.Length()? ", " : "") <<  "modified";
       if(svn->std_out[i][(size_t)1] == 'M')
         s << (s.Length()? ", " : "") <<  "has property changes";
-      s = " (" + s + ")";
+      s = f + "   (" + s + ")";
 
       if(svn->std_out[i].Length())
         {
@@ -954,7 +1009,7 @@ void SubversionPlugin::Delete(CodeBlocksEvent& event)
         }
       else
         {
-          outputLog->AddLog("Warning: delete failed.");
+          Log::Instance()->Add("Warning: delete failed.");
           svn->DumpErrors();
           fg();
         }
@@ -964,7 +1019,24 @@ void SubversionPlugin::Delete(CodeBlocksEvent& event)
 
 
 void SubversionPlugin::PropIgnore(CodeBlocksEvent& event)
-{}
+{
+  wxString target(GetSelection());
+
+  if(!::wxDirExists(target))															// svn:ignore only valid on directories
+    target = wxFileName(target).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+
+  wxString value = svn->PropGet(target, "svn:ignore");
+
+  IgnoreEditorDialog d(Manager::Get()->GetAppWindow(), target, value, target);
+  d.Centre();
+  wxString localPath = LocalPath(target);
+  d.SetTitle("svn:ignore" + (localPath.IsEmpty() ? "" : " on " + localPath));
+
+  if(d.ShowModal() == wxID_OK)
+    {
+      svn->PropSet(target, "svn:ignore", d.value, false);
+    }
+}
 
 void SubversionPlugin::PropMime(CodeBlocksEvent& event)
 {
@@ -997,7 +1069,31 @@ void SubversionPlugin::PropExec(CodeBlocksEvent& event)
 }
 
 void SubversionPlugin::PropExt(CodeBlocksEvent& event)
-{}
+{
+  //FIXME: svn:externals deserves its own dialog
+
+  wxString file(GetSelection());
+
+  if(!::wxDirExists(file))
+    file = wxFileName(file).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+
+  wxString value(svn->PropGet(file, "svn:externals"));
+
+  PropertyEditorDialog d(Manager::Get()->GetAppWindow(), "svn:externals", value);
+  d.Centre();
+  wxString loc = LocalPath(file);
+  loc = loc == "" ? "[top dir]" : loc;
+  d.SetTitle("Property editor: " + loc);
+
+  if(d.ShowModal() == wxID_OK)
+    {
+      svn->PropSet(file, d.name, d.value, false);
+    }
+  else if(d.del && ( never_ask || no_ask_revertable || wxMessageDialog(Manager::Get()->GetAppWindow(), "Remove the property " + d.name + " from " + file + " ?", "Delete Property", wxYES_NO).ShowModal() == wxID_YES))
+    {
+      svn->PropDel(file, d.name);
+    }
+}
 
 void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
 {
@@ -1043,10 +1139,6 @@ void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
 
 
 
-
-
-void SubversionPlugin::ProjectOpen(CodeBlocksEvent& event)
-{}
 
 
 
@@ -1109,15 +1201,15 @@ void SubversionPlugin::EditProperty(wxEvent& event)
 
   PropertyEditorDialog d(Manager::Get()->GetAppWindow(), name, value);
   d.Centre();
-  file = LocalPath(file);
-  file = file == "" ? "[top dir]" : file;
-  d.SetTitle("Property editor: " + file);
+  wxString loc = LocalPath(file);
+  loc = loc == "" ? "[top dir]" : loc;
+  d.SetTitle("Property editor: " + loc);
 
   if(d.ShowModal() == wxID_OK)
     {
-      svn->PropSet(file, d.name, d.value, true);
+      svn->PropSet(file, d.name, d.value, false);
     }
-  else if(d.del && ( never_ask || no_ask_revertable || wxMessageDialog(Manager::Get()->GetAppWindow(), "Remove the property " + name + " from " + file + " ?", "Delete Property", wxYES_NO).ShowModal() == wxID_YES))
+  else if(d.del && ( never_ask || no_ask_revertable || wxMessageDialog(Manager::Get()->GetAppWindow(), "Remove the property " + d.name + " from " + file + " ?", "Delete Property", wxYES_NO).ShowModal() == wxID_YES))
     {
       svn->PropDel(file, d.name);
     }
@@ -1218,6 +1310,7 @@ void SubversionPlugin::TamperWithWindowsRegistry()
     }
   delete rKey;
 #endif
+
 }
 
 
