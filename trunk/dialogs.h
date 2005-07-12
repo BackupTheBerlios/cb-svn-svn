@@ -238,7 +238,6 @@ class RevertDialog : public wxDialog
 
 
 
-#include "diffcontrol.h"
 
 class DiffDialog : public wxDialog
   {
