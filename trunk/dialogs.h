@@ -7,7 +7,6 @@
 * or (at your option) any later version.
 *
 * $HeadURL$
-* $Id$
 */
 
 #ifndef CHECKOUT_DIALOG_H
