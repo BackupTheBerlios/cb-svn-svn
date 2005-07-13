@@ -145,7 +145,7 @@ SubversionPlugin::SubversionPlugin()
     if(reg.Matches(date))
       date = reg.GetMatch(date, 1);
 
-    m_PluginInfo.version = "0.2   " + rev + " / " + date;
+    m_PluginInfo.version = "0.3   " + rev + " / " + date;
   }
   m_PluginInfo.description = "code::blocks revision control using subversion\n\n"
                              "Subversion is an advanced revision control system intended to replace CVS.\n\n"
@@ -671,6 +671,15 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
 
   if(d.ShowModal() == wxID_OK)
     {
+      if(auto_delete)
+        {
+          missing = ExtractFilesWithStatus('!');
+          wxString concat;
+          for(unsigned int i = 0; i < missing.Count(); ++i)
+            concat << " \"" << missing[i] << "\" ";
+          concat = concat.Mid(2, concat.Length()-4);
+          svn->Delete(concat);
+        }
       if(auto_add)
         {
           if(auto_add_only_project)
