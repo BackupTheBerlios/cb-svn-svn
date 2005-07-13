@@ -212,6 +212,8 @@ class SubversionPlugin : public cbPlugin
     bool full_status_on_startup;
     bool no_props;
     bool show_resolved;
+    bool prompt_reload;
+	bool up_after_co;
     wxArrayString repoHistory;
 
   protected:

@@ -129,7 +129,8 @@ SubversionPlugin::SubversionPlugin()
   full_status_on_startup 	= false;
   no_props					= false;
   show_resolved				= false;
-
+  prompt_reload				= false;
+  up_after_co				= true;
   wxFileSystem::AddHandler(new wxZipFSHandler);
   wxXmlResource::Get()->InitAllHandlers();
   wxXmlResource::Get()->Load(ConfigManager::Get()->Read("data_path", wxEmptyString) + "/svn.zip#zip:*.xrc");
@@ -595,13 +596,17 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
 
 void SubversionPlugin::ReloadEditors(wxArrayString filenames)
 {
+  if(prompt_reload && wxMessageDialog(Manager::Get()->GetAppWindow(),
+                                      "Do you want to replace the editor's out-of-date versions with their respective updated versions?",
+                                      "Reload editor", wxYES_NO).ShowModal() == wxID_NO)
+    return;
+
   EditorManager *em = Manager::Get()->GetEditorManager();
   assert(em);
   for(int i = 0; i < filenames.Count(); ++i)
     if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
       e->Reload();
 }
-
 
 
 
@@ -717,25 +722,16 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
         svn->Add(concat);
 
       if(svn->Commit(selected, d.comment))
+        Log::Instance()->Add(svn->out);
+      else if(up_after_co)
         {
-          Log::Instance()->Add(svn->out);
-        }
-      else
-        {
-          /* If commit was successful, then you sure want to run update as well,
-          *  since you may have keywords, and these are not updated by commit.
-          *  TODO: add an option to preferences for this behaviour
-          */
           if(svn->Update(selected))
-            {
-              Log::Instance()->Add(svn->out);
-            }
+            Log::Instance()->Add(svn->out);
           else
             {
               wxArrayString changed;
-
               ExtractFilesWithStatus('U', changed);
-              ExtractFilesWithStatus('G', changed);
+              ExtractFilesWithStatus('A', changed);
               ReloadEditors(changed);
             }
         }
@@ -947,6 +943,9 @@ void SubversionPlugin::Preferences(CodeBlocksEvent& event)
   XRCCTRL(d, "no props", wxCheckBox)->SetValue(no_props);
   XRCCTRL(d, "show resolved", wxCheckBox)->SetValue(show_resolved);
   XRCCTRL(d, "cascade", wxCheckBox)->SetValue(cascade_menu);
+  XRCCTRL(d, "prompt reload", wxCheckBox)->SetValue(prompt_reload);
+  XRCCTRL(d, "up after co", wxCheckBox)->SetValue(up_after_co);
+
   d.RadioToggle(event);
 
   if(d.ShowModal() == wxID_OK)	// Great job wxOK and wxID_OK have similar names and different values. Since nothing in wxWindows is typedef'd
@@ -972,11 +971,12 @@ void SubversionPlugin::Preferences(CodeBlocksEvent& event)
       no_props					= XRCCTRL(d, "no props", wxCheckBox)->GetValue();
       show_resolved				= XRCCTRL(d, "show resolved", wxCheckBox)->GetValue();
       cascade_menu				= XRCCTRL(d, "cascade", wxCheckBox)->GetValue();
+      prompt_reload				= XRCCTRL(d, "prompt reload", wxCheckBox)->GetValue();
+      up_after_co				= XRCCTRL(d, "up after co", wxCheckBox)->GetValue();
 
       WriteConfig();
     }
 }
-
 
 
 void SubversionPlugin::ReadConfig()
@@ -1001,6 +1001,8 @@ void SubversionPlugin::ReadConfig()
   c->Read("/svn/no_props", &no_props);
   c->Read("/svn/show_resolved", &show_resolved);
   c->Read("/svn/cascade_menu", &cascade_menu);
+  c->Read("/svn/prompt_reload", &prompt_reload);
+  c->Read("/svn/up_after_co", &up_after_co);
 
   if(tortoiseproc.IsEmpty())
     TamperWithWindowsRegistry();
@@ -1045,6 +1047,8 @@ void SubversionPlugin::WriteConfig()
   c->Write("/svn/no_props", no_props);
   c->Write("/svn/show_resolved", show_resolved);
   c->Write("/svn/cascade_menu", cascade_menu);
+  c->Write("/svn/prompt_reload", prompt_reload);
+  c->Write("/svn/up_after_co", up_after_co);
 
   unsigned int count = min(16, repoHistory.Count());
   wxString ht("/svn/repoHist");
