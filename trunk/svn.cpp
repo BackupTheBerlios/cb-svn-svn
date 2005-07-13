@@ -604,7 +604,7 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
   EditorManager *em = Manager::Get()->GetEditorManager();
   assert(em);
   for(int i = 0; i < filenames.Count(); ++i)
-    if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
+   if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
       e->Reload();
 }
 
@@ -683,7 +683,8 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
           for(unsigned int i = 0; i < missing.Count(); ++i)
             concat << " \"" << missing[i] << "\" ";
           concat = concat.Mid(2, concat.Length()-4);
-          svn->Delete(concat);
+          if(!concat.IsEmpty())
+            svn->Delete(concat);
         }
       if(auto_add)
         {
@@ -725,13 +726,15 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
         Log::Instance()->Add(svn->out);
       else if(up_after_co)
         {
+          wxArrayString changed;
+          for(unsigned int i = 0; i < svn->std_out.Count(); ++i)								// Update does not report files
+            if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))	// that were merely modified for keywords
+              changed.Add(svn->std_out[i].Mid(15).Trim());										// So we have to "borrow" from commit.
+
           if(svn->Update(selected))
             Log::Instance()->Add(svn->out);
           else
             {
-              wxArrayString changed;
-              ExtractFilesWithStatus('U', changed);
-              ExtractFilesWithStatus('A', changed);
               ReloadEditors(changed);
             }
         }
