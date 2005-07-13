@@ -722,7 +722,13 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
               Log::Instance()->Add(svn->out);
             }
           else
-            Manager::Get()->GetEditorManager()->CheckForExternallyModifiedFiles();
+            {
+              wxArrayString changed;
+
+              ExtractFilesWithStatus('U', changed);
+              ExtractFilesWithStatus('G', changed);
+              ReloadEditors(changed);
+            }
         }
     }
 }
