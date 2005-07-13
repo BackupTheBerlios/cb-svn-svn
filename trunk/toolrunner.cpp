@@ -136,7 +136,7 @@ int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString
 }
 
 
-int  SVNRunner::Update(const wxString& selected, wxString& revision)
+int  SVNRunner::Update(const wxString& selected, const wxString& revision)
 {
   return Run("update" + Q(selected) + "-r " + revision);
 }

@@ -576,7 +576,6 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
               Log::Instance()->Add( ( fn.IsDir() ? "Project" : fn.GetFullName() )+ " is at revision " + rev);
           }
     }
-
   Manager::Get()->GetEditorManager()->CheckForExternallyModifiedFiles();
 }
 
@@ -686,7 +685,20 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
       if(svn->Commit(selected, d.comment))
         {
           Log::Instance()->Add(svn->out);
-        };
+        }
+      else
+        {
+          /* If commit was successful, then you sure want to run update as well,
+          *  since you may have keywords, and these are not updated by commit.
+          *  TODO: add an option to preferences for this behaviour
+          */
+          if(svn->Update(selected))
+            {
+              Log::Instance()->Add(svn->out);
+            }
+          else
+            Manager::Get()->GetEditorManager()->CheckForExternallyModifiedFiles();
+        }
     }
 }
 
@@ -791,10 +803,15 @@ void SubversionPlugin::Revert(CodeBlocksEvent& event)
   int n = svn->std_out.Count();
   for(int i = 0; i < n; ++i)
     {
+      if(svn->std_out[i][(size_t)0] == '?')
+        continue;
+
       wxString f(LocalPath(svn->std_out[i].Mid(7)));
       if(f.StartsWith(".."))
         f = "[project]";
       wxString s;
+      if(svn->std_out[i][(size_t)0] == '!')
+        s << "missing";
       if(svn->std_out[i][(size_t)0] == 'D')
         s << "deleted";
       if(svn->std_out[i][(size_t)0] == 'A')

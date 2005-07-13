@@ -276,7 +276,7 @@ class SVNRunner : public ToolRunner
     int				SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
 
     int				SVNRunner::Status(const wxString& file, bool minusU = false);
-    int				SVNRunner::Update(const wxString& file, wxString& revision);
+    int				SVNRunner::Update(const wxString& file, const wxString& revision = wxString("HEAD"));
     int				SVNRunner::Commit(const wxString& selected, const wxString& message);
 
     int				SVNRunner::Move(const wxString& selected, const wxString& to);
