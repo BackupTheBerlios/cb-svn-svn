@@ -19,8 +19,6 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-fexpensive-optimizations"/>
-			<Add option="-O3"/>
 			<Add option="-D__GNUWIN32__"/>
 			<Add option="-DWXUSINGDLL"/>
 			<Add option="-DBUILDING_PLUGIN"/>

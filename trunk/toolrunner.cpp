@@ -38,6 +38,8 @@ int SVNRunner::Run(wxString cmd)
     }
   cmd.Replace("\\", "/");
 
+ Manager::Get()->GetAppWindow()->SetStatusText("svn " +cmd);
+              
   wxString runCmd(cmd);
   if(username > "" && password > "")
     {
@@ -149,7 +151,7 @@ int  SVNRunner::Commit(const wxString& selected, const wxString& message)
 wxArrayString  SVNRunner::GetPropertyList(const wxString& file)
 {
   wxArrayString ret;
-  Run("pl" + Q(file));
+  Run("proplist" + Q(file));
 
   int n = std_out.Count();
   for(int i = 0; i < n; ++i)
@@ -161,20 +163,20 @@ wxArrayString  SVNRunner::GetPropertyList(const wxString& file)
 
 wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop)
 {
-  Run("pg" + Q(prop) + Q(file));
+  Run("propget" + Q(prop) + Q(file));
   return out;
 }
 
 int  SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive)
 {
   TempFile t(value);
-  return  Run("ps " + prop + " -F" + Q(t.name) + Q(file) + (recursive ? "-R" : ""));
+  return  Run("propset" + Q(prop) + "-F" + Q(t.name) + Q(file) + (recursive ? "-R" : ""));
 
 }
 
 int SVNRunner::PropDel(const wxString& file, const wxString& prop)
 {
-  return  Run("pd" + Q(prop) + Q(file));
+  return  Run("propdel" + Q(prop) + Q(file));
 }
 
 wxString SVNRunner::Cat(const wxString& selected, const wxString& rev)

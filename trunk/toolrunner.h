@@ -28,7 +28,7 @@
 #include "log.h"
 
 
-//#define LOTS_OF_DEBUG_OUTPUT
+#define LOTS_OF_DEBUG_OUTPUT
 
 
 
@@ -110,6 +110,8 @@ class ToolRunner
           out->Append(std_out->Item(0));
           for(int i = 1; i < count; ++i)
             out->Append("\n" + std_out->Item(i));
+
+          Manager::Get()->GetAppWindow()->SetStatusText("");
           exitCode = status;
           running = false;
         }
@@ -117,13 +119,15 @@ class ToolRunner
 
 
   public:
-    wxArrayString		std_out;		// Oh yes, we're public once again. Assume we won't do much harm though.
+    wxArrayString		std_out;
     wxArrayString		std_err;
     wxString			blob;			// "blob" concats everything so searching is somewhat easier
     wxString			out;			// "out" likewise, but preserving linebreaks, and empty on errors
     int lastExitCode;
-    ToolRunner() :  lastExitCode(0)
-  {}
+    bool running;
+
+    ToolRunner() :  lastExitCode(0), running(false)
+	{}
     ;
     virtual ~ToolRunner()
     {}
@@ -141,6 +145,7 @@ class ToolRunner
 
     int ToolRunner::Run(wxString cmd)
     {
+running = true;
       std_out.Empty();
       std_err.Empty();
       blob.Empty();
@@ -158,15 +163,13 @@ class ToolRunner
         }
 
 
-      wxEnableTopLevelWindows(FALSE);
-
+      //wxEnableTopLevelWindows(FALSE);
       while(process->running)
         {
           wxYield();
           process->FlushPipe();
         }
-
-      wxEnableTopLevelWindows(TRUE);
+      //wxEnableTopLevelWindows(TRUE);
       lastExitCode = process->exitCode;
 
 #ifdef LOTS_OF_DEBUG_OUTPUT
@@ -181,6 +184,7 @@ class ToolRunner
 #endif
 
       delete process;
+      running = false;
       return lastExitCode;
     };
 

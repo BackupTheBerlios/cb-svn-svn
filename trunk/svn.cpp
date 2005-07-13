@@ -22,7 +22,7 @@
 #include <wx/image.h>
 
 #include "svn.h"
-#include <licenses.h>
+
 #include "codeblocks/sdk_events.h"
 
 #include <manager.h>
@@ -207,6 +207,14 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
     return;
 
   menu->AppendSeparator();
+
+
+  if(svn->running) // this may be more user-friendly than wxEnableTopLevelWindows(false)
+    {
+      menu->Append(ID_MENU, "Subversion (busy)");
+      menu->Enable(ID_MENU, false);
+      return;
+    }
 
   if(cascade_menu)
     cmenu = new wxMenu;
