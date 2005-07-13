@@ -576,8 +576,26 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
               Log::Instance()->Add( ( fn.IsDir() ? "Project" : fn.GetFullName() )+ " is at revision " + rev);
           }
     }
-  Manager::Get()->GetEditorManager()->CheckForExternallyModifiedFiles();
+
+  wxArrayString changed;
+
+  ExtractFilesWithStatus('U', changed);
+  ExtractFilesWithStatus('G', changed);
+
+  ReloadEditors(changed);
 }
+
+
+void SubversionPlugin::ReloadEditors(wxArrayString filenames)
+{
+  EditorManager *em = Manager::Get()->GetEditorManager();
+  assert(em);
+  for(int i = 0; i < filenames.Count(); ++i)
+	if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
+        e->Reload();
+}
+
+
 
 
 void SubversionPlugin::Diff(CodeBlocksEvent& event)
@@ -634,7 +652,7 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
   wxArrayString files;
   wxArrayString toAdd;
 
-  wxArrayString missing = ParseStatusOutputForChar('?');
+  wxArrayString missing = ExtractFilesWithStatus('?');
 
   if(auto_add)
     files = wxArrayString();
@@ -859,7 +877,7 @@ char SubversionPlugin::ParseStatusOutputForFile(const wxString& what)
   int n = svn->std_out.Count();
   for(int i = 0; i < n; ++i)
     {
-      if(svn->std_out[i].Mid(7) == what )
+      if(svn->std_out[i].Contains(what))
         {
           return (svn->std_out[i])[(size_t)0];
         }
@@ -867,13 +885,18 @@ char SubversionPlugin::ParseStatusOutputForFile(const wxString& what)
   return 0;
 }
 
-wxArrayString SubversionPlugin::ParseStatusOutputForChar(const char what)
+wxArrayString SubversionPlugin::ExtractFilesWithStatus(const char what)
 {
   wxArrayString ret;
-  for(int i = 0; i < svn->std_out.GetCount(); ++i)
-    if((svn->std_out[i])[(size_t)0] == what )  // operator overloading abuse of the year...
-      ret.Add(svn->std_out[i].Mid(7));
+  ExtractFilesWithStatus(what, ret);
   return ret;
+}
+
+void SubversionPlugin::ExtractFilesWithStatus(const char what, wxArrayString& ret)
+{
+  for(int i = 0; i < svn->std_out.GetCount(); ++i)
+    if( (svn->std_out[i])[(size_t)0] == what && (svn->std_out[i])[(size_t)1] < 'a')  // operator overloading abuse of the year...
+      ret.Add(svn->std_out[i].Mid(5));
 }
 
 

@@ -39,8 +39,6 @@ class SubversionPlugin : public cbPlugin
   {
     int tabIndex;
 
-    SimpleTextLog *outputLog;
-
     IdToStringHash	fileProperties;
 
     SVNRunner		* svn;
@@ -51,84 +49,87 @@ class SubversionPlugin : public cbPlugin
     ~SubversionPlugin()
     {}
     ;
-    int SubversionPlugin::Configure()
+    int		SubversionPlugin::Configure()
     {
       CodeBlocksEvent e;
       Preferences(e);
       return 0;
     };
-
-    void BuildMenu(wxMenuBar* menuBar)
+    void	BuildMenu(wxMenuBar* menuBar)
     {}
     ;
-    void BuildModuleMenu(const ModuleType type, wxMenu* menu, const wxString& arg);
+    void	SubversionPlugin::BuildToolBar(wxToolBar* toolBar)
+    {}
+    ;
 
-    void BuildProjectMenu(wxMenu* menu, wxString name, wxString target);
-    void BuildFileMenu(wxMenu* menu, wxString name, wxString target);
-    void BuildMgrMenu(wxMenu* menu);
-    void AppendCommonMenus(wxMenu *menu, wxString target, bool isProject);
-
-    void SubversionPlugin::BuildToolBar(wxToolBar* toolBar)
-    {
-      NotImplemented("SubversionPlugin::BuildToolBar()");
-    };
-
-    void OnAttach();
-    void OnRelease(bool appShutDown);
-
-    void SubversionPlugin::OnFirstRun();
-    void SubversionPlugin::Preferences(CodeBlocksEvent& event);
-    void SubversionPlugin::SetUser(CodeBlocksEvent& event);
-
-    void SubversionPlugin::Add(CodeBlocksEvent& event);
-    void SubversionPlugin::Delete(CodeBlocksEvent& event);
-
-    void SubversionPlugin::PropIgnore(CodeBlocksEvent& event);
-    void SubversionPlugin::PropMime(CodeBlocksEvent& event);
-    void SubversionPlugin::PropExec(CodeBlocksEvent& event);
-    void SubversionPlugin::PropExt(CodeBlocksEvent& event);
-    void SubversionPlugin::PropKeywords(CodeBlocksEvent& event);
+    void	BuildModuleMenu(const ModuleType type, wxMenu* menu, const wxString& arg);
 
 
-    void SubversionPlugin::Checkout(CodeBlocksEvent& event);
-    void SubversionPlugin::Import(CodeBlocksEvent& event);
-    void SubversionPlugin::Commit(CodeBlocksEvent& event);
-    void SubversionPlugin::Update(CodeBlocksEvent& event);
-    void SubversionPlugin::Revert(CodeBlocksEvent& event);
-    void SubversionPlugin::Diff(CodeBlocksEvent& event);
-    void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event);
+    void			BuildProjectMenu(wxMenu* menu, wxString name, wxString target);
+    void			BuildFileMenu(wxMenu* menu, wxString name, wxString target);
+    void			BuildMgrMenu(wxMenu* menu);
+    void			AppendCommonMenus(wxMenu *menu, wxString target, bool isProject);
 
-    void SubversionPlugin::EditProperty(wxEvent& event);
+    void			OnAttach();
+    void			OnRelease(bool appShutDown);
 
-    wxArrayString	SubversionPlugin::ParseStatusOutputForChar(const char what);
-    char 			SubversionPlugin::ParseStatusOutputForFile(const wxString& what);
+    void			OnFirstRun();
+    void			Preferences(CodeBlocksEvent& event);
+    void			SetUser(CodeBlocksEvent& event);
 
-    void SubversionPlugin::TamperWithWindowsRegistry();
-    wxString SubversionPlugin::NastyFind(const wxString& name);
+    void			Add(CodeBlocksEvent& event);
+    void			Delete(CodeBlocksEvent& event);
 
-    void SubversionPlugin::ReadConfig();
-    void SubversionPlugin::WriteConfig();
+    void			PropIgnore(CodeBlocksEvent& event);
+    void			PropMime(CodeBlocksEvent& event);
+    void			PropExec(CodeBlocksEvent& event);
+    void			PropExt(CodeBlocksEvent& event);
+    void			PropKeywords(CodeBlocksEvent& event);
 
-    wxString SubversionPlugin::Escape(const wxString& s)  // we might use a better func here
+
+    void			Checkout(CodeBlocksEvent& event);
+    void			Import(CodeBlocksEvent& event);
+    void			Commit(CodeBlocksEvent& event);
+    void			Update(CodeBlocksEvent& event);
+    void			Revert(CodeBlocksEvent& event);
+    void			Diff(CodeBlocksEvent& event);
+    void			OnFatTortoiseFunctionality(CodeBlocksEvent& event);
+
+    void			EditProperty(wxEvent& event);
+
+    wxArrayString	ExtractFilesWithStatus(const char what);
+    void			ExtractFilesWithStatus(const char what, wxArrayString& ret);
+    char 			ParseStatusOutputForFile(const wxString& what);
+
+    void			ReloadEditors(wxArrayString filenames);
+    void			TamperWithWindowsRegistry();
+    wxString		NastyFind(const wxString& name);
+
+    void			ReadConfig();
+    void			WriteConfig();
+
+
+
+    wxString	Escape(const wxString& s)  // we might use a better func here
     {
       wxString t("\"" + s + "\"");
       t.Replace("\\", "/");
       return t;
     }
 
-    wxString SubversionPlugin::LocalPath(const wxString& target)
+    wxString	LocalPath(const wxString& target)
     {
       return LocalPath(GetSelectionsProject(), target);
     };
 
-    wxString SubversionPlugin::LocalPath(const wxString& base, const wxString& target)
+    wxString	LocalPath(const wxString& base, const wxString& target)
     {
       wxFileName fn(target);
       fn.MakeRelativeTo(base);
       return fn.GetFullPath();
     };
 
-    wxString SubversionPlugin::GetActiveProject()
+    wxString	GetActiveProject()
     {
       cbProject* currentProject = Manager::Get()->GetProjectManager()->GetActiveProject();
       if (!currentProject)
@@ -136,7 +137,7 @@ class SubversionPlugin : public cbPlugin
       return currentProject->GetCommonTopLevelPath();
     };
 
-    wxString SubversionPlugin::GetSelection()
+    wxString	GetSelection()
     {
       wxTreeCtrl* tree = Manager::Get()->GetProjectManager()->GetTree();
 
@@ -151,7 +152,7 @@ class SubversionPlugin : public cbPlugin
         return ftd->GetProject()->GetCommonTopLevelPath();
     };
 
-    wxString SubversionPlugin::GetSelectionsProject()
+    wxString	GetSelectionsProject()
     {
       wxTreeCtrl* tree = Manager::Get()->GetProjectManager()->GetTree();
       FileTreeData* ftd	= (FileTreeData*) tree->GetItemData(tree->GetSelection());
@@ -163,7 +164,7 @@ class SubversionPlugin : public cbPlugin
     };
 
 
-    bool SubversionPlugin::IsProject(const wxString& arg)
+    bool	IsProject(const wxString& arg)
     {
       ProjectsArray* array = Manager::Get()->GetProjectManager()->GetProjects();
       if (array)
@@ -180,13 +181,13 @@ class SubversionPlugin : public cbPlugin
     }
 
 
-    bool SubversionPlugin::DirUnderVersionControl(const wxString& arg)
+    bool	DirUnderVersionControl(const wxString& arg)
     {
       wxString s =  wxFileName(arg).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + ".svn";
       return wxFileName::DirExists(s);
     }
 
-    void SubversionPlugin::fg()
+    void	fg()
     {
       Manager::Get()->GetMessageManager()->SwitchTo(tabIndex);
     };
