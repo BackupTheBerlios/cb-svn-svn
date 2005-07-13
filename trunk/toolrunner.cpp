@@ -38,8 +38,8 @@ int SVNRunner::Run(wxString cmd)
     }
   cmd.Replace("\\", "/");
 
- Manager::Get()->GetAppWindow()->SetStatusText("svn " +cmd);
-              
+  Manager::Get()->GetAppWindow()->SetStatusText("svn " +cmd);
+
   wxString runCmd(cmd);
   if(username > "" && password > "")
     {
@@ -54,6 +54,18 @@ int SVNRunner::Run(wxString cmd)
   if(lastExitCode == 0)
     return false;
 
+  {
+    wxRegEx reg("run.*svn.*cleanup", wxRE_ICASE);				// svn:run 'svn cleanup' to remove locks (type 'svn help cleanup' for details)
+    if(reg.Matches(blob) && runCmd.Contains(surplusTarget))		// if surplusTarget is contained in runCmd, it can be assumed valid
+      {
+		Log::Instance()->Add("Running svn cleanup to remove stale locks...");
+        ToolRunner::Run("cleanup" + Q(surplusTarget));
+		ToolRunner::Run(runCmd);
+
+        if(lastExitCode == 0)
+          return false;
+      }
+  }
 
   if(blob.Contains("Connection is read-only"))
     {
@@ -138,6 +150,7 @@ int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString
 
 int  SVNRunner::Update(const wxString& selected, const wxString& revision)
 {
+  surplusTarget = selected; // update may fail due to stale locks, this will be used to call svn cleanup
   return Run("update" + Q(selected) + "-r " + revision);
 }
 

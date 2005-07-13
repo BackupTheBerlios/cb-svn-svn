@@ -38,7 +38,17 @@ class ToolRunner
     /*
     * The implementation of ToolRunner is fucking braindead and inefficient, in particular the spinlock around wxYield()
     * is some nasty stuff. In addition to the SNAFU given by wxWindows, this version also opens and closes several hundred
-    * input streams while spinning. Some serious rewrite needs to be done here some day.
+    * input streams while spinning. I was unable to implement it using only one input stream, as the stream object deletes
+    * itself at unpredictable times (apparently when eof is reached?) Some serious rewrite needs to be done there some day.
+    * Note: Do not even think about replacing the spinlock with a wxTimer like it is done in the wx sample code and in code::blocks.
+    * This is fine if you run a compiler, but not for this purpose here. Remember that svn is invoked at least two times
+    * during BuildModuleMenu(). On my machine (Amd64/3500), wxTimer.Start(100) performs closer to 300-350 than to 100ms.
+    * With a 600-700ms timer overhead plus 100-250 ms for svn to execute, BuildModuleMenu() would clearly have to
+    * be considered non-realtime.
+    * Also, do not even think about skipping the spinlock alltogether.
+    * Lastly, do not think about using a mutex or semaphore, either. Although this would be the "correct" way, this will
+    * not work, as notification is (contrarily to what the docs may make you believe) not asynchronous.
+    * Therefore, if you use a mutex or a semaphore, you will deadlock your application's main thread forever. 
     */
   class Process : public wxProcess
       {
@@ -191,12 +201,15 @@ running = true;
 
     /*
      * Even if you don't see what happens around you, you can still do something good.
-     * This function asynchronously starts svn during OnAttach(). No output is needed or wanted. We don't even see if we succeeded.
-     * The sole reason svn is run is to force Windows to get its butt moving, as it will otherwise take a virtually endless time
-     * when you first click on the project manager (right, dynamic linkage and stuff). On Linux we probably don't need this at all.
-     * Note that this function leaks a Process object. It seems like Detach() will make the object auto-delete. Let's hope that is true. 
+     * This function asynchronously starts svn and forgets about it.
+     * That is used during OnAttach(). No output is needed or wanted. We don't even see if we succeeded.
+     * The sole reason svn is run is to force Windows to get its butt moving, as it will otherwise
+     * take a virtually endless time when you first click on the project manager (right, dynamic linkage and stuff).
+     * On Linux we probably don't need this at all, but it nevertheless does no harm either.
+     * Note that this function possibly leaks a Process object.
+     * The wxProcess documentation says that Detach() will make the object auto-delete. Let's hope that is true. 
      */
-    int ToolRunner::StevieWonder(wxString cmd)
+    int ToolRunner::StevieWonder(const wxString& cmd)
     {
       Process *process = new Process(0, 0, 0, 0);
       wxString runCommand(exec + " " + cmd);
@@ -233,15 +246,14 @@ class SVNRunner : public ToolRunner
 
     wxString username;
     wxString password;
+	wxString surplusTarget;
     bool do_force;
     bool prune_non_interactive;
-    int wantProgressBar;
 
   public:
     SVNRunner(const wxString& executable)
     {
       SetExecutable(executable);
-      wantProgressBar = false;
     }
     ;
 

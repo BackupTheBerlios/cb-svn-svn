@@ -581,8 +581,15 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
 
   ExtractFilesWithStatus('U', changed);
   ExtractFilesWithStatus('G', changed);
-
   ReloadEditors(changed);
+
+  if(!tortoiseproc.IsEmpty())
+    {
+      changed.Empty();
+      ExtractFilesWithStatus('C', changed);
+      for(int i = 0; i < changed.Count(); ++i)
+        tortoise->ConflictEditor(changed[i]);
+    }
 }
 
 
@@ -591,8 +598,8 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
   EditorManager *em = Manager::Get()->GetEditorManager();
   assert(em);
   for(int i = 0; i < filenames.Count(); ++i)
-	if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
-        e->Reload();
+    if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
+      e->Reload();
 }
 
 
@@ -834,8 +841,10 @@ void SubversionPlugin::Revert(CodeBlocksEvent& event)
         s << "deleted";
       if(svn->std_out[i][(size_t)0] == 'A')
         s << (s.Length()? ", " : "") <<  "added";
-      if(svn->std_out[i][(size_t)0] == 'M' || svn->std_out[i][(size_t)0] == 'C')
+      if(svn->std_out[i][(size_t)0] == 'M')
         s << (s.Length()? ", " : "") <<  "modified";
+      if(svn->std_out[i][(size_t)0] == 'C')
+        s << (s.Length()? ", " : "") <<  "modified and in conflict";
       if(svn->std_out[i][(size_t)1] == 'M')
         s << (s.Length()? ", " : "") <<  "has property changes";
       s = f + "   (" + s + ")";
