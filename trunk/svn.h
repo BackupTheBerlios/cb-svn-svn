@@ -97,8 +97,8 @@ class SubversionPlugin : public cbPlugin
 
     void			EditProperty(wxEvent& event);
 
-    wxArrayString	ExtractFilesWithStatus(const char what);
-    void			ExtractFilesWithStatus(const char what, wxArrayString& ret);
+    wxArrayString	ExtractFilesWithStatus(const char what, unsigned int pos = 0);
+    void			ExtractFilesWithStatus(const char what, wxArrayString& ret, unsigned int pos = 0);
     char 			ParseStatusOutputForFile(const wxString& what);
 
     void			ReloadEditors(wxArrayString filenames);

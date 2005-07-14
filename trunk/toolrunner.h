@@ -28,7 +28,7 @@
 #include "log.h"
 
 
-//#define LOTS_OF_DEBUG_OUTPUT
+#define LOTS_OF_DEBUG_OUTPUT
 
 
 

@@ -600,7 +600,10 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
   assert(em);
   for(int i = 0; i < filenames.Count(); ++i)
     if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
+    {
+Log::Instance()->Add("reload "+filenames[i]);
       e->Reload();
+}
 }
 
 
@@ -722,16 +725,11 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
       else if(up_after_co)
         {
           wxArrayString changed;
-          for(unsigned int i = 0; i < svn->std_out.Count(); ++i)								// Update does not report files
-            if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))	// that were merely modified for keywords
-              changed.Add(svn->std_out[i].Mid(15).Trim());										// So we have to "borrow" from commit.
+          for(unsigned int i = 0; i < svn->std_out.Count(); ++i)								
+            if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
+              changed.Add(svn->std_out[i].Mid(15).Trim());
 
-          if(svn->Update(selected))
-            Log::Instance()->Add(svn->out);
-          else
-            {
-              ReloadEditors(changed);
-            }
+          ReloadEditors(changed);
         }
     }
 }
@@ -913,18 +911,31 @@ char SubversionPlugin::ParseStatusOutputForFile(const wxString& what)
   return 0;
 }
 
-wxArrayString SubversionPlugin::ExtractFilesWithStatus(const char what)
-{
-  wxArrayString ret;
-  ExtractFilesWithStatus(what, ret);
-  return ret;
-}
 
-void SubversionPlugin::ExtractFilesWithStatus(const char what, wxArrayString& ret)
+
+/*
+* We have to discriminate between lines like
+* U    somefile.h
+* UU   anotherfile.cpp
+* and
+* Update failed (details follow)
+*
+* Luckily, svn status codes are *never* lowercase, so we can use "std_out[i])[(size_t)1] < 'a'" as a condition
+* A regex would certainly do even better, but a regex is 30-40 times slower, too.
+* We don't know in advance how many files there are in a transaction, it could very easily be 200 (or 5000?)
+* I'd rather avoid running wxRegex.Matches() 200 times in a loop unless I have to.
+*/
+void SubversionPlugin::ExtractFilesWithStatus(const char what, wxArrayString& ret, unsigned int pos)
 {
   for(int i = 0; i < svn->std_out.GetCount(); ++i)
-    if( (svn->std_out[i])[(size_t)0] == what && (svn->std_out[i])[(size_t)1] < 'a')  // operator overloading abuse of the year...
+    if( (svn->std_out[i])[(size_t)pos] == what && (svn->std_out[i])[(size_t)1] < 'a')
       ret.Add(svn->std_out[i].Mid(5));
+}
+wxArrayString SubversionPlugin::ExtractFilesWithStatus(const char what, unsigned int pos)
+{
+  wxArrayString ret;
+  ExtractFilesWithStatus(what, ret, pos);
+  return ret;
 }
 
 

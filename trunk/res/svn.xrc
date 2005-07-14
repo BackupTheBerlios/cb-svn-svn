@@ -324,7 +324,7 @@
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
 <object class="wxCheckBox" name="up after co">
-<label>After sucessful commit, update to realize keyword changes</label>
+<label>After sucessful commit, reload sources to realize keyword changes</label>
 <checked>1</checked>
 </object>
 </object>
