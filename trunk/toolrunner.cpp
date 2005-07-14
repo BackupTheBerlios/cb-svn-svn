@@ -58,9 +58,9 @@ int SVNRunner::Run(wxString cmd)
     wxRegEx reg("run.*svn.*cleanup", wxRE_ICASE);				// svn:run 'svn cleanup' to remove locks (type 'svn help cleanup' for details)
     if(reg.Matches(blob) && runCmd.Contains(surplusTarget))		// if surplusTarget is contained in runCmd, it can be assumed valid
       {
-		Log::Instance()->Add("Running svn cleanup to remove stale locks...");
+        Log::Instance()->Add("Running svn cleanup to remove stale locks...");
         ToolRunner::Run("cleanup" + Q(surplusTarget));
-		ToolRunner::Run(runCmd);
+        ToolRunner::Run(runCmd);
 
         if(lastExitCode == 0)
           return false;
@@ -211,9 +211,26 @@ wxString SVNRunner::Diff(const wxString& selected, const wxString& rev)
 }
 
 
+int SVNRunner::Info(const wxString& file, bool minusR)
+{
+  return  Run("info" + Q(file) + (minusR ? "-R" : ""));
+}
 
 
+wxString SVNRunner::Info(const wxString& file)
+{
+  Info(file, false);
+  wxString ret;
+  for(int i = 0; i < std_out.Count(); ++i)
+    {
+      if(std_out[i].Contains("not a working copy"))
+        return std_out[i];
 
+      if(std_out[i].Contains("UUID") || std_out[i].Contains("Revision") || std_out[i].Contains("Last"))
+        ret << std_out[i] << "\n";
+    }
+  return ret;
+}
 
 
 

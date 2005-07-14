@@ -28,7 +28,7 @@
 #include "log.h"
 
 
-#define LOTS_OF_DEBUG_OUTPUT
+//#define LOTS_OF_DEBUG_OUTPUT
 
 
 
@@ -303,6 +303,8 @@ class SVNRunner : public ToolRunner
     wxString		SVNRunner::PropGet(const wxString& file, const wxString& prop);
     int  			SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive);
     int				SVNRunner::PropDel(const wxString& file, const wxString& prop);
+    int				SVNRunner::Info(const wxString& file, bool minusR);
+    wxString		SVNRunner::Info(const wxString& file);
 
     wxArrayString	SVNRunner::GetPropertyList(const wxString& file);
 

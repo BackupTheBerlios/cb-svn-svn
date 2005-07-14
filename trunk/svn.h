@@ -108,6 +108,7 @@ class SubversionPlugin : public cbPlugin
     void			ReadConfig();
     void			WriteConfig();
 
+    wxString		GetCheckoutDir();
 
 
     wxString	Escape(const wxString& s)  // we might use a better func here

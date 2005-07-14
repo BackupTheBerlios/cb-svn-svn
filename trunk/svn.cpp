@@ -40,11 +40,6 @@
 #include "toolrunner.h"
 
 #ifdef __WIN32__
-	#include <shlobj.h>
-	#include <registry.h>
-	#ifndef CSIDL_PROGRAM_FILES
-		#define CSIDL_PROGRAM_FILES  0x0026
-	#endif
 const bool filenames_are_unix = false;
 #else
 const bool filenames_are_unix = true;
@@ -604,7 +599,7 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
   EditorManager *em = Manager::Get()->GetEditorManager();
   assert(em);
   for(int i = 0; i < filenames.Count(); ++i)
-   if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
+    if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
       e->Reload();
 }
 
@@ -751,54 +746,64 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
       if(!d.username.IsEmpty())
         svn->SetPassword(d.username, d.password);
 
-      if(!d.checkoutDir.IsEmpty())
-        {
-          if(::wxDirExists(d.checkoutDir) || ::wxMkdir(d.checkoutDir))
-            if(!svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision) ))
+      if(d.checkoutDir.IsEmpty())
+        d.checkoutDir = GetCheckoutDir();  // poo... hopefully no C++ programmer sees this
+
+      if(::wxDirExists(d.checkoutDir) || ::wxMkdir(d.checkoutDir))
+        if(!svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision) ))
+          {
+            wxString info = svn->Info(d.checkoutDir);
+            if(info.Contains("not a working copy"))		// as svn returns non-null on error, this should never be the case, but anyway...
               {
-                if(d.autoOpen)
+                Log::Instance()->Add("Checkout failed, no working copy found at " + d.checkoutDir);
+                return;
+              }
+            Log::Instance()->Add("Checkout of " + d.repoURL + " finished.\n\n" + info);
+
+            if(d.autoOpen)
+              {
+                Log::Instance()->Add("Looking for projects...");
+
+                wxArrayString dirs;
+                wxString f;
+
+                f = wxFindFirstFile(d.checkoutDir + "/", wxDIR);
+                dirs.Add(d.checkoutDir);
+                while ( !f.IsEmpty() )
                   {
-                    Log::Instance()->Add("Looking for projects...");
-
-                    wxArrayString dirs;
-                    wxString f;
-
-                    f = wxFindFirstFile(d.checkoutDir + "/", wxDIR);
-                    dirs.Add(d.checkoutDir);
+                    dirs.Add(f);
+                    f = wxFindNextFile();
+                  }
+                for(int i = 0; i < dirs.Count(); ++i)
+                  {
+                    f = wxFindFirstFile(dirs[i] + "/*.cbp");
                     while ( !f.IsEmpty() )
                       {
-                        dirs.Add(f);
+                        Log::Instance()->Add("opening " + f);
+                        pmgr->LoadProject(f);
                         f = wxFindNextFile();
                       }
-                    for(int i = 0; i < dirs.Count(); ++i)
+                    f = wxFindFirstFile(dirs[i] + "/*.dev");
+                    while ( !f.IsEmpty() )
                       {
-                        f = wxFindFirstFile(dirs[i] + "/*.cbp");
-                        while ( !f.IsEmpty() )
-                          {
-                            Log::Instance()->Add("opening " + f);
-                            pmgr->LoadProject(f);
-                            f = wxFindNextFile();
-                          }
-                        f = wxFindFirstFile(dirs[i] + "/*.dev");
-                        while ( !f.IsEmpty() )
-                          {
-                            Log::Instance()->Add("importing " + f);
-                            pmgr->LoadProject(f);
-                            f = wxFindNextFile();
-                          }
-                        f = wxFindFirstFile(dirs[i] + "/*.dsp");
-                        while ( !f.IsEmpty() )
-                          {
-                            Log::Instance()->Add("importing " + f);
-                            pmgr->LoadProject(f);
-                            f = wxFindNextFile();
-                          }
+                        Log::Instance()->Add("importing " + f);
+                        pmgr->LoadProject(f);
+                        f = wxFindNextFile();
                       }
-
+                    f = wxFindFirstFile(dirs[i] + "/*.dsp");
+                    while ( !f.IsEmpty() )
+                      {
+                        Log::Instance()->Add("importing " + f);
+                        pmgr->LoadProject(f);
+                        f = wxFindNextFile();
+                      }
                   }
-                repoHistory.Insert(d.repoURL, 0);
+
               }
-        }
+            repoHistory.Insert(d.repoURL, 0);
+          }
+        else
+          Log::Instance()->Add(svn->out);    // display what svn complains about
     }
 }
 
@@ -1330,11 +1335,50 @@ void SubversionPlugin::EditProperty(wxEvent& event)
 
 
 
+
+
+
+
+
+
+
+
 /*-----------------------------------------------------------------------------------------------------------------
 *
 *  DO NOT LOOK ANY FURTHER. BEYOND THIS POINT, THINGS ARE REALLY EVIL. YOU HAVE BEEN WARNED.
 * 
 */
+
+
+
+
+
+#ifdef __WIN32__
+	#include <shlobj.h>
+	#include <registry.h>
+	#ifndef CSIDL_PROGRAM_FILES
+		#define CSIDL_PROGRAM_FILES  0x0026
+	#endif
+	#ifndef CSIDL_MYDOCUMENTS
+		#define CSIDL_MYDOCUMENTS  0x000c
+	#endif
+#endif
+
+
+wxString		SubversionPlugin::GetCheckoutDir()
+{
+#ifdef __linux__
+  return ("~/svn-checkout");										// It can be so simple...
+#endif
+#ifdef __WIN32__
+
+  TCHAR szPath[MAX_PATH];											// ...or such a mess!
+  SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, 0, szPath);		// Maybe wxWindows even has a cross-platform function
+  wxString ret(szPath);												// like wxGetHomeDirectory(), but I am unable to find it.
+  ret << "/svn-checkout";
+  return ret;
+#endif
+}
 
 void SubversionPlugin::OnFirstRun()
 {
