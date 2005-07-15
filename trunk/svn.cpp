@@ -555,10 +555,13 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
       break;
     }
 
+  bool chkmod_status = ConfigManager::Get()->Read("/environment/check_modified_files",1);	// evil stuff: tamper with c::b settings
+  ConfigManager::Get()->Write("/environment/check_modified_files", false);					// to prevent a race that occurs on lengthy operations
 
   if(svn->Update(selected, revision) == 0)
-    {
-      wxRegEx r("revision\\ ([0-9]+)\\.$");
+  {
+    wxRegEx r("revision\\ ([0-9]+)\\.$")
+      ;
       wxString rev;
 
       if(r.IsValid())
@@ -579,9 +582,12 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
   ExtractFilesWithStatus('G', changed);
   ReloadEditors(changed);
 
+  ConfigManager::Get()->Write("/environment/check_modified_files", chkmod_status); // restore original state
+
   if(!tortoiseproc.IsEmpty())
-    {
-      changed.Empty();
+  {
+    changed.Empty()
+      ;
       ExtractFilesWithStatus('C', changed);
       for(int i = 0; i < changed.Count(); ++i)
         tortoise->ConflictEditor(changed[i]);
@@ -600,10 +606,10 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
   assert(em);
   for(int i = 0; i < filenames.Count(); ++i)
     if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
-    {
-Log::Instance()->Add("reload "+filenames[i]);
-      e->Reload();
-}
+      {
+        Log::Instance()->Add("reload "+filenames[i]);
+        e->Reload();
+      }
 }
 
 
@@ -720,17 +726,21 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
       if(!concat.IsEmpty())
         svn->Add(concat);
 
+      bool chkmod_status = ConfigManager::Get()->Read("/environment/check_modified_files",1);	// evil stuff: tamper with c::b settings
+      ConfigManager::Get()->Write("/environment/check_modified_files", false);					// to prevent a race that occurs on lengthy operations
+
       if(svn->Commit(selected, d.comment))
-        Log::Instance()->Add(svn->out);
+      Log::Instance()->Add(svn->out);
       else if(up_after_co)
         {
           wxArrayString changed;
-          for(unsigned int i = 0; i < svn->std_out.Count(); ++i)								
-            if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
-              changed.Add(svn->std_out[i].Mid(15).Trim());
+          for(unsigned int i = 0; i < svn->std_out.Count(); ++i)
+              if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
+                changed.Add(svn->std_out[i].Mid(15).Trim());
 
-          ReloadEditors(changed);
-        }
+            ReloadEditors(changed);
+          }
+      ConfigManager::Get()->Write("/environment/check_modified_files", chkmod_status); // restore original state
     }
 }
 
