@@ -69,7 +69,7 @@ enum {  ID_MENU_USER = 32000,
         ID_MENU_KW_CLEARALL,
 
 
-ID_MENU_CVS_COMMIT,
+        ID_MENU_CVS_COMMIT,
 
         ID_COMBO_SRC = 32600,
         ID_COMBO_DEST,
@@ -101,7 +101,7 @@ class CheckoutDialog : public wxDialog
 class ImportDialog : public wxDialog
   {
   public:
-    ImportDialog::ImportDialog(wxWindow* parent, const wxArrayString& repoHist, const wxString& importDir);
+    ImportDialog::ImportDialog(wxWindow* parent, const wxArrayString& repoHist, const wxString& importDir, bool no_empty);
 
     ~ImportDialog()
     {}
@@ -117,6 +117,7 @@ class ImportDialog : public wxDialog
   private:
     void OnOKClick(wxCommandEvent& event);
     void OnCancelClick(wxCommandEvent& event);
+    bool no_empty;
     DECLARE_EVENT_TABLE()
   };
 
@@ -125,11 +126,11 @@ class ImportDialog : public wxDialog
 class CommitDialog : public wxDialog
   {
   public:
-    CommitDialog(wxWindow* parent, const wxArrayString& addList);
+    CommitDialog(wxWindow* parent, const wxArrayString& addList, bool no_empty_c);
     ~CommitDialog()
     {}
     ;
-
+	void SetComment(const wxString& cmt);
     wxString comment;
     wxArrayString finalList;
   private:
@@ -139,6 +140,7 @@ class CommitDialog : public wxDialog
     void SelectAll(wxCommandEvent& event);
     void CommitDialog::Selected(wxCommandEvent& event);
     bool extended;
+    bool no_empty;
     DECLARE_EVENT_TABLE()
   };
 

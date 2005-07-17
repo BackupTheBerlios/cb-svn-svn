@@ -693,7 +693,19 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
   else
     files = missing;
 
-  CommitDialog d(Manager::Get()->GetAppWindow(), files);
+  CommitDialog d(Manager::Get()->GetAppWindow(), files, require_comments);
+  if(prefill_comments)
+    {
+      wxArrayString modified = ExtractFilesWithStatus('M');
+      wxString prefill;
+
+      for(int i = 0; i < modified.Count(); ++i)
+        {
+          modified[i] = wxFileName(modified[i]).GetFullName();
+          prefill << modified[i] << " : \n";
+        }
+      d.SetComment(prefill);
+    }
   d.Centre();
 
   if(d.ShowModal() == wxID_OK)
@@ -836,7 +848,7 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
 
 void SubversionPlugin::Import(CodeBlocksEvent& event)
 {
-  ImportDialog d(Manager::Get()->GetAppWindow(), repoHistory, GetSelectionsProject());
+  ImportDialog d(Manager::Get()->GetAppWindow(), repoHistory, GetSelectionsProject(), require_comments);
   d.Centre();
   if(d.ShowModal() == wxID_OK)
     {
@@ -1413,6 +1425,7 @@ wxString		SubversionPlugin::GetCheckoutDir()
   ret << "/svn-checkout";
   return ret;
 #else
+
   return ("~/svn-checkout");										// ...or it can be so simple.
 #endif
 }
@@ -1433,6 +1446,7 @@ void SubversionPlugin::OnFirstRun()
 #endif
 
 #ifdef SCO
+
   long* ptr = 0;
   *ptr = 1L;
 #endif

@@ -84,7 +84,7 @@ EVT_BUTTON(XRCID("wxID_CANCEL"), ImportDialog::OnCancelClick)
 END_EVENT_TABLE()
 
 
-ImportDialog::ImportDialog(wxWindow* parent, const wxArrayString& repoHist, const wxString& imp)
+ImportDialog::ImportDialog(wxWindow* parent, const wxArrayString& repoHist, const wxString& imp, bool no_empty_c) : no_empty(no_empty_c)
 {
   wxXmlResource::Get()->LoadDialog(this, parent, "Import");
 
@@ -104,6 +104,15 @@ void ImportDialog::OnOKClick(wxCommandEvent& event)
   password	= XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
   comment	= XRCCTRL(*this, "comment", wxComboBox)->GetValue();
   trunkify	= XRCCTRL(*this, "trunkify", wxCheckBox)->GetValue();
+
+  if(no_empty && comment.IsEmpty())
+    {
+      wxMessageDialog(Manager::Get()->GetAppWindow(),
+                      "According to your preferences, you are required to enter a comment.",
+                      "Import", wxOK).ShowModal();
+      return;
+    }
+
 
   EndModal(wxID_OK);
 }
@@ -129,7 +138,7 @@ EVT_CHECKLISTBOX(-1, CommitDialog::Selected)
 END_EVENT_TABLE()
 
 
-CommitDialog::CommitDialog(wxWindow* parent, const wxArrayString& addList)
+CommitDialog::CommitDialog(wxWindow* parent, const wxArrayString& addList, bool no_empty_c) : no_empty(no_empty_c)
 {
   if(addList.Count() == 0)
     {
@@ -176,9 +185,23 @@ void CommitDialog::SelectAll(wxCommandEvent& event)
   XRCCTRL(*this, "select none", wxCheckBox)->SetValue(false);
 }
 
+void CommitDialog::SetComment(const wxString& cmt)
+{
+  XRCCTRL(*this, "comment", wxTextCtrl)->SetValue(cmt);
+}
+
 void CommitDialog::OnOKClick(wxCommandEvent& event)
 {
   comment	= XRCCTRL(*this, "comment", wxTextCtrl)->GetValue();
+
+  if(no_empty && comment.IsEmpty())
+    {
+      wxMessageDialog(Manager::Get()->GetAppWindow(),
+                      "According to your preferences, you are required to enter a comment.",
+                      "Commit", wxOK).ShowModal();
+      return;
+    }
+
   if(extended)
     {
       wxCheckListBox* clist = XRCCTRL(*this, "listcontrol", wxCheckListBox);
