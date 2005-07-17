@@ -204,10 +204,9 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
 
   menu->AppendSeparator();
 
-
   if(svn->running) // this may be more user-friendly than wxEnableTopLevelWindows(false)
     {
-      menu->Append(ID_MENU, "Subversion (busy)");
+      menu->Append(ID_MENU, "RC txn in progress");
       menu->Enable(ID_MENU, false);
       return;
     }
@@ -221,31 +220,50 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
   if (arg.IsEmpty())
     {
       BuildMgrMenu(cmenu);
+      if(menu != cmenu)
+        menu->Append( ID_MENU, "Subversion", cmenu );
+
+      return;
     }
-  else
+
+  wxString selected(GetSelection());
+
+  if(!DirUnderVersionControl(selected) && !DirUnderCVS(selected))
     {
-      wxString selected(GetSelection());
+      cmenu->Append( ID_MENU_IMPORT, "Import Project (currently unversioned)" );
 
-      if(!DirUnderVersionControl(selected))
-        {
-          cmenu->Append( ID_MENU_IMPORT, "Import Project (currently unversioned)" );
-          if(menu != cmenu)
-            menu->Append( ID_MENU, "Subversion", cmenu );
-          return;
-        }
-
-      svn->Status(selected);
-
-      if (IsProject(arg))
-        BuildProjectMenu(cmenu, arg, selected);
-      else
-        BuildFileMenu(cmenu, arg, selected);
+      if(menu != cmenu)
+        menu->Append( ID_MENU, "Subversion", cmenu );
+      return;
     }
+
+  if(DirUnderCVS(selected))
+    {
+      Log::Instance()->Add("is under CVS");
+      Build_CVS_ModuleMenu(cmenu, arg);
+      if(menu != cmenu)
+        menu->Append( ID_MENU, "Subversion", cmenu );
+      return;
+    }
+
+  svn->Status(selected);
+
+  if (IsProject(arg))
+    BuildProjectMenu(cmenu, arg, selected);
+  else
+    BuildFileMenu(cmenu, arg, selected);
+
 
   if(menu != cmenu)
     menu->Append( ID_MENU, "Subversion", cmenu );
 }
 
+void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
+{
+  Log::Instance()->Add("build CVS menu");
+  menu->Append( ID_MENU_CVS_COMMIT, "Commit   [cvs]" );
+  menu->Append( ID_MENU_CVS_COMMIT, "Update   [cvs]" );
+}
 
 void SubversionPlugin::BuildMgrMenu(wxMenu* menu)
 {
@@ -559,8 +577,8 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
   ConfigManager::Get()->Write("/environment/check_modified_files", false);					// to prevent a race that occurs on lengthy operations
 
   if(svn->Update(selected, revision) == 0)
-  {
-    wxRegEx r("revision\\ ([0-9]+)\\.$")
+    {
+      wxRegEx r("revision\\ ([0-9]+)\\.$")
       ;
       wxString rev;
 
@@ -585,8 +603,8 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
   ConfigManager::Get()->Write("/environment/check_modified_files", chkmod_status); // restore original state
 
   if(!tortoiseproc.IsEmpty())
-  {
-    changed.Empty()
+    {
+      changed.Empty()
       ;
       ExtractFilesWithStatus('C', changed);
       for(int i = 0; i < changed.Count(); ++i)
@@ -730,16 +748,16 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
       ConfigManager::Get()->Write("/environment/check_modified_files", false);					// to prevent a race that occurs on lengthy operations
 
       if(svn->Commit(selected, d.comment))
-      Log::Instance()->Add(svn->out);
+        Log::Instance()->Add(svn->out);
       else if(up_after_co)
         {
           wxArrayString changed;
           for(unsigned int i = 0; i < svn->std_out.Count(); ++i)
-              if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
-                changed.Add(svn->std_out[i].Mid(15).Trim());
+            if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
+              changed.Add(svn->std_out[i].Mid(15).Trim());
 
-            ReloadEditors(changed);
-          }
+          ReloadEditors(changed);
+        }
       ConfigManager::Get()->Write("/environment/check_modified_files", chkmod_status); // restore original state
     }
 }
@@ -1388,16 +1406,14 @@ void SubversionPlugin::EditProperty(wxEvent& event)
 
 wxString		SubversionPlugin::GetCheckoutDir()
 {
-#ifdef __linux__
-  return ("~/svn-checkout");										// It can be so simple...
-#endif
 #ifdef __WIN32__
-
-  TCHAR szPath[MAX_PATH];											// ...or such a mess!
+  TCHAR szPath[MAX_PATH];											// It can be such a mess...
   SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, 0, szPath);		// Maybe wxWindows even has a cross-platform function
   wxString ret(szPath);												// like wxGetHomeDirectory(), but I am unable to find it.
   ret << "/svn-checkout";
   return ret;
+#else
+  return ("~/svn-checkout");										// ...or it can be so simple.
 #endif
 }
 
@@ -1414,6 +1430,11 @@ void SubversionPlugin::OnFirstRun()
 
   svnbinary		= NastyFind("svn");
 
+#endif
+
+#ifdef SCO
+  long* ptr = 0;
+  *ptr = 1L;
 #endif
 
   WriteConfig();

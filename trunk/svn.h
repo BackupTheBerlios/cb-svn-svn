@@ -63,6 +63,7 @@ class SubversionPlugin : public cbPlugin
     ;
 
     void	BuildModuleMenu(const ModuleType type, wxMenu* menu, const wxString& arg);
+    void	Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg);
 
 
     void			BuildProjectMenu(wxMenu* menu, wxString name, wxString target);
@@ -188,6 +189,23 @@ class SubversionPlugin : public cbPlugin
       return wxFileName::DirExists(s);
     }
 
+	/*
+	* As it is possible that both .svn and CVS exist (migrated project with leftover folders), DirUnderCVS first checks for subversion's 
+	* presence, and returns false if subversion is found. Nobody should migrate backwards from subversion to CVS (at least I think so),
+	* thus it is assumed that if both revision control systems are present, the better one should be used.
+	* Also, of course, this is a subversion plugin. CVS is only supported as a fallback for the quaint 
+	*/
+    bool	DirUnderCVS(const wxString& arg)
+    {
+      wxString s =  wxFileName(arg).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + ".svn";
+      if(wxFileName::DirExists(s))
+        return false;
+
+      s =  wxFileName(arg).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "CVS";
+      return wxFileName::DirExists(s);
+    }
+
+
     void	fg()
     {
       Manager::Get()->GetMessageManager()->SwitchTo(tabIndex);
@@ -214,7 +232,7 @@ class SubversionPlugin : public cbPlugin
     bool no_props;
     bool show_resolved;
     bool prompt_reload;
-	bool up_after_co;
+    bool up_after_co;
     wxArrayString repoHistory;
 
   protected:

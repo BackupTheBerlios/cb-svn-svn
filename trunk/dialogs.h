@@ -68,6 +68,9 @@ enum {  ID_MENU_USER = 32000,
         ID_MENU_KW_SETALL,
         ID_MENU_KW_CLEARALL,
 
+
+ID_MENU_CVS_COMMIT,
+
         ID_COMBO_SRC = 32600,
         ID_COMBO_DEST,
      };
