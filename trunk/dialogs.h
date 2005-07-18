@@ -68,6 +68,9 @@ enum {  ID_MENU_USER = 32000,
         ID_MENU_KW_SETALL,
         ID_MENU_KW_CLEARALL,
 
+        ID_MENU_CVS_BRANCH,
+        ID_MENU_CVS_TAG,
+        ID_MENU_CVS_MERGE,
 
         ID_MENU_CVS_COMMIT,
 
@@ -90,6 +93,16 @@ class CheckoutDialog : public wxDialog
     wxString	password;
     wxString	revision;
     bool		autoOpen;
+
+    bool		use_cvs_instead;
+
+    wxString	cvs_workingdir;
+    wxString	cvs_repo;
+    wxString	cvs_module;
+    wxString	cvs_user;
+    wxString	cvs_pass;
+    bool		cvs_auto_open;
+    wxString	cvs_revision;
 
   private:
     void OnOKClick(wxCommandEvent& event);
@@ -130,7 +143,7 @@ class CommitDialog : public wxDialog
     ~CommitDialog()
     {}
     ;
-	void SetComment(const wxString& cmt);
+    void SetComment(const wxString& cmt);
     wxString comment;
     wxArrayString finalList;
   private:

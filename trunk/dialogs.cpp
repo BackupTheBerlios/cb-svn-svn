@@ -18,6 +18,7 @@
 #include <wx/checklst.h>
 #include <wx/textctrl.h>
 #include <wx/regex.h>
+#include <wx/notebook.h>
 
 #include "dialogs.h"
 #include "svn.h"
@@ -33,6 +34,7 @@ BEGIN_EVENT_TABLE(CheckoutDialog, wxDialog)
 EVT_BUTTON(XRCID("wxID_OK"), CheckoutDialog::OnOKClick)
 EVT_BUTTON(XRCID("wxID_CANCEL"), CheckoutDialog::OnCancelClick)
 EVT_BUTTON(XRCID("fileselect"), CheckoutDialog::OnFileSelect)
+EVT_BUTTON(XRCID("cvs.fileselect"), CheckoutDialog::OnFileSelect)
 END_EVENT_TABLE()
 
 
@@ -54,17 +56,29 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
 
 void CheckoutDialog::OnFileSelect(wxUpdateUIEvent& event)
 {
-  XRCCTRL(*this, "working dir", wxTextCtrl)->SetValue( ::wxDirSelector("Choose the checkout directory", XRCCTRL(*this, "working dir", wxTextCtrl)->GetValue(), wxDD_NEW_DIR_BUTTON) );
+  if(XRCCTRL(*this, "notebook", wxNotebook)->GetSelection() == 0)
+    XRCCTRL(*this, "working dir", wxTextCtrl)->SetValue( ::wxDirSelector("Choose the checkout directory", XRCCTRL(*this, "working dir", wxTextCtrl)->GetValue(), wxDD_NEW_DIR_BUTTON) );
+  else
+    XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->SetValue( ::wxDirSelector("Choose the checkout directory", XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->GetValue(), wxDD_NEW_DIR_BUTTON) );
 }
 
 void CheckoutDialog::OnOKClick(wxCommandEvent& event)
 {
   checkoutDir	= XRCCTRL(*this, "working dir", wxTextCtrl)->GetValue();
   repoURL		= XRCCTRL(*this, "repository url", wxComboBox)->GetValue();
-  username	= XRCCTRL(*this, "username", wxTextCtrl)->GetValue();
-  password	= XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
-  revision	= XRCCTRL(*this, "revision", wxComboBox)->GetValue();
-  autoOpen	= XRCCTRL(*this, "auto_open", wxCheckBox)->GetValue();
+  username		= XRCCTRL(*this, "username", wxTextCtrl)->GetValue();
+  password		= XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
+  revision		= XRCCTRL(*this, "revision", wxComboBox)->GetValue();
+  autoOpen		= XRCCTRL(*this, "auto_open", wxCheckBox)->GetValue();
+
+  cvs_workingdir	= XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->GetValue();
+  cvs_repo			= XRCCTRL(*this, "cvs_repo", wxTextCtrl)->GetValue();
+  cvs_module		= XRCCTRL(*this, "cvs_module", wxTextCtrl)->GetValue();
+  cvs_user			= XRCCTRL(*this, "cvs_user", wxTextCtrl)->GetValue();
+  cvs_pass			= XRCCTRL(*this, "cvs_pass", wxTextCtrl)->GetValue();
+  cvs_auto_open		= XRCCTRL(*this, "cvs_auto_open", wxCheckBox)->GetValue();
+  cvs_revision		= XRCCTRL(*this, "cvs_revision", wxTextCtrl)->GetValue();
+  use_cvs_instead 	= XRCCTRL(*this, "notebook", wxNotebook)->GetSelection();
 
   EndModal(wxID_OK);
 }

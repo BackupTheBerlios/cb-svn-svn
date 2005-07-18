@@ -8,6 +8,16 @@
 <object class="sizeritem">
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
+<object class="wxNotebook" name="notebook">
+<usenotebooksizer>1</usenotebooksizer>
+<object class="notebookpage">
+<label>Subversion</label>
+<object class="wxPanel">
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
 <object class="wxFlexGridSizer">
 <cols>2</cols>
 <rows>0</rows>
@@ -20,14 +30,15 @@
 </object>
 </object>
 <object class="sizeritem">
-<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-<object class="wxBoxSizer">
-<orient>wxHORIZONTAL</orient>
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>0</growablecols>
 <object class="sizeritem">
-<flag>wxALIGN_CENTER|wxALL</flag>
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
 <object class="wxTextCtrl" name="working dir">
-<size>320,-1</size>
 <tooltip>Enter the directory where you want your local copy to be created. The specified directory does not need to exists as long as this plugin can create it.</tooltip>
 </object>
 </object>
@@ -49,19 +60,10 @@
 </object>
 </object>
 <object class="sizeritem">
-<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-<object class="wxBoxSizer">
-<orient>wxHORIZONTAL</orient>
-<object class="sizeritem">
-<flag>wxALIGN_CENTER|wxALL</flag>
+<flag>wxGROW|wxALL</flag>
 <border>5</border>
 <object class="wxComboBox" name="repository url">
-<size>320,-1</size>
 <style>wxCB_DROPDOWN</style>
-<content>
-</content>
-</object>
-</object>
 </object>
 </object>
 <object class="sizeritem">
@@ -110,7 +112,7 @@
 </object>
 </object>
 <object class="sizeritem">
-<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+<flag>wxALIGN_RIGHT</flag>
 <object class="wxBoxSizer">
 <orient>wxHORIZONTAL</orient>
 <object class="sizeritem">
@@ -132,6 +134,159 @@
 <item>COMMITTED</item>
 <item>BASE</item>
 </content>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxCheckBox" name="ignore ext">
+<label>Ignore svn:externals attribute</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="notebookpage">
+<label>CVS</label>
+<object class="wxPanel">
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Working directory:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>0</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_workingdir">
+<tooltip>Enter the directory where you want your local copy to be created. The specified directory does not need to exists as long as this plugin can create it.</tooltip>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="cvs_fileselect">
+<size>20,-1</size>
+<label>...</label>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Repository:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_repo">
+<tooltip>:pserver:server.name:/cvsroot/projectname</tooltip>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Module:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_module">
+<size>120,-1</size>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Username:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_user">
+<size>120,-1</size>
+<value>anonymous</value>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Password:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_pass">
+<size>120,-1</size>
+<style>wxTE_PASSWORD</style>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="cvs_auto_open">
+<label>Automatically open code::blocks projects</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Revision tag:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_revision">
+<size>110,-1</size>
+</object>
+</object>
+</object>
+</object>
+</object>
 </object>
 </object>
 </object>

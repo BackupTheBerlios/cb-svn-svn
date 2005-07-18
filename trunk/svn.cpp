@@ -781,6 +781,13 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
   d.Centre();
   if(d.ShowModal() == wxID_OK)
     {
+
+      if(d.use_cvs_instead)
+        {
+          wxBell(); // not yet implemented
+          return;
+        }
+
       if(!d.username.IsEmpty())
         svn->SetPassword(d.username, d.password);
 
@@ -1063,8 +1070,7 @@ void SubversionPlugin::ReadConfig()
   c->Read("/svn/prompt_reload", &prompt_reload);
   c->Read("/svn/up_after_co", &up_after_co);
 
-  if(tortoiseproc.IsEmpty())
-    TamperWithWindowsRegistry();
+  TamperWithWindowsRegistry();
 
   if(svnbinary == "unset")
     {
@@ -1488,6 +1494,17 @@ void SubversionPlugin::TamperWithWindowsRegistry()
         while ( rKey->GetNextValue(val, index) );
     }
   delete rKey;
+
+  rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\TortoiseCVS");
+  if( rKey->Exists() )
+    {
+      rKey->QueryValue("RootDir", tort_bin);
+
+      if(wxFile::Exists(tort_bin + "TortoiseAct.exe"))
+        tortoiseact = tort_bin + "TortoiseAct.exe";
+    }
+  delete rKey;
+
 #endif
 
 }

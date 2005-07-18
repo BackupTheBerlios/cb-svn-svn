@@ -189,12 +189,12 @@ class SubversionPlugin : public cbPlugin
       return wxFileName::DirExists(s);
     }
 
-	/*
-	* As it is possible that both .svn and CVS exist (migrated project with leftover folders), DirUnderCVS first checks for subversion's 
-	* presence, and returns false if subversion is found. Nobody should migrate backwards from subversion to CVS (at least I think so),
-	* thus it is assumed that if both revision control systems are present, the better one should be used.
-	* Also, of course, this is a subversion plugin. CVS is only supported as a fallback for the quaint 
-	*/
+    /*
+    * As it is possible that both .svn and CVS exist (migrated project with leftover folders), DirUnderCVS first checks for subversion's 
+    * presence, and returns false if subversion is found. Nobody should migrate backwards from subversion to CVS (at least I think so),
+    * thus it is assumed that if both revision control systems are present, the better one should be used.
+    * Also, of course, this is a subversion plugin. CVS is only supported as a fallback for the quaint 
+    */
     bool	DirUnderCVS(const wxString& arg)
     {
       wxString s =  wxFileName(arg).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + ".svn";
@@ -215,6 +215,7 @@ class SubversionPlugin : public cbPlugin
     wxString defaultCheckoutDir;
     wxString svnbinary;
     wxString tortoiseproc;
+    wxString tortoiseact;
 
     bool cascade_menu;
     bool auto_add;
