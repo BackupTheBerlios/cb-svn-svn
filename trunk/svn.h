@@ -43,6 +43,8 @@ class SubversionPlugin : public cbPlugin
 
     SVNRunner		* svn;
     TortoiseRunner	* tortoise;
+    TortoiseCVSRunner	* tortoisecvs;
+    CVSRunner			* cvs;
 
   public:
     SubversionPlugin();
@@ -95,12 +97,14 @@ class SubversionPlugin : public cbPlugin
     void			Revert(CodeBlocksEvent& event);
     void			Diff(CodeBlocksEvent& event);
     void			OnFatTortoiseFunctionality(CodeBlocksEvent& event);
+	void			OnFatTortoiseCVSFunctionality(CodeBlocksEvent& event);
 
     void			EditProperty(wxEvent& event);
 
     wxArrayString	ExtractFilesWithStatus(const char what, unsigned int pos = 0);
     void			ExtractFilesWithStatus(const char what, wxArrayString& ret, unsigned int pos = 0);
     char 			ParseStatusOutputForFile(const wxString& what);
+	void			AutoOpenProjects(const wxString& rootdir, bool recursive, bool others);
 
     void			ReloadEditors(wxArrayString filenames);
     void			TamperWithWindowsRegistry();
@@ -182,6 +186,24 @@ class SubversionPlugin : public cbPlugin
       return false;
     }
 
+    cbProject*	GetCBProject()
+    {
+      wxTreeCtrl* tree = Manager::Get()->GetProjectManager()->GetTree();
+      FileTreeData* ftd	= (FileTreeData*) tree->GetItemData(tree->GetSelection());
+
+      if(!ftd) // please don't crash us if nothing is selected
+        return 0;
+
+      return ftd->GetProject();
+    }
+
+    wxString	DirName(wxString& d)
+    {
+      d.Replace("\\", "/");
+      if(d[d.Length()-1] == '/')
+      d = d.Mid(0, d.Length()-1);
+      return d.AfterLast('/') ;
+    }
 
     bool	DirUnderVersionControl(const wxString& arg)
     {
@@ -214,6 +236,7 @@ class SubversionPlugin : public cbPlugin
 
     wxString defaultCheckoutDir;
     wxString svnbinary;
+    wxString cvsbinary;
     wxString tortoiseproc;
     wxString tortoiseact;
 

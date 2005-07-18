@@ -79,6 +79,9 @@ EVT_MENU(ID_MENU_MERGE,				SubversionPlugin::OnFatTortoiseFunctionality)
 EVT_MENU(ID_MENU_CREATE,			SubversionPlugin::OnFatTortoiseFunctionality)
 EVT_MENU(ID_MENU_RELOCATE,			SubversionPlugin::OnFatTortoiseFunctionality)
 
+EVT_MENU(ID_MENU_CVS_BRANCH,		SubversionPlugin::OnFatTortoiseCVSFunctionality)
+EVT_MENU(ID_MENU_CVS_TAG,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
+EVT_MENU(ID_MENU_CVS_MERGE,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
 
 EVT_MENU(ID_MENU_ADD,				SubversionPlugin::Add)
 EVT_MENU(ID_MENU_DELETE,			SubversionPlugin::Delete)
@@ -187,6 +190,8 @@ void SubversionPlugin::OnAttach()
   */
   tortoise = tortoiseproc.IsEmpty() ? 0 : new TortoiseRunner("cmd /C " + tortoiseproc);
 
+  cvs = cvsbinary.IsEmpty() ? 0 : new CVSRunner(cvsbinary);
+  tortoisecvs = tortoiseact.IsEmpty() ? 0 : new TortoiseCVSRunner("cmd /C " + tortoiseact);
 }
 
 void SubversionPlugin::OnRelease(bool appShutDown)
@@ -262,7 +267,7 @@ void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
 {
   Log::Instance()->Add("build CVS menu");
   menu->Append( ID_MENU_CVS_COMMIT, "Commit   [cvs]" );
-  menu->Append( ID_MENU_CVS_COMMIT, "Update   [cvs]" );
+  menu->Append( ID_MENU_CVS_UPDATE, "Update   [cvs]" );
 }
 
 void SubversionPlugin::BuildMgrMenu(wxMenu* menu)
@@ -806,51 +811,61 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
             Log::Instance()->Add("Checkout of " + d.repoURL + " finished.\n\n" + info);
 
             if(d.autoOpen)
-              {
-                Log::Instance()->Add("Looking for projects...");
+              AutoOpenProjects(d.checkoutDir, true, true);
 
-                wxArrayString dirs;
-                wxString f;
-
-                f = wxFindFirstFile(d.checkoutDir + "/", wxDIR);
-                dirs.Add(d.checkoutDir);
-                while ( !f.IsEmpty() )
-                  {
-                    dirs.Add(f);
-                    f = wxFindNextFile();
-                  }
-                for(int i = 0; i < dirs.Count(); ++i)
-                  {
-                    f = wxFindFirstFile(dirs[i] + "/*.cbp");
-                    while ( !f.IsEmpty() )
-                      {
-                        Log::Instance()->Add("opening " + f);
-                        pmgr->LoadProject(f);
-                        f = wxFindNextFile();
-                      }
-                    f = wxFindFirstFile(dirs[i] + "/*.dev");
-                    while ( !f.IsEmpty() )
-                      {
-                        Log::Instance()->Add("importing " + f);
-                        pmgr->LoadProject(f);
-                        f = wxFindNextFile();
-                      }
-                    f = wxFindFirstFile(dirs[i] + "/*.dsp");
-                    while ( !f.IsEmpty() )
-                      {
-                        Log::Instance()->Add("importing " + f);
-                        pmgr->LoadProject(f);
-                        f = wxFindNextFile();
-                      }
-                  }
-
-              }
             repoHistory.Insert(d.repoURL, 0);
           }
         else
           Log::Instance()->Add(svn->out);    // display what svn complains about
     }
 }
+
+void SubversionPlugin::AutoOpenProjects(const wxString& rootdir, bool recursive, bool others)
+{
+  ProjectManager *pmgr = Manager::Get()->GetProjectManager();
+  wxArrayString dirs;
+  wxString f;
+
+  dirs.Add(rootdir);
+  if(recursive)
+    {
+      f = wxFindFirstFile(rootdir + "/", wxDIR);
+      while ( !f.IsEmpty() )
+        {
+          dirs.Add(f);
+          f = wxFindNextFile();
+        }
+    }
+  for(int i = 0; i < dirs.Count(); ++i)
+    {
+      f = wxFindFirstFile(dirs[i] + "/*.cbp");
+      while ( !f.IsEmpty() )
+        {
+          Log::Instance()->Add("opening " + f);
+          pmgr->LoadProject(f);
+          f = wxFindNextFile();
+        }
+      if(others)
+        {
+          f = wxFindFirstFile(dirs[i] + "/*.dev");
+          while ( !f.IsEmpty() )
+            {
+              Log::Instance()->Add("importing " + f);
+              pmgr->LoadProject(f);
+              f = wxFindNextFile();
+            }
+          f = wxFindFirstFile(dirs[i] + "/*.dsp");
+          while ( !f.IsEmpty() )
+            {
+              Log::Instance()->Add("importing " + f);
+              pmgr->LoadProject(f);
+              f = wxFindNextFile();
+            }
+        }
+    }
+
+}
+
 
 
 void SubversionPlugin::Import(CodeBlocksEvent& event)
@@ -862,8 +877,45 @@ void SubversionPlugin::Import(CodeBlocksEvent& event)
       if(!d.username.IsEmpty())
         svn->SetPassword(d.username, d.password);
 
+      wxString target(defaultCheckoutDir + "/" +DirName(d.importDir));
+
       svn->Import(d.repoURL, d.importDir, d.comment);
       repoHistory.Insert(d.repoURL, 0);
+
+      svn->Checkout(d.repoURL, target, "HEAD");
+
+      AutoOpenProjects(target, false, false);
+
+      cbProject *p = GetCBProject();
+      if(p)
+        {
+          ProjectManager *pmgr = Manager::Get()->GetProjectManager();
+          pmgr->CloseProject(p);
+        }
+
+      if(!d.keywords.IsEmpty())
+        svn->PropSet(target, "svn:keywords", d.keywords, true);
+
+      if(!d.ignore.IsEmpty())
+        svn->PropSet(target, "svn:ignore", d.ignore, true);
+
+      if(!d.externals.IsEmpty())
+        svn->PropSet(target, "svn:externals", d.externals, true);
+
+      if(!d.copy.IsEmpty())
+        svn->PropSet(target, "copyright", d.copy, true);
+
+      if(!d.home.IsEmpty())
+        svn->PropSet(target, "home", d.home, true);
+
+      if(!d.docs.IsEmpty())
+        svn->PropSet(target, "documentation", d.docs, true);
+
+      if(!d.contact.IsEmpty())
+        svn->PropSet(target, "contact", d.contact, true);
+
+      if(!d.arch.IsEmpty())
+        svn->PropSet(target, "architecture", d.arch, true);
     }
 }
 
@@ -1051,6 +1103,8 @@ void SubversionPlugin::ReadConfig()
 
   svnbinary 			= c->Read("/svn/svnbinary", "unset");
   tortoiseproc			= c->Read("/svn/tortoiseproc");
+  cvsbinary 			= c->Read("/svn/cvsbinary");
+  tortoiseact			= c->Read("/svn/tortoiseact");
   defaultCheckoutDir	= c->Read("/svn/defaultCheckoutDir");
 
   c->Read("/svn/auto_add", &auto_add);
@@ -1096,6 +1150,8 @@ void SubversionPlugin::WriteConfig()
 
   c->Write("/svn/svnbinary", svnbinary);
   c->Write("/svn/tortoiseproc", tortoiseproc);
+  c->Write("/svn/cvsbinary", cvsbinary);
+  c->Write("/svn/tortoiseact", tortoiseact);
   c->Write("/svn/defaultCheckoutDir", defaultCheckoutDir);
 
   c->Write("/svn/auto_add", auto_add);
@@ -1280,8 +1336,11 @@ void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
 
 
 
-
-
+void SubversionPlugin::OnFatTortoiseCVSFunctionality(CodeBlocksEvent& event)
+{
+if(tortoisecvs)
+ ;
+}
 
 
 void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
@@ -1443,11 +1502,16 @@ void SubversionPlugin::OnFirstRun()
   if(tortoiseproc.IsEmpty())
     tortoiseproc 	= NastyFind("TortoiseProc.exe");
 
+  if(tortoiseact.IsEmpty())
+    tortoiseact 	= NastyFind("TortoiseAct.exe");
+
   svnbinary		= NastyFind("svn.exe");
+  cvsbinary		= NastyFind("cvs.exe");
 
 #else
 
   svnbinary		= NastyFind("svn");
+  cvsbinary		= NastyFind("cvs");
 
 #endif
 
@@ -1540,6 +1604,8 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
   location.Add("\\svn\\bin");
   location.Add("\\svn");
   location.Add("\\bin");
+  location.Add("\\cvs");
+  location.Add("\\TortoiseCVS");
 
 
   int lc = location.GetCount();  // I never trust these are really inline, are they...?

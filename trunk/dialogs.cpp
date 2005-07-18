@@ -44,6 +44,7 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
   wxXmlResource::Get()->LoadDialog(this, parent, "Checkout");
 
   wxComboBox* c = XRCCTRL(*this, "repository url", wxComboBox);
+  assert(c);
 
   for(int i = 0; i < repoHist.Count(); i++)
     c->Append(repoHist[i]);
@@ -52,6 +53,7 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
     c->SetSelection(0);
 
   XRCCTRL(*this, "working dir", wxTextCtrl)->SetValue(defaultCheckoutDir);
+  XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->SetValue(defaultCheckoutDir);
 }
 
 void CheckoutDialog::OnFileSelect(wxUpdateUIEvent& event)
@@ -103,6 +105,7 @@ ImportDialog::ImportDialog(wxWindow* parent, const wxArrayString& repoHist, cons
   wxXmlResource::Get()->LoadDialog(this, parent, "Import");
 
   wxComboBox* c = XRCCTRL(*this, "repository url", wxComboBox);
+  assert(c);
 
   for(int i = 0; i < repoHist.Count(); i++)
     c->Append(repoHist[i]);
@@ -118,6 +121,21 @@ void ImportDialog::OnOKClick(wxCommandEvent& event)
   password	= XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
   comment	= XRCCTRL(*this, "comment", wxComboBox)->GetValue();
   trunkify	= XRCCTRL(*this, "trunkify", wxCheckBox)->GetValue();
+
+  keywords.Clear();
+  keywords << ( XRCCTRL(*this, "kw_revision", wxCheckBox)->GetValue()	? "Revision\n"	: "" );
+  keywords << ( XRCCTRL(*this, "kw_author", wxCheckBox)->GetValue()		? "Author\n"	: "" );
+  keywords << ( XRCCTRL(*this, "kw_headurl", wxCheckBox)->GetValue()	? "HeadURL\n"	: "" );
+  keywords << ( XRCCTRL(*this, "kw_date", wxCheckBox)->GetValue()		? "Date\n"		: "" );
+  keywords << ( XRCCTRL(*this, "kw_id", wxCheckBox)->GetValue()			? "Id\n"		: "" );
+
+  ignore	= XRCCTRL(*this, "ignore", wxTextCtrl)->GetValue();
+  externals	= XRCCTRL(*this, "externals", wxTextCtrl)->GetValue();
+  copy		= XRCCTRL(*this, "copy", wxTextCtrl)->GetValue();
+  home		= XRCCTRL(*this, "home", wxTextCtrl)->GetValue();
+  docs		= XRCCTRL(*this, "docs", wxTextCtrl)->GetValue();
+  contact	= XRCCTRL(*this, "contact", wxTextCtrl)->GetValue();
+  arch		= XRCCTRL(*this, "arch", wxComboBox)->GetValue();
 
   if(no_empty && comment.IsEmpty())
     {

@@ -73,6 +73,7 @@ enum {  ID_MENU_USER = 32000,
         ID_MENU_CVS_MERGE,
 
         ID_MENU_CVS_COMMIT,
+        ID_MENU_CVS_UPDATE,
 
         ID_COMBO_SRC = 32600,
         ID_COMBO_DEST,
@@ -126,6 +127,15 @@ class ImportDialog : public wxDialog
     wxString	password;
     wxString	comment;
     bool		trunkify;
+
+    wxString	keywords;
+    wxString	ignore;
+    wxString	externals;
+    wxString	copy;
+    wxString	home;
+    wxString	docs;
+    wxString	contact;
+    wxString	arch;
 
   private:
     void OnOKClick(wxCommandEvent& event);

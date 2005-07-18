@@ -137,7 +137,7 @@ class ToolRunner
     bool running;
 
     ToolRunner() :  lastExitCode(0), running(false)
-	{}
+  {}
     ;
     virtual ~ToolRunner()
     {}
@@ -153,9 +153,16 @@ class ToolRunner
       return exec;
     };
 
+    wxString Q(const wxString & in)
+    {
+      wxString out(" \"");
+      out << in << "\" ";
+      return out;
+    };
+
     int ToolRunner::Run(wxString cmd)
     {
-running = true;
+      running = true;
       std_out.Empty();
       std_err.Empty();
       blob.Empty();
@@ -246,7 +253,7 @@ class SVNRunner : public ToolRunner
 
     wxString username;
     wxString password;
-	wxString surplusTarget;
+    wxString surplusTarget;
     bool do_force;
     bool prune_non_interactive;
 
@@ -275,13 +282,6 @@ class SVNRunner : public ToolRunner
     void Force() // work around "file has local modifications, use --force switch" error
     {
       do_force = true;
-    };
-
-    wxString Q(const wxString & in)
-    {
-      wxString out(" \"");
-      out << in << "\" ";
-      return out;
     };
 
     int				SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
@@ -381,6 +381,85 @@ class TortoiseRunner : public ToolRunner
     }
 
   };
+
+
+class CVSRunner : public ToolRunner
+  {
+  public:
+    CVSRunner(const wxString& executable)
+    {
+      SetExecutable(executable);
+    }
+    ;
+
+    virtual ~CVSRunner()
+    {}
+    ;
+
+    void CVSRunner::Login(const wxString& user, const wxString& pass)
+    {}
+    ;
+
+
+//    int				CVSRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
+//    int				CVSRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
+//
+//    int				CVSRunner::Status(const wxString& file, bool minusU = false);
+//    int				CVSRunner::Update(const wxString& file, const wxString& revision = wxString("HEAD"));
+//    int				CVSRunner::Commit(const wxString& selected, const wxString& message);
+//
+//    int				CVSRunner::Add(const wxString& selected);
+//    int				CVSRunner::Delete(const wxString& selected);
+//
+//
+//    virtual int		CVSRunner::Run(wxString cmd);
+
+  private:
+  }
+;
+
+
+
+class TortoiseCVSRunner : public ToolRunner
+  {
+  public:
+    TortoiseCVSRunner(const wxString& executable)
+    {
+      SetExecutable(executable);
+    }
+    ;
+
+    virtual ~TortoiseCVSRunner()
+    {}
+    ;
+
+    virtual int TortoiseCVSRunner::Run(wxString cmd)
+    {
+      return ToolRunner::Run(cmd);
+    };
+
+
+    int TortoiseCVSRunner::Branch(const wxString& path)
+    {
+      wxString cmd("cvsbranch -l ");
+      cmd << Q(path);
+      return Run(cmd);
+    }
+    int TortoiseCVSRunner::Tag(const wxString& path)
+    {
+      wxString cmd("cvstag -l ");
+      cmd << Q(path);
+      return Run(cmd);
+    }
+    int TortoiseCVSRunner::Merge(const wxString& path)
+    {
+      wxString cmd("cvsmerge -l ");
+      cmd << Q(path);
+      return Run(cmd);
+    }
+  };
+
+
 
 #endif // TOOLRUNNER_H
 
