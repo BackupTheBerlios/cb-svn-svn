@@ -276,10 +276,10 @@ void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
   menu->Append( ID_MENU_CVS_COMMIT, "Commit   [cvs]" );
   menu->Append( ID_MENU_CVS_UPDATE, "Update   [cvs]" );
   if(IsProject(arg))
-	{
-	  menu->AppendSeparator();
-	  menu->Append( ID_MENU_CVS_LOGIN, "Login" );
-	}  
+    {
+      menu->AppendSeparator();
+      menu->Append( ID_MENU_CVS_LOGIN, "Login" );
+    }
 }
 
 void SubversionPlugin::BuildMgrMenu(wxMenu* menu)
@@ -642,7 +642,9 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
   for(int i = 0; i < filenames.Count(); ++i)
     if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
       {
-        Log::Instance()->Add("reload "+filenames[i]);
+#ifdef LOTS_OF_DEBUG_OUTPUT
+        Log::Instance()->Add("Reload "+filenames[i]);
+#endif
         e->Reload();
       }
 }
