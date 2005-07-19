@@ -621,8 +621,7 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
 
   if(!tortoiseproc.IsEmpty())
     {
-      changed.Empty()
-      ;
+      changed.Empty();
       ExtractFilesWithStatus('C', changed);
       for(int i = 0; i < changed.Count(); ++i)
         tortoise->ConflictEditor(changed[i]);
@@ -645,6 +644,7 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
 #ifdef LOTS_OF_DEBUG_OUTPUT
         Log::Instance()->Add("Reload "+filenames[i]);
 #endif
+
         e->Reload();
       }
 }
@@ -800,10 +800,23 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
   d.Centre();
   if(d.ShowModal() == wxID_OK)
     {
-
       if(d.use_cvs_instead)
         {
-          wxBell(); // not yet implemented
+          if(!d.cvs_pass.IsEmpty())
+            {
+              // cvs -d :pserver:user:pass@example.org:/usr/local/cvsroot login
+              // cvs -d :pserver:user@example.org:/usr/local/cvsroot checkout something
+              cvs->Login(d.cvs_proto, d.cvs_repo, d.cvs_user, d.cvs_pass);
+              cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
+            }
+          else
+            {
+              // cvs -d :pserver:anonymous@example.org:/usr/local/cvsroot checkout something
+              cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
+            }
+          if(d.cvs_auto_open)
+            AutoOpenProjects(d.cvs_workingdir, true, true);
+
           return;
         }
 

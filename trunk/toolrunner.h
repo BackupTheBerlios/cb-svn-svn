@@ -24,6 +24,7 @@
 #include <wx/stream.h>
 #include <wx/file.h>
 #include <wx/filename.h>
+#include <wx/regex.h>
 
 #include "log.h"
 
@@ -167,6 +168,7 @@ class ToolRunner
       std_err.Empty();
       blob.Empty();
       out.Empty();
+      assert(!exec.IsEmpty());
 
       wxString runCommand(exec + " " + cmd);
 
@@ -187,6 +189,7 @@ class ToolRunner
       lastExitCode = process->exitCode;
 
 #ifdef LOTS_OF_DEBUG_OUTPUT
+
       Log::Instance()->Add(runCommand);
       for(int i = 0; i < std_out.Count(); ++i)
         Log::Instance()->Add(std_out[i]);
@@ -328,9 +331,10 @@ class TortoiseRunner : public ToolRunner
 
     virtual int TortoiseRunner::Run(wxString cmd)
     {
-	#ifdef LOTS_OF_DEBUG_OUTPUT
+#ifdef LOTS_OF_DEBUG_OUTPUT
       Log::Instance()->Add(exec + " " + cmd);
-	#endif
+#endif
+
       return ToolRunner::StevieWonder(cmd);
     };
 
@@ -397,23 +401,34 @@ class CVSRunner : public ToolRunner
     {}
     ;
 
-    void CVSRunner::Login(const wxString& user, const wxString& pass)
-    {}
+    void CVSRunner::Login(const wxString& proto, const wxString& repo, const wxString& user, const wxString& pass)
+    {
+      // cvs -d :pserver:bach:p4ss30rd@faun.example.org:/usr/local/cvsroot login
+      wxString cmd("-d " + proto + user + ":" + pass + "@" + repo + " login");
+      Run(cmd);
+    };
+
+    void CVSRunner::Checkout(const wxString& proto, const wxString& repo, const wxString& module, const wxString& workingdir, const wxString& user, const wxString& revision)
+    {
+      wxString cmd("-d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ module);
+      Log::Instance()->Add("cvs " + cmd);
+      Run(cmd);
+    }
     ;
 
 
-//    int				CVSRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
-//    int				CVSRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
-//
-//    int				CVSRunner::Status(const wxString& file, bool minusU = false);
-//    int				CVSRunner::Update(const wxString& file, const wxString& revision = wxString("HEAD"));
-//    int				CVSRunner::Commit(const wxString& selected, const wxString& message);
-//
-//    int				CVSRunner::Add(const wxString& selected);
-//    int				CVSRunner::Delete(const wxString& selected);
-//
-//
-//    virtual int		CVSRunner::Run(wxString cmd);
+    //    int				CVSRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
+    //    int				CVSRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
+    //
+    //    int				CVSRunner::Status(const wxString& file, bool minusU = false);
+    //    int				CVSRunner::Update(const wxString& file, const wxString& revision = wxString("HEAD"));
+    //    int				CVSRunner::Commit(const wxString& selected, const wxString& message);
+    //
+    //    int				CVSRunner::Add(const wxString& selected);
+    //    int				CVSRunner::Delete(const wxString& selected);
+    //
+    //
+    //    virtual int		CVSRunner::Run(wxString cmd);
 
   private:
   }
@@ -436,10 +451,11 @@ class TortoiseCVSRunner : public ToolRunner
 
     virtual int TortoiseCVSRunner::Run(wxString cmd)
     {
- 	#ifdef LOTS_OF_DEBUG_OUTPUT
+#ifdef LOTS_OF_DEBUG_OUTPUT
       Log::Instance()->Add(exec + " " + cmd);
-	#endif
-	return ToolRunner::StevieWonder(cmd);
+#endif
+
+      return ToolRunner::StevieWonder(cmd);
     };
 
 

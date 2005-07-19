@@ -200,10 +200,32 @@
 </object>
 </object>
 <object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxLEFT</flag>
+<border>5</border>
+<object class="wxComboBox" name="cvs_proto">
+<size>85,-1</size>
+<style>wxCB_DROPDOWN</style>
+<content>
+<item>:pserver:</item>
+<item>:gserver:</item>
+<item>:kserver:</item>
+</content>
+</object>
+</object>
+<object class="sizeritem">
 <flag>wxGROW|wxALL</flag>
 <border>5</border>
 <object class="wxTextCtrl" name="cvs_repo">
-<tooltip>:pserver:server.name:/cvsroot/projectname</tooltip>
+<value>server.name:/cvsroot/projectname</value>
+</object>
+</object>
 </object>
 </object>
 <object class="sizeritem">

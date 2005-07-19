@@ -78,9 +78,35 @@ void CheckoutDialog::OnOKClick(wxCommandEvent& event)
   cvs_module		= XRCCTRL(*this, "cvs_module", wxTextCtrl)->GetValue();
   cvs_user			= XRCCTRL(*this, "cvs_user", wxTextCtrl)->GetValue();
   cvs_pass			= XRCCTRL(*this, "cvs_pass", wxTextCtrl)->GetValue();
+  cvs_proto			= XRCCTRL(*this, "cvs_proto", wxComboBox)->GetValue();
   cvs_auto_open		= XRCCTRL(*this, "cvs_auto_open", wxCheckBox)->GetValue();
   cvs_revision		= XRCCTRL(*this, "cvs_revision", wxTextCtrl)->GetValue();
   use_cvs_instead 	= XRCCTRL(*this, "notebook", wxNotebook)->GetSelection();
+
+  if(use_cvs_instead)
+    {
+      if(cvs_repo.IsEmpty() || cvs_module.IsEmpty())
+        {
+          wxMessageDialog(Manager::Get()->GetAppWindow(),
+                          "You must specify both a repository and a module name to be able to check out.",
+                          "CVS Checkout", wxOK).ShowModal();
+          return;
+        }
+    }
+  else
+  {
+  if(repoURL.IsEmpty())
+        {
+          wxMessageDialog(Manager::Get()->GetAppWindow(),
+                          "Please provide a repository URL in one of the following formats:\n\n"
+                          "svn://some.server/path/from/svnroot/repo/\n"
+                          "svn+ssh://some.server/absolute/path/to/repo/\n"
+                          "http://some.server/repo/\n"
+                          "https://some.server/repo/",
+                          "SVN Checkout", wxOK).ShowModal();
+          return;
+        }
+  }
 
   EndModal(wxID_OK);
 }

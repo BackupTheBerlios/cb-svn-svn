@@ -101,6 +101,7 @@ class CheckoutDialog : public wxDialog
 
     wxString	cvs_workingdir;
     wxString	cvs_repo;
+    wxString	cvs_proto;
     wxString	cvs_module;
     wxString	cvs_user;
     wxString	cvs_pass;
