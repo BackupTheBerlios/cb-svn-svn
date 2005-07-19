@@ -82,6 +82,7 @@ EVT_MENU(ID_MENU_RELOCATE,			SubversionPlugin::OnFatTortoiseFunctionality)
 EVT_MENU(ID_MENU_CVS_BRANCH,		SubversionPlugin::OnFatTortoiseCVSFunctionality)
 EVT_MENU(ID_MENU_CVS_TAG,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
 EVT_MENU(ID_MENU_CVS_MERGE,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
+EVT_MENU(ID_MENU_CVS_PATCH,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
 
 EVT_MENU(ID_MENU_ADD,				SubversionPlugin::Add)
 EVT_MENU(ID_MENU_DELETE,			SubversionPlugin::Delete)
@@ -244,8 +245,15 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
 
   if(DirUnderCVS(selected))
     {
-      Log::Instance()->Add("is under CVS");
       Build_CVS_ModuleMenu(cmenu, arg);
+      if (tortoisecvs && IsProject(arg))
+        {
+          cmenu->AppendSeparator();
+          cmenu->Append( ID_MENU_CVS_BRANCH,	"CVS Branch..." );
+          cmenu->Append( ID_MENU_CVS_TAG,		"CVS Tag..." );
+          cmenu->Append( ID_MENU_CVS_MERGE,		"CVS Merge..." );
+          cmenu->Append( ID_MENU_CVS_PATCH,		"Create patch..." );
+        }
       if(menu != cmenu)
         menu->Append( ID_MENU, "Subversion", cmenu );
       return;
@@ -265,9 +273,13 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
 
 void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
 {
-  Log::Instance()->Add("build CVS menu");
   menu->Append( ID_MENU_CVS_COMMIT, "Commit   [cvs]" );
   menu->Append( ID_MENU_CVS_UPDATE, "Update   [cvs]" );
+  if(IsProject(arg))
+	{
+	  menu->AppendSeparator();
+	  menu->Append( ID_MENU_CVS_LOGIN, "Login" );
+	}  
 }
 
 void SubversionPlugin::BuildMgrMenu(wxMenu* menu)
@@ -1338,48 +1350,63 @@ void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
 
 void SubversionPlugin::OnFatTortoiseCVSFunctionality(CodeBlocksEvent& event)
 {
-if(tortoisecvs)
- ;
+  assert(tortoisecvs);
+
+  wxString p(GetSelection());
+
+  switch(event.GetId())
+    {
+    case ID_MENU_CVS_BRANCH:
+      tortoisecvs->Branch(p);
+      break;
+
+    case ID_MENU_CVS_TAG:
+      tortoisecvs->Tag(p);
+      break;
+
+    case ID_MENU_CVS_MERGE:
+      tortoisecvs->Merge(p);
+      break;
+
+    case ID_MENU_CVS_PATCH:
+      tortoisecvs->Patch(p);
+      break;
+    };
 }
+
+
+
 
 
 void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
 {
   assert(event.GetId() >= ID_MENU_BRANCH && event.GetId() <= ID_MENU_RELOCATE);
+  assert(tortoise);
 
-  wxString cmd(" /command:");
+  wxString p(GetSelection());
 
   switch(event.GetId())
     {
     case ID_MENU_BRANCH:
-      cmd << "copy";
+      tortoise->Branch(p);
       break;
 
     case ID_MENU_SWITCH:
-      cmd << "switch";
+      tortoise->Switch(p);
       break;
 
     case ID_MENU_MERGE:
-      cmd << "merge";
+      tortoise->Merge(p);
       break;
 
     case ID_MENU_CREATE:
-      cmd << "repocreate";
+      tortoise->Create(p);
       break;
 
     case ID_MENU_RELOCATE:
-      cmd << "relocate";
+      tortoise->Relocate(p);
       break;
     };
-
-
-  wxString p(GetSelection());
-
-  if(! p.IsEmpty())
-    {
-      cmd << " /path:" << Escape(p);
-    }
-  tortoise->Run(cmd);
 }
 
 

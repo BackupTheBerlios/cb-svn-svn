@@ -71,9 +71,11 @@ enum {  ID_MENU_USER = 32000,
         ID_MENU_CVS_BRANCH,
         ID_MENU_CVS_TAG,
         ID_MENU_CVS_MERGE,
+        ID_MENU_CVS_PATCH,
 
         ID_MENU_CVS_COMMIT,
         ID_MENU_CVS_UPDATE,
+		ID_MENU_CVS_LOGIN,
 
         ID_COMBO_SRC = 32600,
         ID_COMBO_DEST,

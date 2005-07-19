@@ -179,23 +179,17 @@ class ToolRunner
           return -1;
         }
 
-
-      //wxEnableTopLevelWindows(FALSE);
       while(process->running)
         {
           wxYield();
           process->FlushPipe();
         }
-      //wxEnableTopLevelWindows(TRUE);
       lastExitCode = process->exitCode;
 
 #ifdef LOTS_OF_DEBUG_OUTPUT
-
       Log::Instance()->Add(runCommand);
-      Log::Instance()->Add(wxString("stdout:"));
       for(int i = 0; i < std_out.Count(); ++i)
         Log::Instance()->Add(std_out[i]);
-      Log::Instance()->Add(wxString("stderr:"));
       for(int i = 0; i < std_err.Count(); ++i)
         Log::Instance()->Add(std_err[i]);
 #endif
@@ -208,12 +202,10 @@ class ToolRunner
 
     /*
      * Even if you don't see what happens around you, you can still do something good.
-     * This function asynchronously starts svn and forgets about it.
-     * That is used during OnAttach(). No output is needed or wanted. We don't even see if we succeeded.
-     * The sole reason svn is run is to force Windows to get its butt moving, as it will otherwise
-     * take a virtually endless time when you first click on the project manager (right, dynamic linkage and stuff).
-     * On Linux we probably don't need this at all, but it nevertheless does no harm either.
-     * Note that this function possibly leaks a Process object.
+     * This function asynchronously starts a process and forgets about it. We never see what happens.
+     * TortoiseRunner and SubversionPlugin::OnAttach() make use of this.
+     * Note that this function possibly leaks a Process object. We cannot simply pass null to wxExectute, as this
+     * will create a shell window.
      * The wxProcess documentation says that Detach() will make the object auto-delete. Let's hope that is true. 
      */
     int ToolRunner::StevieWonder(const wxString& cmd)
@@ -336,7 +328,10 @@ class TortoiseRunner : public ToolRunner
 
     virtual int TortoiseRunner::Run(wxString cmd)
     {
-      return ToolRunner::Run(cmd);
+	#ifdef LOTS_OF_DEBUG_OUTPUT
+      Log::Instance()->Add(exec + " " + cmd);
+	#endif
+      return ToolRunner::StevieWonder(cmd);
     };
 
 
@@ -364,6 +359,12 @@ class TortoiseRunner : public ToolRunner
     int TortoiseRunner::Relocate(const wxString& path)
     {
       wxString cmd("/command:relocate /path:\"");
+      cmd << path << "\" /notempfile /closeonend";
+      return Run(cmd);
+    }
+    int TortoiseRunner::Create(const wxString& path)
+    {
+      wxString cmd("/command:create /path:\"");
       cmd << path << "\" /notempfile /closeonend";
       return Run(cmd);
     }
@@ -435,7 +436,10 @@ class TortoiseCVSRunner : public ToolRunner
 
     virtual int TortoiseCVSRunner::Run(wxString cmd)
     {
-      return ToolRunner::Run(cmd);
+ 	#ifdef LOTS_OF_DEBUG_OUTPUT
+      Log::Instance()->Add(exec + " " + cmd);
+	#endif
+	return ToolRunner::StevieWonder(cmd);
     };
 
 
@@ -454,6 +458,12 @@ class TortoiseCVSRunner : public ToolRunner
     int TortoiseCVSRunner::Merge(const wxString& path)
     {
       wxString cmd("cvsmerge -l ");
+      cmd << Q(path);
+      return Run(cmd);
+    }
+    int TortoiseCVSRunner::Patch(const wxString& path)
+    {
+      wxString cmd("CVSMakePatch -l ");
       cmd << Q(path);
       return Run(cmd);
     }
