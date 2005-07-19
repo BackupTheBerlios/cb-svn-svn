@@ -128,6 +128,25 @@ class ToolRunner
         }
       };
 
+  protected:
+    wxString exec;
+    class TempFile
+      {
+      public:
+        wxString name;	// this is evil, but do I care?
+        TempFile(const wxString& comment)
+        {
+          wxFile f;
+          name = wxFileName::CreateTempFileName("", &f);
+          if(!f.Write(comment))
+            Log::Instance()->Add("Error: unable to open tempfile.");
+        };
+
+        ~TempFile()
+        {
+          ::wxRemoveFile(name);
+        }
+      };
 
   public:
     wxArrayString		std_out;
@@ -138,7 +157,7 @@ class ToolRunner
     bool running;
 
     ToolRunner() :  lastExitCode(0), running(false)
-  {}
+    {}
     ;
     virtual ~ToolRunner()
     {}
@@ -218,34 +237,12 @@ class ToolRunner
       wxExecute(runCommand, wxEXEC_ASYNC, process);
       return 0;
     };
-
-  protected:
-    wxString exec;
   };
 
 
 
 class SVNRunner : public ToolRunner
   {
-    class TempFile
-      {
-      public:
-        wxString name;	// this is evil, but do I care?
-        TempFile(const wxString& comment)
-        {
-          wxFile f;
-          name = wxFileName::CreateTempFileName("", &f);
-          if(!f.Write(comment))
-            Log::Instance()->Add("Error: unable to open tempfile.");
-        };
-
-        ~TempFile()
-        {
-          ::wxRemoveFile(name);
-        }
-      };
-
-
     wxString username;
     wxString password;
     wxString surplusTarget;
@@ -410,25 +407,34 @@ class CVSRunner : public ToolRunner
 
     void CVSRunner::Checkout(const wxString& proto, const wxString& repo, const wxString& module, const wxString& workingdir, const wxString& user, const wxString& revision)
     {
-      wxString cmd("-d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ module);
+      wxString cmd("-d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ (revision.IsEmpty() ? "" : " -r" + Q(revision)) + module);
       Log::Instance()->Add("cvs " + cmd);
       Run(cmd);
-    }
-    ;
+    };
+
+    void CVSRunner::Update(const wxString& target, const wxString& revision, const wxString& date)
+    {
+      wxFileName fn(target);
+      wxFileName::SetCwd(fn.GetPath(wxPATH_GET_VOLUME));
+      wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());
+      wxString cmd(" update " + file + (revision.IsEmpty() ? "" : " -r" + Q(revision)) + (revision.IsEmpty() ? "" : " -D" + Q(date)));
+      Run(cmd);
+    };
+
+    void CVSRunner::Commit(const wxString& target, const wxString& message)
+    {
+      TempFile msg(message);
+      wxFileName fn(target);
+      wxFileName::SetCwd(fn.GetPath(wxPATH_GET_VOLUME));
+      wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());
+      wxString cmd(" commit " + file + " -F " + Q(msg.name));
+      Run(cmd);
+    };
 
 
-    //    int				CVSRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
     //    int				CVSRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
-    //
-    //    int				CVSRunner::Status(const wxString& file, bool minusU = false);
-    //    int				CVSRunner::Update(const wxString& file, const wxString& revision = wxString("HEAD"));
-    //    int				CVSRunner::Commit(const wxString& selected, const wxString& message);
-    //
     //    int				CVSRunner::Add(const wxString& selected);
     //    int				CVSRunner::Delete(const wxString& selected);
-    //
-    //
-    //    virtual int		CVSRunner::Run(wxString cmd);
 
   private:
   }

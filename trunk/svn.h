@@ -98,6 +98,7 @@ class SubversionPlugin : public cbPlugin
     void			Diff(CodeBlocksEvent& event);
     void			OnFatTortoiseFunctionality(CodeBlocksEvent& event);
 	void			OnFatTortoiseCVSFunctionality(CodeBlocksEvent& event);
+    void			CVSUpdate(CodeBlocksEvent& event);
 
     void			EditProperty(wxEvent& event);
 

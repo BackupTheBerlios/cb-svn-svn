@@ -84,6 +84,11 @@ EVT_MENU(ID_MENU_CVS_TAG,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
 EVT_MENU(ID_MENU_CVS_MERGE,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
 EVT_MENU(ID_MENU_CVS_PATCH,			SubversionPlugin::OnFatTortoiseCVSFunctionality)
 
+EVT_MENU(ID_MENU_CVS_UPDATE,		SubversionPlugin::CVSUpdate)
+EVT_MENU(ID_MENU_CVS_UPDATE_R,		SubversionPlugin::CVSUpdate)
+EVT_MENU(ID_MENU_CVS_UPDATE_D,		SubversionPlugin::CVSUpdate)
+EVT_MENU(ID_MENU_CVS_COMMIT,		SubversionPlugin::Commit)
+
 EVT_MENU(ID_MENU_ADD,				SubversionPlugin::Add)
 EVT_MENU(ID_MENU_DELETE,			SubversionPlugin::Delete)
 
@@ -249,10 +254,10 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
       if (tortoisecvs && IsProject(arg))
         {
           cmenu->AppendSeparator();
-          cmenu->Append( ID_MENU_CVS_BRANCH,	"CVS Branch..." );
-          cmenu->Append( ID_MENU_CVS_TAG,		"CVS Tag..." );
-          cmenu->Append( ID_MENU_CVS_MERGE,		"CVS Merge..." );
-          cmenu->Append( ID_MENU_CVS_PATCH,		"Create patch..." );
+          cmenu->Append( ID_MENU_CVS_BRANCH,	"[cvs] Branch..." );
+          cmenu->Append( ID_MENU_CVS_TAG,		"[cvs] Tag..." );
+          cmenu->Append( ID_MENU_CVS_MERGE,		"[cvs] Merge..." );
+          cmenu->Append( ID_MENU_CVS_PATCH,		"[cvs] Create patch..." );
         }
       if(menu != cmenu)
         menu->Append( ID_MENU, "Subversion", cmenu );
@@ -273,12 +278,17 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
 
 void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
 {
-  menu->Append( ID_MENU_CVS_COMMIT, "Commit   [cvs]" );
-  menu->Append( ID_MENU_CVS_UPDATE, "Update   [cvs]" );
+  menu->Append( ID_MENU_CVS_COMMIT, "[cvs] Commit" );
+  menu->AppendSeparator();
+  menu->Append( ID_MENU_CVS_UPDATE, "[cvs] Update" );
+  menu->Append( ID_MENU_CVS_UPDATE_R, "[cvs] Update to revision..." );
+  menu->Append( ID_MENU_CVS_UPDATE_D, "[cvs] Update to date..." );
+
   if(IsProject(arg))
     {
       menu->AppendSeparator();
-      menu->Append( ID_MENU_CVS_LOGIN, "Login" );
+      menu->Append( ID_MENU_CVS_LOGIN, "[cvs] Login" );
+      menu->Enable(ID_MENU_CVS_LOGIN, false);
     }
 }
 
@@ -628,6 +638,37 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
     }
 }
 
+void SubversionPlugin::CVSUpdate(CodeBlocksEvent& event)
+{
+  wxString	revision;
+  wxString	date;
+
+  wxString	selected(GetSelection());
+
+  if(event.GetId() == ID_MENU_CVS_UPDATE_R)
+    {
+      wxTextEntryDialog d(NULL,
+                          "Please enter a revision tag:",
+                          "Update to revision...");
+      d.ShowModal();
+      revision = d.GetValue();
+      if(revision == wxEmptyString)
+        return;
+    }
+  if(event.GetId() == ID_MENU_CVS_UPDATE_D)
+    {
+      wxTextEntryDialog d(NULL,
+                          "Please enter a revision date.\n"
+                          "meta dates such as 'yesterday' or 'last week' are allowed.",
+                          "Update to date...");
+      d.ShowModal();
+      date = d.GetValue();
+      if(date == wxEmptyString)
+        return;
+    }
+  cvs->Update(selected, revision, date);
+}
+
 
 void SubversionPlugin::ReloadEditors(wxArrayString filenames)
 {
@@ -700,6 +741,18 @@ void SubversionPlugin::Diff(CodeBlocksEvent& event)
 void SubversionPlugin::Commit(CodeBlocksEvent& event)
 {
   wxString	selected(GetSelection());
+
+  if(DirUnderCVS(selected))
+    {
+      wxArrayString files;
+      CommitDialog d(Manager::Get()->GetAppWindow(), files, require_comments);
+      d.Centre();
+
+      if(d.ShowModal() == wxID_OK)
+        cvs->Commit(selected, d.comment);
+      return;
+    }
+
   svn->Status(selected);
 
   wxArrayString files;

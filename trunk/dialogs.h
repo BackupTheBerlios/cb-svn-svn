@@ -75,6 +75,8 @@ enum {  ID_MENU_USER = 32000,
 
         ID_MENU_CVS_COMMIT,
         ID_MENU_CVS_UPDATE,
+        ID_MENU_CVS_UPDATE_R,
+        ID_MENU_CVS_UPDATE_D,
 		ID_MENU_CVS_LOGIN,
 
         ID_COMBO_SRC = 32600,
