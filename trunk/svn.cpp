@@ -176,7 +176,6 @@ SubversionPlugin::SubversionPlugin()
 void SubversionPlugin::OnAttach()
 {
   ReadConfig();
-
   // avoid lazy creation
   Log::Instance();
 
@@ -563,7 +562,7 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
 
 
 
-void SubversionPlugin::Update(CodeBlocksEvent& event)
+void SubversionPlugin::Update(wxCommandEvent& event)
 {
   wxString	revision("HEAD");
   wxString	selected(GetSelection());
@@ -638,7 +637,7 @@ void SubversionPlugin::Update(CodeBlocksEvent& event)
     }
 }
 
-void SubversionPlugin::CVSUpdate(CodeBlocksEvent& event)
+void SubversionPlugin::CVSUpdate(wxCommandEvent& event)
 {
   wxString	revision;
   wxString	date;
@@ -692,7 +691,7 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
 
 
 
-void SubversionPlugin::Diff(CodeBlocksEvent& event)
+void SubversionPlugin::Diff(wxCommandEvent& event)
 {
   wxString	revision("HEAD");
   wxString	selected(GetSelection());
@@ -738,7 +737,7 @@ void SubversionPlugin::Diff(CodeBlocksEvent& event)
 
 
 
-void SubversionPlugin::Commit(CodeBlocksEvent& event)
+void SubversionPlugin::Commit(wxCommandEvent& event)
 {
   wxString	selected(GetSelection());
 
@@ -846,7 +845,7 @@ void SubversionPlugin::Commit(CodeBlocksEvent& event)
     }
 }
 
-void SubversionPlugin::Checkout(CodeBlocksEvent& event)
+void SubversionPlugin::Checkout(wxCommandEvent& event)
 {
   ProjectManager *pmgr = Manager::Get()->GetProjectManager();
   CheckoutDialog d(Manager::Get()->GetAppWindow(), repoHistory, defaultCheckoutDir);
@@ -880,7 +879,7 @@ void SubversionPlugin::Checkout(CodeBlocksEvent& event)
         d.checkoutDir = GetCheckoutDir();  // poo... hopefully no C++ programmer sees this
 
       if(::wxDirExists(d.checkoutDir) || ::wxMkdir(d.checkoutDir))
-        if(!svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision) ))
+        if(!svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision), d.noExternals ))
           {
             wxString info = svn->Info(d.checkoutDir);
             if(info.Contains("not a working copy"))		// as svn returns non-null on error, this should never be the case, but anyway...
@@ -948,7 +947,7 @@ void SubversionPlugin::AutoOpenProjects(const wxString& rootdir, bool recursive,
 
 
 
-void SubversionPlugin::Import(CodeBlocksEvent& event)
+void SubversionPlugin::Import(wxCommandEvent& event)
 {
   ImportDialog d(Manager::Get()->GetAppWindow(), repoHistory, GetSelectionsProject(), require_comments);
   d.Centre();
@@ -1000,7 +999,7 @@ void SubversionPlugin::Import(CodeBlocksEvent& event)
 }
 
 
-void SubversionPlugin::SetUser(CodeBlocksEvent& event)
+void SubversionPlugin::SetUser(wxCommandEvent& event)
 {
 
   PasswordDialog p(Manager::Get()->GetAppWindow());
@@ -1012,7 +1011,7 @@ void SubversionPlugin::SetUser(CodeBlocksEvent& event)
 
 
 
-void SubversionPlugin::Revert(CodeBlocksEvent& event)
+void SubversionPlugin::Revert(wxCommandEvent& event)
 {
   wxString target(GetSelection());
 
@@ -1118,7 +1117,7 @@ wxArrayString SubversionPlugin::ExtractFilesWithStatus(const char what, unsigned
 }
 
 
-void SubversionPlugin::Preferences(CodeBlocksEvent& event)
+void SubversionPlugin::Preferences(wxCommandEvent& event)
 {
   PreferencesDialog d(Manager::Get()->GetAppWindow(), this);
   d.Centre();
@@ -1251,7 +1250,7 @@ void SubversionPlugin::WriteConfig()
   c->Write("/svn/prompt_reload", prompt_reload);
   c->Write("/svn/up_after_co", up_after_co);
 
-  unsigned int count = min(16, repoHistory.Count());
+  unsigned int count = repoHistory.Count() < 16 ? repoHistory.Count() : 16;
   wxString ht("/svn/repoHist");
   for(unsigned int i = 0; i < count; ++i)
     {
@@ -1261,12 +1260,12 @@ void SubversionPlugin::WriteConfig()
 }
 
 
-void SubversionPlugin::Add(CodeBlocksEvent& event)
+void SubversionPlugin::Add(wxCommandEvent& event)
 {
   svn->Add(GetSelection());
 }
 
-void SubversionPlugin::Delete(CodeBlocksEvent& event)
+void SubversionPlugin::Delete(wxCommandEvent& event)
 {
   wxString selected(GetSelection());
 
@@ -1295,7 +1294,7 @@ void SubversionPlugin::Delete(CodeBlocksEvent& event)
 
 
 
-void SubversionPlugin::PropIgnore(CodeBlocksEvent& event)
+void SubversionPlugin::PropIgnore(wxCommandEvent& event)
 {
   wxString target(GetSelection());
 
@@ -1315,7 +1314,7 @@ void SubversionPlugin::PropIgnore(CodeBlocksEvent& event)
     }
 }
 
-void SubversionPlugin::PropMime(CodeBlocksEvent& event)
+void SubversionPlugin::PropMime(wxCommandEvent& event)
 {
   wxString target = GetSelection();
   wxString mime = svn->PropGet(target, "svn:mime-type");
@@ -1337,7 +1336,7 @@ void SubversionPlugin::PropMime(CodeBlocksEvent& event)
 
 }
 
-void SubversionPlugin::PropExec(CodeBlocksEvent& event)
+void SubversionPlugin::PropExec(wxCommandEvent& event)
 {
   if(event.IsChecked())
     svn->PropDel(GetSelection(), "svn:executable");
@@ -1345,7 +1344,7 @@ void SubversionPlugin::PropExec(CodeBlocksEvent& event)
     svn->PropSet(GetSelection(), "svn:executable", "", false);
 }
 
-void SubversionPlugin::PropExt(CodeBlocksEvent& event)
+void SubversionPlugin::PropExt(wxCommandEvent& event)
 {
   //FIXME: svn:externals deserves its own dialog
 
@@ -1372,7 +1371,7 @@ void SubversionPlugin::PropExt(CodeBlocksEvent& event)
     }
 }
 
-void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
+void SubversionPlugin::PropKeywords(wxCommandEvent& event)
 {
   wxString item;
 
@@ -1416,7 +1415,7 @@ void SubversionPlugin::PropKeywords(CodeBlocksEvent& event)
 
 
 
-void SubversionPlugin::OnFatTortoiseCVSFunctionality(CodeBlocksEvent& event)
+void SubversionPlugin::OnFatTortoiseCVSFunctionality(wxCommandEvent& event)
 {
   assert(tortoisecvs);
 
@@ -1446,7 +1445,7 @@ void SubversionPlugin::OnFatTortoiseCVSFunctionality(CodeBlocksEvent& event)
 
 
 
-void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
+void SubversionPlugin::OnFatTortoiseFunctionality(wxCommandEvent& event)
 {
   assert(event.GetId() >= ID_MENU_BRANCH && event.GetId() <= ID_MENU_RELOCATE);
   assert(tortoise);
@@ -1478,7 +1477,7 @@ void SubversionPlugin::OnFatTortoiseFunctionality(CodeBlocksEvent& event)
 }
 
 
-void SubversionPlugin::EditProperty(wxEvent& event)
+void SubversionPlugin::EditProperty(wxCommandEvent& event)
 {
   wxString name;
   wxString value;
@@ -1578,16 +1577,9 @@ void SubversionPlugin::EditProperty(wxEvent& event)
 
 wxString		SubversionPlugin::GetCheckoutDir()
 {
-#ifdef __WIN32__
-  TCHAR szPath[MAX_PATH];											// It can be such a mess...
-  SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, 0, szPath);		// Maybe wxWindows even has a cross-platform function
-  wxString ret(szPath);												// like wxGetHomeDirectory(), but I am unable to find it.
-  ret << "/svn-checkout";
-  return ret;
-#else
-
-  return ("~/svn-checkout");										// ...or it can be so simple.
-#endif
+  wxFileName home;
+  home.AssignHomeDir();
+  return home.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "checkout";
 }
 
 void SubversionPlugin::OnFirstRun()
@@ -1631,6 +1623,7 @@ void SubversionPlugin::TamperWithWindowsRegistry()
   if( rKey->Exists() )
     {
       rKey->QueryValue("ProcPath", tort_bin);
+      tort_bin << "TortoiseProc.exe";
 
       if(wxFile::Exists(tort_bin))
         tortoiseproc = tort_bin;

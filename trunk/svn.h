@@ -77,30 +77,30 @@ class SubversionPlugin : public cbPlugin
     void			OnRelease(bool appShutDown);
 
     void			OnFirstRun();
-    void			Preferences(CodeBlocksEvent& event);
-    void			SetUser(CodeBlocksEvent& event);
+    void			Preferences(wxCommandEvent& event);
+    void			SetUser(wxCommandEvent& event);
 
-    void			Add(CodeBlocksEvent& event);
-    void			Delete(CodeBlocksEvent& event);
+    void			Add(wxCommandEvent& event);
+    void			Delete(wxCommandEvent& event);
 
-    void			PropIgnore(CodeBlocksEvent& event);
-    void			PropMime(CodeBlocksEvent& event);
-    void			PropExec(CodeBlocksEvent& event);
-    void			PropExt(CodeBlocksEvent& event);
-    void			PropKeywords(CodeBlocksEvent& event);
+    void			PropIgnore(wxCommandEvent& event);
+    void			PropMime(wxCommandEvent& event);
+    void			PropExec(wxCommandEvent& event);
+    void			PropExt(wxCommandEvent& event);
+    void			PropKeywords(wxCommandEvent& event);
 
 
-    void			Checkout(CodeBlocksEvent& event);
-    void			Import(CodeBlocksEvent& event);
-    void			Commit(CodeBlocksEvent& event);
-    void			Update(CodeBlocksEvent& event);
-    void			Revert(CodeBlocksEvent& event);
-    void			Diff(CodeBlocksEvent& event);
-    void			OnFatTortoiseFunctionality(CodeBlocksEvent& event);
-	void			OnFatTortoiseCVSFunctionality(CodeBlocksEvent& event);
-    void			CVSUpdate(CodeBlocksEvent& event);
+    void			Checkout(wxCommandEvent& event);
+    void			Import(wxCommandEvent& event);
+    void			Commit(wxCommandEvent& event);
+    void			Update(wxCommandEvent& event);
+    void			Revert(wxCommandEvent& event);
+    void			Diff(wxCommandEvent& event);
+    void			OnFatTortoiseFunctionality(wxCommandEvent& event);
+	void			OnFatTortoiseCVSFunctionality(wxCommandEvent& event);
+    void			CVSUpdate(wxCommandEvent& event);
 
-    void			EditProperty(wxEvent& event);
+    void			EditProperty(wxCommandEvent& event);
 
     wxArrayString	ExtractFilesWithStatus(const char what, unsigned int pos = 0);
     void			ExtractFilesWithStatus(const char what, wxArrayString& ret, unsigned int pos = 0);

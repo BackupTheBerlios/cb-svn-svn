@@ -29,7 +29,7 @@
 #include "log.h"
 
 
-#define LOTS_OF_DEBUG_OUTPUT
+//#define LOTS_OF_DEBUG_OUTPUT
 
 
 
@@ -276,7 +276,7 @@ class SVNRunner : public ToolRunner
       do_force = true;
     };
 
-    int				SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision);
+    int				SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals = false);
     int				SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
 
     int				SVNRunner::Status(const wxString& file, bool minusU = false);

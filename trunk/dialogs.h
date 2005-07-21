@@ -98,6 +98,7 @@ class CheckoutDialog : public wxDialog
     wxString	password;
     wxString	revision;
     bool		autoOpen;
+    bool		noExternals;
 
     bool		use_cvs_instead;
 
@@ -113,7 +114,7 @@ class CheckoutDialog : public wxDialog
   private:
     void OnOKClick(wxCommandEvent& event);
     void OnCancelClick(wxCommandEvent& event);
-    void OnFileSelect(wxUpdateUIEvent& event);
+    void OnFileSelect(wxCommandEvent& event);
     DECLARE_EVENT_TABLE()
   };
 

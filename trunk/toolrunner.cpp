@@ -136,9 +136,9 @@ int  SVNRunner::Delete(const wxString& selected)
 }
 
 
-int  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision)
+int  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals)
 {
-  return Run("checkout" + Q(repo) + Q(dir) + "-r " + revision);
+  return Run("checkout" + Q(repo) + Q(dir) + "-r " + revision + (noExternals ? " --ignore-externals" : ""));
 }
 
 int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message)

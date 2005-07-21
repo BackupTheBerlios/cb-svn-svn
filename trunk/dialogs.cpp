@@ -56,7 +56,7 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
   XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->SetValue(defaultCheckoutDir);
 }
 
-void CheckoutDialog::OnFileSelect(wxUpdateUIEvent& event)
+void CheckoutDialog::OnFileSelect(wxCommandEvent& event)
 {
   if(XRCCTRL(*this, "notebook", wxNotebook)->GetSelection() == 0)
     XRCCTRL(*this, "working dir", wxTextCtrl)->SetValue( ::wxDirSelector("Choose the checkout directory", XRCCTRL(*this, "working dir", wxTextCtrl)->GetValue(), wxDD_NEW_DIR_BUTTON) );
@@ -72,6 +72,7 @@ void CheckoutDialog::OnOKClick(wxCommandEvent& event)
   password		= XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
   revision		= XRCCTRL(*this, "revision", wxComboBox)->GetValue();
   autoOpen		= XRCCTRL(*this, "auto_open", wxCheckBox)->GetValue();
+  noExternals	= XRCCTRL(*this, "ignore ext", wxCheckBox)->GetValue();
 
   cvs_workingdir	= XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->GetValue();
   cvs_repo			= XRCCTRL(*this, "cvs_repo", wxTextCtrl)->GetValue();
