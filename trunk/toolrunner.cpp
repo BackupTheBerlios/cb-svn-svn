@@ -17,221 +17,157 @@
 #include "dialogs.h"
 
 #include <wx/regex.h>
+#include <wx/event.h>
 #include <stdio.h>
 
 
-int SVNRunner::Run(wxString cmd)
-{
-  wxString ia(" --non-interactive");
-  wxString force;
 
-  if(prune_non_interactive) // a few commands will refuse to run "non-interactively", although they are not interactive :S
+
+const wxEventType EVT_WX_SUCKS = wxNewEventType();
+
+wxString TempFile::oldName = wxEmptyString;
+
+
+BEGIN_EVENT_TABLE(ToolRunner, wxEvtHandler)
+EVT_TIMER(-1, ToolRunner::OnTimer)
+EVT_PIPEDPROCESS_STDOUT(ID_PROCESS,  ToolRunner::OnOutput)
+EVT_PIPEDPROCESS_STDERR(ID_PROCESS,  ToolRunner::OnError)
+EVT_PIPEDPROCESS_TERMINATED(ID_PROCESS, ToolRunner::OnTerminated)
+END_EVENT_TABLE()
+
+
+
+int ToolRunner::RunBlocking(const wxString& cmd)
+{
+    assert(!exec.IsEmpty() && !cmd.IsEmpty());
+    
+    Finish();
+    
+    process = new Process(); // make Running() return true
+    
+    wxString runCommand(exec + " " + cmd);
+    
+    Log::Instance()->Add(runCommand);
+    
+    if ( wxExecute(runCommand, wxEXEC_ASYNC, process) == -1 )
     {
-      ia.Empty();
-      prune_non_interactive = false;
+        Log::Instance()->Add("Execution failed.");
+        Log::Instance()->Add("Command: " + runCommand);
+        delete process;
+        process = 0;
+        return -1;
     }
-
-  if(do_force)
+    
+    timer.Start(250); // This is a parachute. There should never really be a single timer event.
+    
+    while(process->Running())
+        wxYield();
+        
+    timer.Stop();
+    
+    lastExitCode = process->exitCode;
+    
+    if(lastExitCode)
     {
-      do_force = false;
-      force = " --force";
+        blob = ::GetStringFromArray(process->std_err, wxEmptyString);
+        out = ::GetStringFromArray(process->std_err, "\n");
     }
-  cmd.Replace("\\", "/");
-
-  Manager::Get()->GetAppWindow()->SetStatusText("svn " +cmd);
-
-  wxString runCmd(cmd);
-  if(username > "" && password > "")
+    else
     {
-      runCmd << " --username " << username << " --password \"" << password << "\"" << ia << force;
-      username = password = "";
+        blob = ::GetStringFromArray(process->std_out, wxEmptyString);
+        out = ::GetStringFromArray(process->std_out, "\n");
     }
-  else
-    runCmd << ia << force;
+    
+    std_out = process->std_out;
+    std_err = process->std_err;
+    
+    delete process;
+    process = 0;
+    
+    return lastExitCode;
+};
 
-  ToolRunner::Run(runCmd);
 
-  if(lastExitCode == 0)
-    return false;
 
-  {
-    wxRegEx reg("run.*svn.*cleanup", wxRE_ICASE);				// svn:run 'svn cleanup' to remove locks (type 'svn help cleanup' for details)
-    if(reg.Matches(blob) && runCmd.Contains(surplusTarget))		// if surplusTarget is contained in runCmd, it can be assumed valid
-      {
-        Log::Instance()->Add("Running svn cleanup to remove stale locks...");
-        ToolRunner::Run("cleanup" + Q(surplusTarget));
-        ToolRunner::Run(runCmd);
-
-        if(lastExitCode == 0)
-          return false;
-      }
-  }
-
-  if(blob.Contains("Connection is read-only"))
+int ToolRunner::Run(const wxString& cmd)
+{
+    assert(!exec.IsEmpty() && !cmd.IsEmpty());
+    std_out.Empty();
+    std_err.Empty();
+    blob.Empty();
+    wxString runCommand(exec + " " + cmd);
+    
+    Finish();
+    
+    Log::Instance()->Add(runCommand);
+    
+    cb_process = new  PipedProcess((void**)&cb_process, this, ID_PROCESS, true);
+    
+    pid = wxExecute(runCommand, wxEXEC_ASYNC, cb_process);
+    if ( !pid )
     {
-      wxMessageDialog(NULL, "Subversion returned 'Connection is read-only'."
-                      " This means you either provided no authentication tokens at all (the likely case), "
-                      "or you are correctly logged in but do not have write access enabled (check conf/svnserve.conf).\n"
-                      "If you did not authenticate, try 'Set User...' from the project manager menu.\n\n"
-                      "Note that this is NOT an authentication failure, so if you already did provide some credentials,\n"
-                      "submitting these again will not help.",
-                      "Oops...", wxOK );
-      return -1;
+        Log::Instance()->Add("Execution failed.");
+        Log::Instance()->Add("Command: " + runCommand);
+        delete cb_process;
+        cb_process = 0;
+        return -1;
     }
+    
+    timer.Start(100);
+    
+    return 0;
+};
 
 
-  wxRegEx reg("authenti|pass|user", wxRE_ICASE);
-  if(reg.Matches(blob))
+void ToolRunner::RunBlind(const wxString& cmd)
+{
+    BogusProcess *proc = new BogusProcess();
+    wxString runCommand(exec + " " + cmd);
+    wxExecute(runCommand, wxEXEC_ASYNC, proc);
+};
+
+void ToolRunner::OnTimer(wxTimerEvent& event)
+{
+    if (cb_process)
+        ((PipedProcess*)cb_process)->HasInput();
+        
+    if(process)
+        process->FlushPipe();
+}
+
+void ToolRunner::OnOutput(CodeBlocksEvent& event)
+{
+    wxString msg(event.GetString());
+    std_out.Add(msg);
+    Log::Instance()->Add(msg);
+}
+
+void ToolRunner::OnError(CodeBlocksEvent& event)
+{
+    wxString msg(event.GetString());
+    std_err.Add(msg);
+    Log::Instance()->Add(msg);
+}
+
+void ToolRunner::OnTerminated(CodeBlocksEvent& event)
+{
+    lastExitCode = event.GetInt();
+    timer.Stop();
+    
+    if(std_err.Count())
     {
-      do
-        {
-          PasswordDialog p(Manager::Get()->GetAppWindow());
-          p.Centre();
-          if(p.ShowModal() == wxID_CANCEL)
-            {
-              Log::Instance()->Add("User cancelled authentication.");
-              return -1;
-            }
-          if(p.username == "")
-            return true;
-
-          runCmd = cmd;
-          runCmd << " --username " << p.username << " --password \"" << p.password << "\"" << ia << force;
-          ToolRunner::Run(runCmd);
-        }
-      while(lastExitCode && reg.Matches(blob));
+        blob = ::GetStringFromArray(std_err, wxEmptyString);
+        out = ::GetStringFromArray(std_err, "\n");
     }
-  return lastExitCode;
-}
-
-
-int SVNRunner::Status(const wxString& file, bool minusU)
-{
-  return Run("status \"" + file + "\"" + (minusU ? " -u" : ""));
-}
-
-
-int  SVNRunner::Revert(const wxString& file)
-{
-  NoInteractive();
-  return Run("revert" + Q(file));
-}
-
-
-int  SVNRunner::Move(const wxString& selected, const wxString& to)
-{
-  return Run("move" + Q(selected) + Q(to) );
-}
-
-int  SVNRunner::Add(const wxString& selected)
-{
-  NoInteractive();
-  return Run("add" + Q(selected));
-}
-
-int  SVNRunner::Delete(const wxString& selected)
-{
-  NoInteractive();
-  return Run("delete" + Q(selected));
-}
-
-
-int  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals)
-{
-  return Run("checkout" + Q(repo) + Q(dir) + "-r " + revision + (noExternals ? " --ignore-externals" : ""));
-}
-
-int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message)
-{
-  TempFile c(message);
-  return Run("import" + Q(dir) + Q(repo) + "-F" + Q(c.name));
-}
-
-
-int  SVNRunner::Update(const wxString& selected, const wxString& revision)
-{
-  surplusTarget = selected; // update may fail due to stale locks, this will be used to call svn cleanup
-  return Run("update" + Q(selected) + "-r " + revision);
-}
-
-
-int  SVNRunner::Commit(const wxString& selected, const wxString& message)
-{
-  TempFile c(message);
-  return Run("commit" + Q(selected) + "-F" + Q(c.name));
-}
-
-wxArrayString  SVNRunner::GetPropertyList(const wxString& file)
-{
-  wxArrayString ret;
-  Run("proplist" + Q(file));
-
-  int n = std_out.Count();
-  for(int i = 0; i < n; ++i)
-    if(std_out[i].StartsWith("  "))
-      ret.Add(std_out[i].Mid(2));
-
-  return ret;
-}
-
-wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop)
-{
-  Run("propget" + Q(prop) + Q(file));
-  return out;
-}
-
-int  SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive)
-{
-  TempFile t(value);
-  return  Run("propset" + Q(prop) + "-F" + Q(t.name) + Q(file) + (recursive ? "-R" : ""));
-
-}
-
-int SVNRunner::PropDel(const wxString& file, const wxString& prop)
-{
-  return  Run("propdel" + Q(prop) + Q(file));
-}
-
-wxString SVNRunner::Cat(const wxString& selected, const wxString& rev)
-{
-  if(rev.IsEmpty())
-    Run("cat" + Q(selected));
-  else
-    Run("cat" + Q(selected) + "-r" +Q(rev) );
-  return out;
-}
-
-wxString SVNRunner::Diff(const wxString& selected, const wxString& rev)
-{
-  if(rev.IsEmpty())
-    Run("diff" + Q(selected));
-  else
-    Run("diff" + Q(selected) + "-r" +Q(rev) );
-  return out;
-}
-
-
-int SVNRunner::Info(const wxString& file, bool minusR)
-{
-  return  Run("info" + Q(file) + (minusR ? "-R" : ""));
-}
-
-
-wxString SVNRunner::Info(const wxString& file)
-{
-  Info(file, false);
-  wxString ret;
-  for(int i = 0; i < std_out.Count(); ++i)
+    else
     {
-      if(std_out[i].Contains("not a working copy"))
-        return std_out[i];
-
-      if(std_out[i].Contains("UUID") || std_out[i].Contains("Revision") || std_out[i].Contains("Last"))
-        ret << std_out[i] << "\n";
+        blob = ::GetStringFromArray(std_out, wxEmptyString);
+        out = ::GetStringFromArray(std_out, "\n");
     }
-  return ret;
+    
+    OutputHandler();
+    
+    wxCommandEvent e(EVT_WX_SUCKS, lastExitCode  ? TRANSACTION_FAILURE : TRANSACTION_SUCCESS);
+    plugin->AddPendingEvent(e);
+    
 }
-
-
-
-

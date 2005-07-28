@@ -418,13 +418,13 @@
 <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
 <object class="wxStaticText">
-<label>tortoise :</label>
+<label>cvs :</label>
 </object>
 </object>
 <object class="sizeritem">
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
-<object class="wxTextCtrl" name="tortoise binary path">
+<object class="wxTextCtrl" name="cvs binary path">
 <size>260,-1</size>
 </object>
 </object>

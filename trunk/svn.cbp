@@ -28,10 +28,13 @@
 			<Add library="codeblocks"/>
 			<Add library="wxmsw242"/>
 			<Add directory="C:\CodeBlocks"/>
+			<Add directory="C:\CodeBlocks\lib"/>
 		</Linker>
 		<ExtraCommands>
-			<Add before="icons\png2ico res\svn-icon.ico icons\svn.48.png icons\svn.32.png"/>
-			<Add before="zip -j build/share/CodeBlocks/svn.zip res\svn.xrc icons\log.png"/>
+			<Add before="prebuild.bat"/>
+		</ExtraCommands>
+		<ExtraCommands>
+			<Add after="upx -q -9 svn.dll"/>
 		</ExtraCommands>
 		<Unit filename="dialogs.cpp">
 			<Option compilerVar="CPP"/>
@@ -84,6 +87,16 @@
 			<Option buildCommand="gcc $FILENAME"/>
 			<Option target="default"/>
 		</Unit>
+		<Unit filename="svncvsrunner.cpp">
+			<Option compilerVar="CPP"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="svncvsrunner.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
+			<Option target="default"/>
+		</Unit>
 		<Unit filename="toolrunner.cpp">
 			<Option compilerVar="CPP"/>
 			<Option target="default"/>
@@ -93,6 +106,16 @@
 			<Option compile="0"/>
 			<Option link="0"/>
 			<Option weight="100"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="tortoiserunner.cpp">
+			<Option compilerVar="CPP"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="tortoiserunner.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
 			<Option target="default"/>
 		</Unit>
 	</Project>

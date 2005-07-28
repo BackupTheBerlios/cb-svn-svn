@@ -15,10 +15,8 @@
 
 #include "singleton.h"
 
-#include <wx/wxprec.h>
-#ifndef WX_PRECOMP
-	#include <wx/wx.h>
-#endif
+#include <wx/wx.h>
+
 
 #include <manager.h>
 #include <messagemanager.h>
@@ -26,17 +24,17 @@
 
 
 class Log : public Singleton<Log>
-  {
+{
     friend class Singleton<Log>;
-
-    SimpleTextLog	*m_log;
-    int				index;
-
-  private:
+    
+    SimpleTextLog *m_log;
+    int    index;
+    
+private:
     Log();
     ~Log();
-  public:
+public:
     void Add(wxString str);
-  };
+};
 
 #endif
