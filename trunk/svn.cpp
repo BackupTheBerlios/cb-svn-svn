@@ -87,6 +87,7 @@ EVT_MENU(ID_MENU_CVS_UPDATE,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_UPDATE_R,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_UPDATE_D,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_COMMIT,  SubversionPlugin::Commit)
+EVT_MENU(ID_MENU_RESOLVETOOL,  SubversionPlugin::EditConflicts)
 
 EVT_MENU(ID_MENU_ADD,    SubversionPlugin::Add)
 EVT_MENU(ID_MENU_DELETE,   SubversionPlugin::Delete)
@@ -107,8 +108,11 @@ EVT_MENU(ID_MENU_KW_CLEARALL,  SubversionPlugin::PropKeywords)
 
 EVT_MENU(ID_MENU_PROP_NEW,   SubversionPlugin::EditProperty)
 
-SCREW_THIS_MACRO_ABUSE(TRANSACTION_SUCCESS,   SubversionPlugin::TransactionSuccess)
-SCREW_THIS_MACRO_ABUSE(TRANSACTION_FAILURE,   SubversionPlugin::TransactionFailure)
+SCREW_THIS_MACRO_ABUSE(TRANSACTION_SUCCESS, SubversionPlugin::TransactionSuccess)
+SCREW_THIS_MACRO_ABUSE(TRANSACTION_FAILURE, SubversionPlugin::TransactionFailure)
+SCREW_THIS_MACRO_ABUSE(RUN_AGAIN,   SubversionPlugin::ReRun)
+SCREW_THIS_MACRO_ABUSE(RUN_NEXT_IN_QUEUE, SubversionPlugin::ReRun)
+
 
 END_EVENT_TABLE()
 
@@ -118,24 +122,11 @@ cbPlugin* GetPlugin()
     return new SubversionPlugin;
 }
 
-SubversionPlugin::SubversionPlugin()
+SubversionPlugin::SubversionPlugin() :     cascade_menu(true), auto_add(true), auto_add_only_project(true),
+        auto_delete(false), force_clean(false), require_comments(true), prefill_comments(true), update_on_conflict(true),
+        no_ask_revertable(true), never_ask(false), warn_revert(true), full_status_on_startup(false), no_props(false),
+        show_resolved(false), prompt_reload(false), up_after_co(true), verbose(true)
 {
-    cascade_menu    = true;
-    auto_add     = true;
-    auto_add_only_project  = true;
-    auto_delete    = false;
-    force_clean    = false;
-    require_comments   = true;
-    prefill_comments   = true;
-    update_on_conflict  = true;
-    no_ask_revertable   = true;
-    never_ask     = false;
-    warn_revert    = true;
-    full_status_on_startup  = false;
-    no_props     = false;
-    show_resolved    = false;
-    prompt_reload    = false;
-    up_after_co    = true;
     wxFileSystem::AddHandler(new wxZipFSHandler);
     wxXmlResource::Get()->InitAllHandlers();
     wxXmlResource::Get()->Load(ConfigManager::Get()->Read("data_path", wxEmptyString) + "/svn.zip#zip:*.xrc");
@@ -344,7 +335,7 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
         menu->AppendSeparator();
     }
     
-    if(status == 'C' && !tortoiseproc.IsEmpty())
+    if(status == 'C' && tortoise)
     {
         menu->Append( ID_MENU_RESOLVETOOL, "Resolve file conflicts");
         menu->AppendSeparator();
@@ -393,7 +384,19 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
             ++ms;
     }
     
-    if(fm || pm || fa)
+    if(cf)
+    {
+        if(tortoise)
+        {
+            wxString comstr("Edit conflicts (");
+            comstr << cf << " file" << (cf == 1 ? "" : "s") << ")";
+            menu->Append( ID_MENU_RESOLVETOOL, comstr );
+            menu->AppendSeparator();
+        }
+        menu->Append( ID_MENU_REVERT, "Revert..." );
+        menu->AppendSeparator();
+    }
+    else if(fm || pm || fa)
     {
         wxString comstr("Commit (");
         
@@ -406,13 +409,10 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
             comstr << ((fm || pm) ? ", " : "") << fa << " file" << (fa == 1 ? "" : "s") << " added";
         if(fd)
             comstr << ((fm || pm || fa) ? ", " : "") << fd << " file" << (fd == 1 ? "" : "s") << " deleted";
-        if(cf)
-            comstr << ((fm || pm || fa || fd) ? ", " : "") << cf << " file" << (cf == 1 ? "" : "s") << " in conflict";
         if(ms)
             comstr << ((fm || pm || fa || fd || cf) ? ", " : "") << ms << " file" << (ms == 1 ? "" : "s") << " missing";
             
         comstr << ")";
-        
         
         menu->Append( ID_MENU_COMMIT, comstr );
         menu->AppendSeparator();
@@ -625,21 +625,6 @@ void SubversionPlugin::Update(wxCommandEvent& event)
             }
     }
     
-    wxArrayString changed;
-    
-    ExtractFilesWithStatus('U', changed);
-    ExtractFilesWithStatus('G', changed);
-    ReloadEditors(changed);
-    
-    ConfigManager::Get()->Write("/environment/check_modified_files", chkmod_status); // restore original state
-    
-    if(!tortoiseproc.IsEmpty())
-    {
-        changed.Empty();
-        ExtractFilesWithStatus('C', changed);
-        for(int i = 0; i < changed.Count(); ++i)
-            tortoise->ConflictEditor(changed[i]);
-    }
 }
 
 void SubversionPlugin::CVSUpdate(wxCommandEvent& event)
@@ -1298,7 +1283,6 @@ void SubversionPlugin::Delete(wxCommandEvent& event)
         {
             Log::Instance()->Add("Warning: delete failed.");
             svn->DumpErrors();
-            fg();
         }
     }
 }
@@ -1425,6 +1409,18 @@ void SubversionPlugin::PropKeywords(wxCommandEvent& event)
 }
 
 
+void   SubversionPlugin::EditConflicts(wxCommandEvent& event)
+{
+    assert(tortoise);
+    
+    svn->Status(svn->GetTarget());
+    
+    wxArrayString conflicting;
+    ExtractFilesWithStatus('C', conflicting);
+    
+    for(int i = 0; i < conflicting.Count(); ++i)
+        tortoise->ConflictEditor(conflicting[i]);
+}
 
 void SubversionPlugin::OnFatTortoiseCVSFunctionality(wxCommandEvent& event)
 {
@@ -1524,17 +1520,74 @@ void SubversionPlugin::EditProperty(wxCommandEvent& event)
 
 void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
 {
-    Log::Instance()->Add("Transaction was successful");
+    if(event.GetExtraLong() == ToolRunner::SVN)
+    {
+        wxArrayString conflicting;
+        ExtractFilesWithStatus('C', conflicting);
+        
+        if(conflicting.Count())
+        {
+            svn->EmptyQueue();  // Although the command was successful, files in conflict are still a failure, so break here
+            if(tortoise)
+            {
+                for(int i = 0; i < conflicting.Count(); ++i)
+                    tortoise->ConflictEditor(conflicting[i]);
+            }
+            if(verbose)
+                Log::Instance()->Blue("Transaction was successful, but conflicts remain.");
+            return;
+        }
+    }
+    
+    
+    // Know nothing, assume all is fine:)
+    if(verbose)
+        Log::Instance()->Blue("Transaction was successful.");
+    svn->RunQueue();
 }
 
 void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
 {
-    Log::Instance()->Add("Transaction failed");
+    if(event.GetExtraLong() == ToolRunner::SVN)
+    {
+        // svn:run 'svn cleanup' to remove locks (type 'svn help cleanup' for details)
+        if(svn->blob.Contains("svn cleanup"))
+        {
+            Log::Instance()->Add("Running svn cleanup to remove stale locks...");
+            svn->PushBack();
+            svn->Run("cleanup" + svn->GetTarget());
+            return;
+        }
+        
+        
+        // svn: Out of date: 'main.cpp' in transaction '43-1'
+        if(update_on_conflict && svn->blob.Contains("Out of date"))
+        {
+            svn->PushBack();
+            svn->Update(svn->GetTarget(), "HEAD");
+            return;
+        }
+    }
+    
+    if(event.GetExtraLong() == ToolRunner::CVS)
+    {
+        NotImplemented("Error handler for CVS.");
+    }
+    
+    // We were not able to handle whatever errors occurred
+    Log::Instance()->Red("Transaction failed.");
+    svn->EmptyQueue();
 }
 
-void SubversionPlugin::PleaseLogIn(wxCommandEvent& event)
+void SubversionPlugin::ReRun(wxCommandEvent& event)
 {
-    // do something
+    int id = event.GetId();
+    assert(id == RUN_AGAIN || id == RUN_NEXT_IN_QUEUE);
+    
+    if(id = RUN_AGAIN)
+        svn->RunAgain();
+    else
+        svn->RunQueue();
 }
 
 
@@ -1646,7 +1699,6 @@ void SubversionPlugin::TamperWithWindowsRegistry()
     if( rKey->Exists() )
     {
         rKey->QueryValue("ProcPath", tort_bin);
-        tort_bin << "TortoiseProc.exe";
         
         if(wxFile::Exists(tort_bin))
             tortoiseproc = tort_bin;
@@ -1674,11 +1726,20 @@ void SubversionPlugin::TamperWithWindowsRegistry()
     if( rKey->Exists() )
     {
         rKey->QueryValue("RootDir", tort_bin);
+        tort_bin << "TortoiseAct.exe";
         
-        if(wxFile::Exists(tort_bin + "TortoiseAct.exe"))
-            tortoiseact = tort_bin + "TortoiseAct.exe";
+        if(wxFile::Exists(tort_bin))
+            tortoiseact = tort_bin;
     }
     delete rKey;
+    
+    if(verbose)
+    {
+        if(!tortoiseproc.IsEmpty())
+            Log::Instance()->Add("TortoiseSVN detected.");
+        if(!tortoiseact.IsEmpty())
+            Log::Instance()->Add("TortoiseCVS detected.");
+    }
     
 #endif
     

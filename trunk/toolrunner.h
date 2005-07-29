@@ -35,7 +35,7 @@ enum
 {
     TRANSACTION_SUCCESS,
     TRANSACTION_FAILURE,
-    LOGIN_NEEDED,
+    RUN_AGAIN,
     RUN_NEXT_IN_QUEUE
 };
 
@@ -104,7 +104,6 @@ public:
     virtual void OnTerminate(int pid, int status)
     {
         FlushPipe();
-        Manager::Get()->GetAppWindow()->SetStatusText("");
         exitCode = status;
         running = false;
     }
@@ -145,14 +144,22 @@ public:
 class ToolRunner : public wxEvtHandler
 {
 public:
+
+typedef enum
+{
+UNDEFINED,
+SVN,
+CVS
+}type;
+
+
     wxArrayString  std_out;
     wxArrayString  std_err;
     wxString   blob;   // "blob" concats everything so searching is somewhat easier
     wxString   out;   // "out" likewise, but preserving linebreaks
     int     lastExitCode;
-    cbPlugin *plugin;
     
-    ToolRunner() :  lastExitCode(0), cb_process(0), process(0)
+    ToolRunner() :  lastExitCode(0), cb_process(0), process(0), runnerType(ToolRunner::UNDEFINED)
     {
         timer.SetOwner(this);
         plugin = Manager::Get()->GetPluginManager()->FindPluginByName("svn");
@@ -173,6 +180,41 @@ public:
         return exec;
     };
     
+    void EmptyQueue()
+    {
+        commandQueue.Empty();
+    };
+
+    void PushBack()
+    {
+        commandQueue.Insert(lastCommand, 0);
+    };
+
+
+    wxString GetTarget()
+    {
+        return target;
+    };
+
+    void SetTarget(const wxString& t)
+    {
+        target = t;
+    };
+
+    
+    wxString GetQueued()
+    {
+        if(commandQueue.Count())
+            return commandQueue[0];
+        else
+            return wxEmptyString;
+    };
+
+	type Type()
+	{
+	return runnerType;
+	};
+    
     wxString Q(const wxString & in)
     {
         wxString out(" \"");
@@ -185,15 +227,26 @@ public:
     int ToolRunner::Run(const wxString& cmd);
     void ToolRunner::RunBlind(const wxString& cmd);
     
-    //    void OnIdle(wxIdleEvent& event);
+    int ToolRunner::RunAsync(const wxString& cmd);
+    void ToolRunner::RunAgain();
+    void ToolRunner::RunQueue();
+    
     void OnTimer(wxTimerEvent& event);
     void OnOutput(CodeBlocksEvent& event);
     void OnError(CodeBlocksEvent& event);
     void OnTerminated(CodeBlocksEvent& event);
     
     virtual void OutputHandler()
-    {}
-    ;
+    {
+        if(lastExitCode)
+            Fail();
+        else
+            Succeed();
+    };
+    
+    void Fail();
+    void Succeed();
+    void Send(int cmd);
     
     bool Running()
     {
@@ -209,6 +262,13 @@ public:
             wxYield();
         }
     };
+
+protected:
+    cbPlugin *plugin;
+    wxArrayString commandQueue;
+    wxString lastCommand;
+    wxString target;
+    type	runnerType;
     
 private:
     wxString  exec;

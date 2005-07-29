@@ -43,6 +43,7 @@ int ToolRunner::RunBlocking(const wxString& cmd)
     
     Finish();
     
+    lastCommand.Empty();
     process = new Process(); // make Running() return true
     
     wxString runCommand(exec + " " + cmd);
@@ -83,7 +84,6 @@ int ToolRunner::RunBlocking(const wxString& cmd)
     
     delete process;
     process = 0;
-    
     return lastExitCode;
 };
 
@@ -91,31 +91,63 @@ int ToolRunner::RunBlocking(const wxString& cmd)
 
 int ToolRunner::Run(const wxString& cmd)
 {
+    wxString runCommand(exec + " " + cmd);
+    
+    if(Running())
+    {
+        commandQueue.Add(runCommand);
+        return 0;
+    }
+    
+    RunAsync(runCommand);
+    Log::Instance()->fg();
+    lastCommand = runCommand;
+    return 0;
+};
+
+int ToolRunner::RunAsync(const wxString& cmd)
+{
     assert(!exec.IsEmpty() && !cmd.IsEmpty());
     std_out.Empty();
     std_err.Empty();
     blob.Empty();
-    wxString runCommand(exec + " " + cmd);
     
-    Finish();
-    
-    Log::Instance()->Add(runCommand);
+    Log::Instance()->Add(cmd);
     
     cb_process = new  PipedProcess((void**)&cb_process, this, ID_PROCESS, true);
     
-    pid = wxExecute(runCommand, wxEXEC_ASYNC, cb_process);
+    pid = wxExecute(cmd, wxEXEC_ASYNC, cb_process);
     if ( !pid )
     {
         Log::Instance()->Add("Execution failed.");
-        Log::Instance()->Add("Command: " + runCommand);
+        Log::Instance()->Add("Command: " + cmd);
         delete cb_process;
         cb_process = 0;
+        wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_FAILURE);
+        plugin->AddPendingEvent(e);
         return -1;
     }
     
     timer.Start(100);
     
     return 0;
+};
+
+void ToolRunner::RunAgain()
+{
+Log::Instance()->Add("rerunning...");
+	if(!lastCommand.IsEmpty())
+        RunAsync(lastCommand);
+};
+
+void ToolRunner::RunQueue()
+{
+    if(commandQueue.Count())
+    {
+        wxString runCommand = commandQueue[0];
+        commandQueue.Remove((size_t) 0);
+        RunAsync(runCommand);
+    }
 };
 
 
@@ -166,8 +198,26 @@ void ToolRunner::OnTerminated(CodeBlocksEvent& event)
     }
     
     OutputHandler();
-    
-    wxCommandEvent e(EVT_WX_SUCKS, lastExitCode  ? TRANSACTION_FAILURE : TRANSACTION_SUCCESS);
-    plugin->AddPendingEvent(e);
-    
 }
+
+
+void ToolRunner::Fail()
+    {
+        wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_FAILURE);
+        e.SetExtraLong(runnerType);
+        plugin->AddPendingEvent(e);
+    };
+    
+void ToolRunner::Succeed()
+    {
+        wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_SUCCESS);
+        e.SetExtraLong(runnerType);
+        plugin->AddPendingEvent(e);
+    };
+    
+void ToolRunner::Send(int cmd)
+    {
+        wxCommandEvent e(EVT_WX_SUCKS, cmd);
+        e.SetExtraLong(runnerType);
+        plugin->AddPendingEvent(e);
+    };

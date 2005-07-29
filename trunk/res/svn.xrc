@@ -214,16 +214,22 @@
 <style>wxCB_DROPDOWN</style>
 <content>
 <item>:pserver:</item>
+<item>:ext:</item>
+<item>:sspi:</item>
+<item>:ssh:</item>
+<item>:server:</item>
+<item>:local:</item>
 <item>:gserver:</item>
 <item>:kserver:</item>
+<item>:ntserver:</item>
 </content>
 </object>
 </object>
 <object class="sizeritem">
 <flag>wxGROW|wxALL</flag>
 <border>5</border>
-<object class="wxTextCtrl" name="cvs_repo">
-<value>server.name:/cvsroot/projectname</value>
+<object class="wxComboBox" name="cvs_repo">
+<style>wxCB_DROPDOWN</style>
 </object>
 </object>
 </object>

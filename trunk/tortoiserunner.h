@@ -10,8 +10,6 @@
 * $Id$
 */
 
-
-
 #ifndef TORTOISERUNNER_H
 #define TORTOISERUNNER_H
 

@@ -57,3 +57,16 @@ void Log::Add(wxString str)
     m_log->AddLog(str);
 }
 
+void Log::Red(wxString str)
+{
+	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxRED, *wxWHITE));
+    Add(str);
+	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+}
+void Log::Blue(wxString str)
+{
+	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLUE, *wxWHITE));
+    Add(str);
+	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+}
+

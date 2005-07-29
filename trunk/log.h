@@ -35,6 +35,13 @@ private:
     ~Log();
 public:
     void Add(wxString str);
+    void Red(wxString str);
+    void Blue(wxString str);
+
+    void fg()
+    {
+        Manager::Get()->GetMessageManager()->SwitchTo(index);
+    };
 };
 
 #endif

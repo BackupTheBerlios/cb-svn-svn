@@ -54,6 +54,9 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
         
     XRCCTRL(*this, "working dir", wxTextCtrl)->SetValue(defaultCheckoutDir);
     XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->SetValue(defaultCheckoutDir);
+    XRCCTRL(*this, "repository url", wxComboBox)->SetSelection(0);
+    XRCCTRL(*this, "cvs_proto", wxComboBox)->SetSelection(0);
+    XRCCTRL(*this, "cvs_repo", wxComboBox)->SetSelection(0);
 }
 
 void CheckoutDialog::OnFileSelect(wxCommandEvent& event)
@@ -75,7 +78,7 @@ void CheckoutDialog::OnOKClick(wxCommandEvent& event)
     noExternals = XRCCTRL(*this, "ignore ext", wxCheckBox)->GetValue();
     
     cvs_workingdir = XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->GetValue();
-    cvs_repo   = XRCCTRL(*this, "cvs_repo", wxTextCtrl)->GetValue();
+    cvs_repo   = XRCCTRL(*this, "cvs_repo", wxComboBox)->GetValue();
     cvs_module  = XRCCTRL(*this, "cvs_module", wxTextCtrl)->GetValue();
     cvs_user   = XRCCTRL(*this, "cvs_user", wxTextCtrl)->GetValue();
     cvs_pass   = XRCCTRL(*this, "cvs_pass", wxTextCtrl)->GetValue();

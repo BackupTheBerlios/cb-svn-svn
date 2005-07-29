@@ -43,6 +43,7 @@ class SVNRunner : public ToolRunner
 public:
     SVNRunner(const wxString& executable) : block(false), do_force(false)
     {
+        ToolRunner::runnerType = ToolRunner::SVN;
         SetExecutable(executable);
     }
     ;
@@ -92,6 +93,7 @@ public:
     wxArrayString SVNRunner::GetPropertyList(const wxString& file);
     
     virtual int  SVNRunner::Run(wxString cmd);
+    virtual void OutputHandler();
     
     void   SVNRunner::DumpErrors()
     {
@@ -126,6 +128,7 @@ class CVSRunner : public ToolRunner
 public:
     CVSRunner(const wxString& executable)
     {
+        ToolRunner::runnerType = ToolRunner::CVS;
         SetExecutable(executable);
     }
     ;

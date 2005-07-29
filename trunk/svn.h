@@ -38,8 +38,6 @@ WX_DECLARE_HASH_MAP( int, wxString, wxIntegerHash, wxIntegerEqual, IdToStringHas
 
 class SubversionPlugin : public cbPlugin
 {
-    int tabIndex;
-    
     IdToStringHash fileProperties;
     
     SVNRunner  * svn;
@@ -93,7 +91,7 @@ public:
     
     void   TransactionSuccess(wxCommandEvent& event);
     void   TransactionFailure(wxCommandEvent& event);
-    void   PleaseLogIn(wxCommandEvent& event);
+    void   ReRun(wxCommandEvent& event);
     
     void   Checkout(wxCommandEvent& event);
     void   Import(wxCommandEvent& event);
@@ -101,6 +99,8 @@ public:
     void   Update(wxCommandEvent& event);
     void   Revert(wxCommandEvent& event);
     void   Diff(wxCommandEvent& event);
+    void   EditConflicts(wxCommandEvent& event);
+
     void   OnFatTortoiseFunctionality(wxCommandEvent& event);
     void   OnFatTortoiseCVSFunctionality(wxCommandEvent& event);
     void   CVSUpdate(wxCommandEvent& event);
@@ -226,12 +226,6 @@ public:
     }
     
     
-    void fg()
-    {
-        Manager::Get()->GetMessageManager()->SwitchTo(tabIndex);
-    };
-    
-    
     wxString defaultCheckoutDir;
     wxString svnbinary;
     wxString cvsbinary;
@@ -255,6 +249,7 @@ public:
     bool show_resolved;
     bool prompt_reload;
     bool up_after_co;
+    bool verbose;
     wxArrayString repoHistory;
     
 protected:
