@@ -57,9 +57,6 @@ int SVNRunner::Run(wxString cmd)
     if(lastExitCode == 0)
         return false;
         
-        
-        
-        
     return lastExitCode;
 }
 

@@ -173,7 +173,6 @@ void SubversionPlugin::OnAttach()
     svn = new SVNRunner(svnbinary);
     svn->RunBlind("help"); // get svn into the file cache asynchronously, as we'll need it soon
     
-    
     /* For some reason, if you do not start Tortoise from cmd, then it won't work. I have no idea why, and neither
     *  have the guys developing Tortoise. There is no good reason why it should not work, really.
     *  It is apparently not specifically my code, though. It rather seems to be that wxExecute is broken somehow,

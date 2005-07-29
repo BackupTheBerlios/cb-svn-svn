@@ -49,6 +49,10 @@ int ToolRunner::RunBlocking(const wxString& cmd)
     wxString runCommand(exec + " " + cmd);
     
     Log::Instance()->Add(runCommand);
+
+    wxString oldLang;
+    wxGetEnv("LANG", &oldLang);
+    wxSetEnv("LANG", "en");
     
     if ( wxExecute(runCommand, wxEXEC_ASYNC, process) == -1 )
     {
@@ -56,8 +60,10 @@ int ToolRunner::RunBlocking(const wxString& cmd)
         Log::Instance()->Add("Command: " + runCommand);
         delete process;
         process = 0;
+        wxSetEnv("LANG", oldLang);
         return -1;
     }
+    wxSetEnv("LANG", oldLang);
     
     timer.Start(250); // This is a parachute. There should never really be a single timer event.
     
@@ -99,7 +105,11 @@ int ToolRunner::Run(const wxString& cmd)
         return 0;
     }
     
+    wxString oldLang;
+    wxGetEnv("LANG", &oldLang);
+    wxSetEnv("LANG", "en");
     RunAsync(runCommand);
+    wxSetEnv("LANG", oldLang);
     Log::Instance()->fg();
     lastCommand = runCommand;
     return 0;
@@ -135,8 +145,8 @@ int ToolRunner::RunAsync(const wxString& cmd)
 
 void ToolRunner::RunAgain()
 {
-Log::Instance()->Add("rerunning...");
-	if(!lastCommand.IsEmpty())
+    Log::Instance()->Add("rerunning...");
+    if(!lastCommand.IsEmpty())
         RunAsync(lastCommand);
 };
 
@@ -202,22 +212,22 @@ void ToolRunner::OnTerminated(CodeBlocksEvent& event)
 
 
 void ToolRunner::Fail()
-    {
-        wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_FAILURE);
-        e.SetExtraLong(runnerType);
-        plugin->AddPendingEvent(e);
-    };
-    
+{
+    wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_FAILURE);
+    e.SetExtraLong(runnerType);
+    plugin->AddPendingEvent(e);
+};
+
 void ToolRunner::Succeed()
-    {
-        wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_SUCCESS);
-        e.SetExtraLong(runnerType);
-        plugin->AddPendingEvent(e);
-    };
-    
+{
+    wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_SUCCESS);
+    e.SetExtraLong(runnerType);
+    plugin->AddPendingEvent(e);
+};
+
 void ToolRunner::Send(int cmd)
-    {
-        wxCommandEvent e(EVT_WX_SUCKS, cmd);
-        e.SetExtraLong(runnerType);
-        plugin->AddPendingEvent(e);
-    };
+{
+    wxCommandEvent e(EVT_WX_SUCKS, cmd);
+    e.SetExtraLong(runnerType);
+    plugin->AddPendingEvent(e);
+};
