@@ -25,7 +25,6 @@
 
 #include <manager.h>
 #include <sdk_events.h>
-#include <configmanager.h>
 #include <messagemanager.h>
 #include <projectmanager.h>
 #include <editormanager.h>
@@ -138,18 +137,22 @@ SubversionPlugin::SubversionPlugin() :     cascade_menu(true), auto_add(true), a
         wxString rev("$Revision$"); // let svn:keywords fill in the revision number
         wxString date("$Date$");
         rev.Replace("$", "");     // but make it a bit prettier
-        wxRegEx reg("Date: ([0-9]{4}-[0-9]{2}-[0-9]{2})", wxRE_ICASE);
+        wxRegEx reg("(\\(.*\\))", wxRE_ICASE);
         if(reg.Matches(date))
             date = reg.GetMatch(date, 1);
             
-        m_PluginInfo.version = "0.3   " + rev + " / " + date;
+        m_PluginInfo.version = "0.3   " + rev + date;
     }
+    
+    wxString repo("$HeadURL$");
+    repo = repo.Mid(repo.Index(' ')+1).BeforeLast('/') + "/";
+    
     m_PluginInfo.description = "code::blocks revision control using subversion\n\n"
                                "Subversion is an advanced revision control system intended to replace CVS.\n\n"
                                "If you develop under Windows, do not forget to get TortoiseSVN as well.\n\n"
                                "References:\nhttp://subversion.tigris.org\nhttp://tortoisesvn.tigris.org\n\n"
                                "Subversion access to the cb-svn project is available at:\n"
-                               "svn://svn.berlios.de/svnroot/repos/cb-svn/";
+                               + repo;
                                
     m_PluginInfo.author = "Thomas Denk";
     m_PluginInfo.authorEmail = "cb-svn@users.berlios.de";
@@ -191,11 +194,14 @@ void SubversionPlugin::OnAttach()
 
 void SubversionPlugin::OnRelease(bool appShutDown)
 {
+    WriteConfig();
+    Manager::Get()->GetAppWindow()->SetStatusText("Waiting for in-progress transactions to finish...");
+    Log::Instance()->fg();
     if(svn && svn->Running())
         svn->Finish();
     if(cvs && cvs->Running())
         cvs->Finish();
-    WriteConfig();
+    Manager::Get()->GetAppWindow()->SetStatusText("");
     TempFile::Cleanup();
 }
 
@@ -603,27 +609,8 @@ void SubversionPlugin::Update(wxCommandEvent& event)
         break;
     }
     
-    bool chkmod_status = ConfigManager::Get()->Read("/environment/check_modified_files",1); // evil stuff: tamper with c::b settings
-    ConfigManager::Get()->Write("/environment/check_modified_files", false);     // to prevent a race that occurs on lengthy operations
-    
-    if(svn->Update(selected, revision) == 0)
-    {
-        wxRegEx r("revision\\ ([0-9]+)\\.$")
-        ;
-        wxString rev;
-        
-        if(r.IsValid())
-            if(r.Matches(svn->blob))
-            {
-                rev = r.GetMatch(svn->blob, 1);
-                wxFileName fn(selected);
-                if(event.GetId() == ID_MENU_RESTORE)
-                    Log::Instance()->Add( "Restored missing file " + fn.GetFullName() + " to revision " + rev);
-                else
-                    Log::Instance()->Add( ( fn.IsDir() ? "Project" : fn.GetFullName() )+ " is at revision " + rev);
-            }
-    }
-    
+    DisableCheckExternals();
+    svn->Update(selected, revision);
 }
 
 void SubversionPlugin::CVSUpdate(wxCommandEvent& event)
@@ -816,21 +803,9 @@ void SubversionPlugin::Commit(wxCommandEvent& event)
         if(!concat.IsEmpty())
             svn->Add(concat);
             
-        bool chkmod_status = ConfigManager::Get()->Read("/environment/check_modified_files",1); // evil stuff: tamper with c::b settings
-        ConfigManager::Get()->Write("/environment/check_modified_files", false);     // to prevent a race that occurs on lengthy operations
+        DisableCheckExternals();
         
-        if(svn->Commit(selected, d.comment))
-            Log::Instance()->Add(svn->out);
-        else if(up_after_co)
-        {
-            wxArrayString changed;
-            for(unsigned int i = 0; i < svn->std_out.Count(); ++i)
-                if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
-                    changed.Add(svn->std_out[i].Mid(15).Trim());
-                    
-            ReloadEditors(changed);
-        }
-        ConfigManager::Get()->Write("/environment/check_modified_files", chkmod_status); // restore original state
+        svn->Commit(selected, d.comment);
     }
 }
 
@@ -843,18 +818,13 @@ void SubversionPlugin::Checkout(wxCommandEvent& event)
     {
         if(d.use_cvs_instead)
         {
+            // cvs -d :pserver:user:pass@example.org:/usr/local/cvsroot login
+            // cvs -d :pserver:user@example.org:/usr/local/cvsroot checkout something
             if(!d.cvs_pass.IsEmpty())
-            {
-                // cvs -d :pserver:user:pass@example.org:/usr/local/cvsroot login
-                // cvs -d :pserver:user@example.org:/usr/local/cvsroot checkout something
                 cvs->Login(d.cvs_proto, d.cvs_repo, d.cvs_user, d.cvs_pass);
-                cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
-            }
-            else
-            {
-                // cvs -d :pserver:anonymous@example.org:/usr/local/cvsroot checkout something
-                cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
-            }
+            cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
+            
+            //// move this to TransactionSuccess
             if(d.cvs_auto_open)
                 AutoOpenProjects(d.cvs_workingdir, true, true);
                 
@@ -878,6 +848,7 @@ void SubversionPlugin::Checkout(wxCommandEvent& event)
                 }
                 Log::Instance()->Add("Checkout of " + d.repoURL + " finished.\n\n" + info);
                 
+                //// move this to TransactionSuccess
                 if(d.autoOpen)
                     AutoOpenProjects(d.checkoutDir, true, true);
                     
@@ -1049,6 +1020,7 @@ void SubversionPlugin::Revert(wxCommandEvent& event)
             wxString toRevert;
             for(int i = 0; i < d.finalList.Count(); i++)
                 toRevert << " \"" + d.finalList[i] + "\" ";
+            DisableCheckExternals();
             svn->Revert(toRevert.Mid(2, toRevert.Length()-4));
         }
     }
@@ -1059,7 +1031,10 @@ void SubversionPlugin::Revert(wxCommandEvent& event)
             localMods = "\nWARNING:\n\nThis file has local modifications which you will lose if you revert it.\n\n\n";
             
         if(never_ask || wxMessageDialog(Manager::Get()->GetAppWindow(), localMods + "Do you want to revert the file " + target + "?", (localMods.IsEmpty() ? "Revert" : "Revert over Modifications"), wxYES_NO).ShowModal() == wxID_YES)
+        {
+            DisableCheckExternals();
             svn->Revert(target);
+        }
     }
     
 }
@@ -1203,11 +1178,8 @@ void SubversionPlugin::ReadConfig()
     TamperWithWindowsRegistry();
     
     if(svnbinary == "unset")
-    {
         OnFirstRun();
-        //**
-    }
-    
+        
     wxString ht("/svn/repoHist");
     wxString val;
     for(unsigned int i = 0; i < 16; ++i)
@@ -1473,7 +1445,11 @@ void SubversionPlugin::OnFatTortoiseFunctionality(wxCommandEvent& event)
         break;
         
         case ID_MENU_CREATE:
-        tortoise->Create(p);
+        {
+            wxString d(::wxDirSelector("Please point to the location where the new repository will be created."));
+            if(!d.IsEmpty())
+                tortoise->Create(d);
+        }
         break;
         
         case ID_MENU_RELOCATE:
@@ -1536,14 +1512,35 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
                 Log::Instance()->Blue("Transaction was successful, but conflicts remain.");
             return;
         }
+        
+    }
+    
+    wxString lastCommand(svn->LastCommand());
+    
+    if(lastCommand.Contains(" commit "))
+    {
+        if(up_after_co)
+        {
+            wxArrayString changed;
+            for(unsigned int i = 0; i < svn->std_out.Count(); ++i)
+                if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
+                    changed.Add(svn->std_out[i].Mid(15).Trim());
+                    
+            ReloadEditors(changed);
+        }
     }
     
     
     // Know nothing, assume all is fine:)
     if(verbose)
         Log::Instance()->Blue("Transaction was successful.");
+        
+    if(lastCommand.Contains(" checkout ") || lastCommand.Contains(" update ") || lastCommand.Contains(" revert "))
+        ResetCheckExternals();
+        
     svn->RunQueue();
 }
+
 
 void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
 {
@@ -1823,6 +1820,10 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     
     return wxEmptyString;
 }
+
+
+
+
 
 
 

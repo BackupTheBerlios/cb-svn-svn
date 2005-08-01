@@ -81,7 +81,7 @@ public:
     }
     void TortoiseRunner::Create(const wxString& path)
     {
-        wxString cmd("/command:create /path:\"");
+        wxString cmd("/command:repocreate /path:\"");
         cmd << path << "\" /notempfile /closeonend";
         Run(cmd);
     }

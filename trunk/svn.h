@@ -23,6 +23,7 @@
 #include <wx/dir.h>
 
 #include <manager.h>
+#include <configmanager.h>
 #include <sdk_events.h>
 #include <projectmanager.h>
 #include <projectbuildtarget.h>
@@ -100,7 +101,7 @@ public:
     void   Revert(wxCommandEvent& event);
     void   Diff(wxCommandEvent& event);
     void   EditConflicts(wxCommandEvent& event);
-
+    
     void   OnFatTortoiseFunctionality(wxCommandEvent& event);
     void   OnFatTortoiseCVSFunctionality(wxCommandEvent& event);
     void   CVSUpdate(wxCommandEvent& event);
@@ -184,6 +185,17 @@ public:
         return false;
     }
     
+    void DisableCheckExternals()
+    {
+        chkmod_status = ConfigManager::Get()->Read("/environment/check_modified_files",1); // evil stuff: tamper with c::b settings
+        ConfigManager::Get()->Write("/environment/check_modified_files", false);     // to prevent a race that occurs on lengthy operations
+    }
+    
+    void ResetCheckExternals()
+    {
+        ConfigManager::Get()->Write("/environment/check_modified_files", chkmod_status); // restore original state
+    }
+    
     cbProject* GetCBProject()
     {
         wxTreeCtrl* tree = Manager::Get()->GetProjectManager()->GetTree();
@@ -250,6 +262,7 @@ public:
     bool prompt_reload;
     bool up_after_co;
     bool verbose;
+    bool chkmod_status;
     wxArrayString repoHistory;
     
 protected:

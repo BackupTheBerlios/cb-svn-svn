@@ -155,7 +155,6 @@ int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString
 int  SVNRunner::Update(const wxString& selected, const wxString& revision)
 {
     SetTarget(selected);
-    surplusTarget = selected; // update may fail due to stale locks, this will be used to call svn cleanup
     return Run("update" + Q(selected) + "-r " + revision);
 }
 
@@ -192,14 +191,14 @@ int  SVNRunner::PropSet(const wxString& selected, const wxString& prop, const wx
 {
     SetTarget(selected);
     TempFile t(value);
-    return  RunBlocking("propset" + Q(prop) + "-F" + Q(t.name) + Q(selected) + (recursive ? "-R" : ""));
+    return  Run("propset" + Q(prop) + "-F" + Q(t.name) + Q(selected) + (recursive ? "-R" : ""));
     
 }
 
 int SVNRunner::PropDel(const wxString& selected, const wxString& prop)
 {
     SetTarget(selected);
-    return  RunBlocking("propdel" + Q(prop) + Q(selected));
+    return  Run("propdel" + Q(prop) + Q(selected));
 }
 
 wxString SVNRunner::Cat(const wxString& selected, const wxString& rev)

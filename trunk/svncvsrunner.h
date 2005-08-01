@@ -141,7 +141,7 @@ public:
     {
         // cvs -d :pserver:bach:p4ss30rd@faun.example.org:/usr/local/cvsroot login
         wxString cmd("-d " + proto + user + ":" + pass + "@" + repo + " login");
-        Run(cmd);
+        RunBlocking(cmd);
     };
     
     void CVSRunner::Checkout(const wxString& proto, const wxString& repo, const wxString& module, const wxString& workingdir, const wxString& user, const wxString& revision)

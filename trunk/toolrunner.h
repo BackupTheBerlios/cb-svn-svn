@@ -145,21 +145,21 @@ class ToolRunner : public wxEvtHandler
 {
 public:
 
-typedef enum
-{
-UNDEFINED,
-SVN,
-CVS
-}type;
-
-
+    typedef enum
+    {
+        UNDEFINED,
+        SVN,
+        CVS
+    }type;
+    
+    
     wxArrayString  std_out;
     wxArrayString  std_err;
     wxString   blob;   // "blob" concats everything so searching is somewhat easier
     wxString   out;   // "out" likewise, but preserving linebreaks
     int     lastExitCode;
     
-    ToolRunner() :  lastExitCode(0), cb_process(0), process(0), runnerType(ToolRunner::UNDEFINED)
+    ToolRunner() :  lastExitCode(0), runnerType(ToolRunner::UNDEFINED)
     {
         timer.SetOwner(this);
         plugin = Manager::Get()->GetPluginManager()->FindPluginByName("svn");
@@ -184,23 +184,28 @@ CVS
     {
         commandQueue.Empty();
     };
-
+    
     void PushBack()
     {
         commandQueue.Insert(lastCommand, 0);
     };
-
-
+    
+    
     wxString GetTarget()
     {
         return target;
     };
-
+    
+    wxString LastCommand()
+    {
+        return lastCommand;
+    };
+    
     void SetTarget(const wxString& t)
     {
         target = t;
     };
-
+    
     
     wxString GetQueued()
     {
@@ -209,11 +214,11 @@ CVS
         else
             return wxEmptyString;
     };
-
-	type Type()
-	{
-	return runnerType;
-	};
+    
+    type Type()
+    {
+        return runnerType;
+    };
     
     wxString Q(const wxString & in)
     {
@@ -262,19 +267,19 @@ CVS
             wxYield();
         }
     };
-
+    
 protected:
     cbPlugin *plugin;
     wxArrayString commandQueue;
-    wxString lastCommand;
+    static wxString lastCommand;
     wxString target;
-    type	runnerType;
+    type runnerType;
     
 private:
     wxString  exec;
     wxTimer   timer;
-    PipedProcess *cb_process;
-    Process   *process;
+    static PipedProcess *cb_process;
+    static Process   *process;
     int    pid;
     
     DECLARE_EVENT_TABLE()
