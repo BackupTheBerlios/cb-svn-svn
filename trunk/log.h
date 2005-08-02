@@ -17,7 +17,6 @@
 
 #include <wx/wx.h>
 
-
 #include <manager.h>
 #include <messagemanager.h>
 #include <simpletextlog.h>
@@ -37,11 +36,24 @@ public:
     void Add(wxString str);
     void Red(wxString str);
     void Blue(wxString str);
-
+    void Grey(wxString str);
     void fg()
     {
         Manager::Get()->GetMessageManager()->SwitchTo(index);
     };
+    void Reduce()
+    {
+        wxTextCtrl *t = m_log->GetTextControl();
+        if(t->GetNumberOfLines() > 25)
+        {
+            int pos = t->XYToPosition(0, t->GetNumberOfLines() - 25);
+            t->Remove(0, pos);
+            lastLogTime = wxGetLocalTime();
+        }
+        else
+        t->Clear();
+    };
+    static int lastLogTime;
 };
 
 #endif

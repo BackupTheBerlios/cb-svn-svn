@@ -25,11 +25,11 @@
 
 const wxEventType EVT_WX_SUCKS = wxNewEventType();
 
-wxString TempFile::oldName    = wxEmptyString;
+wxArrayString TempFile::oldName;
 wxString ToolRunner::lastCommand  = wxEmptyString;
 PipedProcess* ToolRunner::cb_process = 0;
 Process* ToolRunner::process   = 0;
-
+    
 BEGIN_EVENT_TABLE(ToolRunner, wxEvtHandler)
 EVT_TIMER(-1, ToolRunner::OnTimer)
 EVT_PIPEDPROCESS_STDOUT(ID_PROCESS,  ToolRunner::OnOutput)
@@ -58,8 +58,8 @@ int ToolRunner::RunBlocking(const wxString& cmd)
     
     if ( wxExecute(runCommand, wxEXEC_ASYNC, process) == -1 )
     {
-        Log::Instance()->Add("Execution failed.");
-        Log::Instance()->Add("Command: " + runCommand);
+        Log::Instance()->Red("Execution failed.");
+        Log::Instance()->Red("Command: " + runCommand);
         delete process;
         process = 0;
         wxSetEnv("LANG", oldLang);
@@ -131,8 +131,8 @@ int ToolRunner::RunAsync(const wxString& cmd)
     pid = wxExecute(cmd, wxEXEC_ASYNC, cb_process);
     if ( !pid )
     {
-        Log::Instance()->Add("Execution failed.");
-        Log::Instance()->Add("Command: " + cmd);
+        Log::Instance()->Red("Execution failed.");
+        Log::Instance()->Red("Command: " + cmd);
         delete cb_process;
         cb_process = 0;
         wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_FAILURE);
@@ -147,7 +147,6 @@ int ToolRunner::RunAsync(const wxString& cmd)
 
 void ToolRunner::RunAgain()
 {
-    Log::Instance()->Add("rerunning...");
     if(!lastCommand.IsEmpty())
         RunAsync(lastCommand);
 };
@@ -158,7 +157,12 @@ void ToolRunner::RunQueue()
     {
         wxString runCommand = commandQueue[0];
         commandQueue.Remove((size_t) 0);
+        wxString oldLang;
+        wxGetEnv("LANG", &oldLang);
+        wxSetEnv("LANG", "en");
         RunAsync(runCommand);
+        wxSetEnv("LANG", oldLang);
+        lastCommand = runCommand;
     }
 };
 
@@ -183,14 +187,14 @@ void ToolRunner::OnOutput(CodeBlocksEvent& event)
 {
     wxString msg(event.GetString());
     std_out.Add(msg);
-    Log::Instance()->Add(msg);
+    Log::Instance()->Grey(msg);
 }
 
 void ToolRunner::OnError(CodeBlocksEvent& event)
 {
     wxString msg(event.GetString());
     std_err.Add(msg);
-    Log::Instance()->Add(msg);
+    Log::Instance()->Grey(msg);
 }
 
 void ToolRunner::OnTerminated(CodeBlocksEvent& event)

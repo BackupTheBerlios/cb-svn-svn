@@ -35,7 +35,6 @@ class SVNRunner : public ToolRunner
 {
     wxString username;
     wxString password;
-    wxString surplusTarget;
     bool do_force;
     bool prune_non_interactive;
     bool block;
@@ -146,6 +145,7 @@ public:
     
     void CVSRunner::Checkout(const wxString& proto, const wxString& repo, const wxString& module, const wxString& workingdir, const wxString& user, const wxString& revision)
     {
+        SetTarget(workingdir);
         wxString cmd("-d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ (revision.IsEmpty() ? "" : " -r" + Q(revision)) + module);
         Log::Instance()->Add("cvs " + cmd);
         Run(cmd);
@@ -153,6 +153,7 @@ public:
     
     void CVSRunner::Update(const wxString& target, const wxString& revision, const wxString& date)
     {
+        SetTarget(target);
         wxFileName fn(target);
         wxFileName::SetCwd(fn.GetPath(wxPATH_GET_VOLUME));
         wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());
@@ -162,7 +163,8 @@ public:
     
     void CVSRunner::Commit(const wxString& target, const wxString& message)
     {
-        TempFile msg(message);
+        SetTarget(target);
+		TempFile msg(message);
         wxFileName fn(target);
         wxFileName::SetCwd(fn.GetPath(wxPATH_GET_VOLUME));
         wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());

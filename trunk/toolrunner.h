@@ -113,27 +113,47 @@ public:
 
 class TempFile
 {
-    static wxString oldName;
+    static wxArrayString oldName;
 public:
     wxString name;
     
     TempFile(const wxString& contents)
     {
-        if(!oldName.IsEmpty() && ::wxFileExists(oldName))
-            ::wxRemoveFile(oldName);
-            
         wxFile f;
         name = wxFileName::CreateTempFileName("", &f);
-        TempFile::oldName = name;
+        oldName.Add(name);
         
         if(!f.Write(contents))
             Log::Instance()->Add("Error: unable to open tempfile.");
+		f.Close();
     };
     
     static void Cleanup()
     {
-        if(!oldName.IsEmpty() && ::wxFileExists(oldName))
-            ::wxRemoveFile(oldName);
+        for(int i = 0; i < oldName.Count() ; ++i)
+        {
+            if(::wxFileExists(oldName[i]))
+                ::wxRemoveFile(oldName[i]);
+        }
+    };
+    
+    static void CleanupCheck()
+    {
+		wxArrayString new_oldName;
+        wxFile f;
+        wxString tname = wxFileName::CreateTempFileName("", &f);
+        int cutoff = wxFileModificationTime(tname) - 1200;
+		f.Close();
+		::wxRemoveFile(tname);
+        
+        for(int i = 0; i < oldName.Count() ; ++i)
+        {
+            if(::wxFileExists(oldName[i]) && wxFileModificationTime(oldName[i]) < cutoff )
+                ::wxRemoveFile(oldName[i]);
+			else
+				new_oldName.Add(oldName[i]);
+        }
+        oldName = new_oldName;
     };
 };
 

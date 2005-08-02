@@ -76,7 +76,8 @@ public:
     
     void   OnAttach();
     void   OnRelease(bool appShutDown);
-    
+    void   OnTimer(wxTimerEvent& event);
+        
     void   OnFirstRun();
     void   Preferences(wxCommandEvent& event);
     void   SetUser(wxCommandEvent& event);
@@ -264,7 +265,8 @@ public:
     bool verbose;
     bool chkmod_status;
     wxArrayString repoHistory;
-    
+    bool request_autoopen;
+	wxTimer clearTimer;    
 protected:
 private:
     DECLARE_EVENT_TABLE()

@@ -229,22 +229,6 @@ int SVNRunner::Info(const wxString& selected, bool minusR)
 }
 
 
-wxString SVNRunner::Info(const wxString& selected)
-{
-    SetTarget(selected);
-    Info(selected, false);
-    wxString ret;
-    for(int i = 0; i < std_out.Count(); ++i)
-    {
-        if(std_out[i].Contains("not a working copy"))
-            return std_out[i];
-            
-        if(std_out[i].Contains("UUID") || std_out[i].Contains("Revision") || std_out[i].Contains("Last"))
-            ret << std_out[i] << "\n";
-    }
-    return ret;
-}
-
 
 
 

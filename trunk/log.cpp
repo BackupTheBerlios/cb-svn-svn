@@ -27,6 +27,7 @@
 
 #include "log.h"
 
+int Log::lastLogTime = 0;
 
 Log::Log()
 {
@@ -55,6 +56,7 @@ Log::~Log()
 void Log::Add(wxString str)
 {
     m_log->AddLog(str);
+    lastLogTime = wxGetLocalTime();
 }
 
 void Log::Red(wxString str)
@@ -66,6 +68,12 @@ void Log::Red(wxString str)
 void Log::Blue(wxString str)
 {
 	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLUE, *wxWHITE));
+    Add(str);
+	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+}
+void Log::Grey(wxString str)
+{
+	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxLIGHT_GREY, *wxWHITE));
     Add(str);
 	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
 }

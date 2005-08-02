@@ -107,6 +107,8 @@ EVT_MENU(ID_MENU_KW_CLEARALL,  SubversionPlugin::PropKeywords)
 
 EVT_MENU(ID_MENU_PROP_NEW,   SubversionPlugin::EditProperty)
 
+EVT_TIMER(-1, SubversionPlugin::OnTimer)
+
 SCREW_THIS_MACRO_ABUSE(TRANSACTION_SUCCESS, SubversionPlugin::TransactionSuccess)
 SCREW_THIS_MACRO_ABUSE(TRANSACTION_FAILURE, SubversionPlugin::TransactionFailure)
 SCREW_THIS_MACRO_ABUSE(RUN_AGAIN,   SubversionPlugin::ReRun)
@@ -173,6 +175,9 @@ void SubversionPlugin::OnAttach()
     ReadConfig();
     Log::Instance();   // avoid lazy creation
     
+    clearTimer.SetOwner(this);
+    clearTimer.Start(60000);
+    
     svn = new SVNRunner(svnbinary);
     svn->RunBlind("help"); // get svn into the file cache asynchronously, as we'll need it soon
     
@@ -205,6 +210,17 @@ void SubversionPlugin::OnRelease(bool appShutDown)
     TempFile::Cleanup();
 }
 
+void SubversionPlugin::OnTimer(wxTimerEvent& event)
+{
+	TempFile::CleanupCheck();
+    if (Log::lastLogTime < wxGetLocalTime() - 55)
+    {
+        Log::Instance()->Reduce();
+        clearTimer.Start(120000);
+    }
+    else
+        clearTimer.Start(60000);
+}
 
 void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, const wxString& arg)
 {
@@ -818,16 +834,15 @@ void SubversionPlugin::Checkout(wxCommandEvent& event)
     {
         if(d.use_cvs_instead)
         {
-            // cvs -d :pserver:user:pass@example.org:/usr/local/cvsroot login
-            // cvs -d :pserver:user@example.org:/usr/local/cvsroot checkout something
             if(!d.cvs_pass.IsEmpty())
                 cvs->Login(d.cvs_proto, d.cvs_repo, d.cvs_user, d.cvs_pass);
+                
+            if(d.cvs_workingdir.IsEmpty())
+                d.cvs_workingdir = GetCheckoutDir();
+                
             cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
             
-            //// move this to TransactionSuccess
-            if(d.cvs_auto_open)
-                AutoOpenProjects(d.cvs_workingdir, true, true);
-                
+            request_autoopen = d.cvs_auto_open;
             return;
         }
         
@@ -835,27 +850,14 @@ void SubversionPlugin::Checkout(wxCommandEvent& event)
             svn->SetPassword(d.username, d.password);
             
         if(d.checkoutDir.IsEmpty())
-            d.checkoutDir = GetCheckoutDir();  // poo... hopefully no C++ programmer sees this
+            d.checkoutDir = GetCheckoutDir();
             
-        if(::wxDirExists(d.checkoutDir) || ::wxMkdir(d.checkoutDir))
-            if(!svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision), d.noExternals ))
-            {
-                wxString info = svn->Info(d.checkoutDir);
-                if(info.Contains("not a working copy"))  // as svn returns non-null on error, this should never be the case, but anyway...
-                {
-                    Log::Instance()->Add("Checkout failed, no working copy found at " + d.checkoutDir);
-                    return;
-                }
-                Log::Instance()->Add("Checkout of " + d.repoURL + " finished.\n\n" + info);
-                
-                //// move this to TransactionSuccess
-                if(d.autoOpen)
-                    AutoOpenProjects(d.checkoutDir, true, true);
-                    
-                repoHistory.Insert(d.repoURL, 0);
-            }
-            else
-                Log::Instance()->Add(svn->out);    // display what svn complains about
+        request_autoopen = d.autoOpen;
+        
+        svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision), d.noExternals );
+        svn->Info(d.checkoutDir, false);
+        
+        repoHistory.Insert(d.repoURL, 0);
     }
 }
 
@@ -917,20 +919,19 @@ void SubversionPlugin::Import(wxCommandEvent& event)
             svn->SetPassword(d.username, d.password);
             
         wxString target(defaultCheckoutDir + "/" +DirName(d.importDir));
-        
-        svn->Import(d.repoURL, d.importDir, d.comment);
+
+		request_autoopen = true;
         repoHistory.Insert(d.repoURL, 0);
-        
-        svn->Checkout(d.repoURL, target, "HEAD");
-        
-        AutoOpenProjects(target, false, false);
-        
+
         cbProject *p = GetCBProject();
         if(p)
         {
             ProjectManager *pmgr = Manager::Get()->GetProjectManager();
             pmgr->CloseProject(p);
         }
+                
+        svn->Import(d.repoURL, d.importDir, d.comment);
+        svn->Checkout(d.repoURL, target, "HEAD");
         
         if(!d.keywords.IsEmpty())
             svn->PropSet(target, "svn:keywords", d.keywords, true);
@@ -1530,7 +1531,24 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
         }
     }
     
+    if(lastCommand.Contains(" checkout "))
+    {
+        if(request_autoopen)
+            AutoOpenProjects(svn->GetTarget(), true, true);
+    }
     
+    if(lastCommand.Contains(" info "))
+    {
+        wxString s;
+        int n = svn->std_out.Count();
+        
+        for(int i = 0; i < n; ++i)
+            if(svn->std_out[i].Contains("UUID") || svn->std_out[i].Contains("Revision") || svn->std_out[i].Contains("Last"))
+                s << svn->std_out[i] << "\n";
+        Log::Instance()->Add(s);
+    }
+
+   
     // Know nothing, assume all is fine:)
     if(verbose)
         Log::Instance()->Blue("Transaction was successful.");
@@ -1549,7 +1567,7 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
         // svn:run 'svn cleanup' to remove locks (type 'svn help cleanup' for details)
         if(svn->blob.Contains("svn cleanup"))
         {
-            Log::Instance()->Add("Running svn cleanup to remove stale locks...");
+            Log::Instance()->Blue("Running 'svn cleanup' to remove stale locks...");
             svn->PushBack();
             svn->Run("cleanup" + svn->GetTarget());
             return;
@@ -1641,9 +1659,6 @@ void SubversionPlugin::ReRun(wxCommandEvent& event)
  #ifndef CSIDL_PROGRAM_FILES
   #define CSIDL_PROGRAM_FILES  0x0026
  #endif
- #ifndef CSIDL_MYDOCUMENTS
-  #define CSIDL_MYDOCUMENTS  0x000c
- #endif
 #endif
 
 
@@ -1658,12 +1673,6 @@ void SubversionPlugin::OnFirstRun()
 {
 #ifdef __WIN32__
 
-    if(tortoiseproc.IsEmpty())
-        tortoiseproc  = NastyFind("TortoiseProc.exe");
-        
-    if(tortoiseact.IsEmpty())
-        tortoiseact  = NastyFind("TortoiseAct.exe");
-        
     svnbinary  = NastyFind("svn.exe");
     cvsbinary  = NastyFind("cvs.exe");
     
@@ -1733,8 +1742,12 @@ void SubversionPlugin::TamperWithWindowsRegistry()
     {
         if(!tortoiseproc.IsEmpty())
             Log::Instance()->Add("TortoiseSVN detected.");
+        if(!repoHistory.Count())
+            Log::Instance()->Add("Successfully imported history from TortoiseSVN.");
         if(!tortoiseact.IsEmpty())
             Log::Instance()->Add("TortoiseCVS detected.");
+            
+        clearTimer.Start(58000);
     }
     
 #endif
