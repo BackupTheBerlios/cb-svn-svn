@@ -37,6 +37,20 @@
 WX_DECLARE_HASH_MAP( int, wxString, wxIntegerHash, wxIntegerEqual, IdToStringHash );
 
 
+class MRUList : public wxArrayString
+{
+public:
+    void Add(wxString s)
+    {
+        int idx;
+        while((idx = Index(s, false)) != wxNOT_FOUND)
+            Remove(idx);
+        Insert(s, 0);
+    };
+};
+
+
+
 class SubversionPlugin : public cbPlugin
 {
     IdToStringHash fileProperties;
@@ -77,7 +91,7 @@ public:
     void   OnAttach();
     void   OnRelease(bool appShutDown);
     void   OnTimer(wxTimerEvent& event);
-        
+    
     void   OnFirstRun();
     void   Preferences(wxCommandEvent& event);
     void   SetUser(wxCommandEvent& event);
@@ -101,6 +115,7 @@ public:
     void   Update(wxCommandEvent& event);
     void   Revert(wxCommandEvent& event);
     void   Diff(wxCommandEvent& event);
+    void   Patch(wxCommandEvent& event);
     void   EditConflicts(wxCommandEvent& event);
     
     void   OnFatTortoiseFunctionality(wxCommandEvent& event);
@@ -244,6 +259,7 @@ public:
     wxString cvsbinary;
     wxString tortoiseproc;
     wxString tortoiseact;
+    wxString extdiff;
     
     bool cascade_menu;
     bool auto_add;
@@ -264,9 +280,12 @@ public:
     bool up_after_co;
     bool verbose;
     bool chkmod_status;
-    wxArrayString repoHistory;
+    MRUList repoHistory;
+    MRUList repoHistoryCVS;
     bool request_autoopen;
-	wxTimer clearTimer;    
+    wxTimer clearTimer;
+    wxString patchFileName;
+    wxString meow;
 protected:
 private:
     DECLARE_EVENT_TABLE()

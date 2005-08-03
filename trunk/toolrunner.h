@@ -30,7 +30,6 @@
 #include "log.h"
 
 
-
 enum
 {
     TRANSACTION_SUCCESS,

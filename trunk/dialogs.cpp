@@ -38,12 +38,14 @@ EVT_BUTTON(XRCID("cvs.fileselect"), CheckoutDialog::OnFileSelect)
 END_EVENT_TABLE()
 
 
-CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, const wxString& defaultCheckoutDir)
+CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, const wxArrayString& repoHistCVS, const wxString& defaultCheckoutDir)
 {
 
     wxXmlResource::Get()->LoadDialog(this, parent, "Checkout");
     
-    wxComboBox* c = XRCCTRL(*this, "repository url", wxComboBox);
+    wxComboBox* c;
+    
+    c = XRCCTRL(*this, "repository url", wxComboBox);
     assert(c);
     
     for(int i = 0; i < repoHist.Count(); i++)
@@ -51,6 +53,17 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
         
     if(repoHist.Count())
         c->SetSelection(0);
+
+
+    c = XRCCTRL(*this, "cvs_repo", wxComboBox);
+    assert(c);
+    
+    for(int i = 0; i < repoHistCVS.Count(); i++)
+        c->Append(repoHistCVS[i]);
+        
+    if(repoHistCVS.Count())
+        c->SetSelection(0);
+
         
     XRCCTRL(*this, "working dir", wxTextCtrl)->SetValue(defaultCheckoutDir);
     XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->SetValue(defaultCheckoutDir);
@@ -511,140 +524,6 @@ void RevertDialog::OnCancelClick(wxCommandEvent& event)
 {
     EndModal(wxID_CANCEL);
 }
-
-
-
-
-
-
-
-// --- Diff Dialog ---------------------------------------------------
-
-DiffDialog::DiffDialog(wxWindow *parent, SVNRunner *s)
-        : wxDialog(parent, -1, "Poor Man's 'diff' viewer", wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER, ""), svn(s)
-{
-    wxFlexGridSizer *flex = new wxFlexGridSizer( 1, 0, 0 );
-    flex->AddGrowableCol( 0 );
-    flex->AddGrowableCol( 1 );
-    flex->AddGrowableRow( 1 );
-    
-    wxBoxSizer *box = new wxBoxSizer( wxHORIZONTAL );
-    
-    wxStaticText *txt = new wxStaticText( this, -1, "Compare", wxDefaultPosition, wxDefaultSize, 0 );
-    box->Add( txt, 0, wxALIGN_CENTER|wxALL, 5 );
-    
-    wxString strs[] =
-        {
-            "Local Version",
-            "Editor Contents",
-            "HEAD Revision"
-        };
-    wxComboBox *src = new wxComboBox( this, ID_COMBO_SRC, "", wxDefaultPosition, wxSize(100,-1), 3, strs, wxCB_DROPDOWN );
-    src->Enable(false);
-    box->Add( src, 0, wxALIGN_CENTER|wxALL, 5 );
-    
-    txt = new wxStaticText( this, -1, "against", wxDefaultPosition, wxDefaultSize, 0 );
-    box->Add( txt, 0, wxALIGN_CENTER|wxALL, 5 );
-    
-    wxComboBox *dest = new wxComboBox( this, ID_COMBO_DEST, "", wxDefaultPosition, wxSize(100,-1), 0, NULL, wxCB_DROPDOWN );
-    box->Add( dest, 0, wxALIGN_CENTER|wxALL, 5 );
-    dest->Enable(false);
-    
-    flex->Add( box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5 );
-    
-    diff = new wxTextCtrl(this, -1, "", wxDefaultPosition, wxDefaultSize,
-                          wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH | wxHSCROLL);
-                          
-    flex->Add( diff, 0, wxGROW|wxALL, 5 );
-    
-    SetSizer( flex );
-    flex->SetSizeHints( this );
-    
-}
-
-
-void   DiffDialog::LoadDiff(const wxString& selected, const wxString& revision)
-{
-    wxArrayString text;
-    
-    wxTextAttr black(*wxBLACK);
-    wxTextAttr red(*wxRED);
-    wxTextAttr blue(*wxBLUE);
-    
-    diff->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, wxFont(8, wxMODERN, wxNORMAL, wxNORMAL, false)));
-    
-    if(revision.Contains(":"))
-        svn->Cat(selected, revision.Mid(0, revision.Index(':')));
-    else
-        svn->Cat(selected, "");
-        
-    if(svn->lastExitCode)
-    {
-        diff->SetDefaultStyle(red);
-        for(int i = 0; i < svn->std_err.Count(); ++i)
-            diff->AppendText(svn->std_err[i] + "\n");
-        return;
-    }
-    text = svn->std_out;
-    
-    svn->Diff(selected, revision);
-    
-    if(!svn->blob.Contains("@@"))
-    {
-        diff->AppendText("No changes.\n");
-        return;
-    }
-    
-    if(svn->lastExitCode)
-    {
-        diff->SetDefaultStyle(red);
-        for(int i = 0; i < svn->std_err.Count(); ++i)
-            diff->AppendText(svn->std_err[i] + "\n");
-        return;
-    }
-    
-    wxRegEx reg("@@.*\\+([0-9]+),.*@@");
-    
-    int textPos = 0;
-    
-    int count = svn->std_out.Count();
-    for(int i = 0; i < count; ++i)
-    {
-        if(svn->std_out[i].IsEmpty())
-            break;
-        if(svn->std_out[i].Contains("@@"))
-            if(reg.Matches(svn->std_out[i]))
-            {
-                unsigned long pos = 0;
-                reg.GetMatch(svn->std_out[i], 1).ToULong(&pos);
-                
-                while(textPos < pos && textPos < text.Count())
-                    diff->AppendText(text[textPos++] + "\n");
-                    
-                ++i;
-                while(svn->std_out[i][(size_t)0] == ' '
-                        || svn->std_out[i][(size_t)0] == '+'
-                        || svn->std_out[i][(size_t)0] == '-')
-                {
-                    if(svn->std_out[i][(size_t)0] == ' ')
-                        diff->SetDefaultStyle(black);
-                    else if(svn->std_out[i][(size_t)0] == '+')
-                        diff->SetDefaultStyle(red);
-                    else
-                        diff->SetDefaultStyle(blue);
-                        
-                    diff->AppendText(svn->std_out[i].Mid(1) + "\n");
-                    
-                    ++i;
-                    ++textPos;
-                }
-            }
-    }
-    while(textPos < text.Count())
-        diff->AppendText(text[textPos++] + "\n");
-        
-}
-
 
 
 

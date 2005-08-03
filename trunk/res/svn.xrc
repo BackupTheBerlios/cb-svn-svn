@@ -615,6 +615,13 @@
 </object>
 </object>
 </object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="verbose">
+<label>Log everything ("verbose mode")</label>
+</object>
+</object>
 </object>
 </object>
 <object class="spacer">
@@ -1454,6 +1461,5 @@ Please select the ones you wish to add:</label>
 </object>
 </object>
 </object>
-
 
 </resource>

@@ -44,14 +44,15 @@ public:
     void Reduce()
     {
         wxTextCtrl *t = m_log->GetTextControl();
-        if(t->GetNumberOfLines() > 25)
-        {
-            int pos = t->XYToPosition(0, t->GetNumberOfLines() - 25);
-            t->Remove(0, pos);
-            lastLogTime = wxGetLocalTime();
-        }
-        else
-        t->Clear();
+        int pos;
+        
+        if(t->GetNumberOfLines() > 100)
+            pos = t->XYToPosition(0, 50);
+		else
+            pos = t->XYToPosition(0, 10);
+		
+        t->Remove(0, pos);
+        lastLogTime = wxGetLocalTime();
     };
     static int lastLogTime;
 };

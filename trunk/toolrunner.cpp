@@ -29,7 +29,7 @@ wxArrayString TempFile::oldName;
 wxString ToolRunner::lastCommand  = wxEmptyString;
 PipedProcess* ToolRunner::cb_process = 0;
 Process* ToolRunner::process   = 0;
-    
+
 BEGIN_EVENT_TABLE(ToolRunner, wxEvtHandler)
 EVT_TIMER(-1, ToolRunner::OnTimer)
 EVT_PIPEDPROCESS_STDOUT(ID_PROCESS,  ToolRunner::OnOutput)
@@ -49,8 +49,6 @@ int ToolRunner::RunBlocking(const wxString& cmd)
     process = new Process(); // make Running() return true
     
     wxString runCommand(exec + " " + cmd);
-    
-    Log::Instance()->Add(runCommand);
     
     wxString oldLang;
     wxGetEnv("LANG", &oldLang);
@@ -187,7 +185,8 @@ void ToolRunner::OnOutput(CodeBlocksEvent& event)
 {
     wxString msg(event.GetString());
     std_out.Add(msg);
-    Log::Instance()->Grey(msg);
+    if(((SubversionPlugin*)plugin)->verbose)
+        Log::Instance()->Grey(msg);
 }
 
 void ToolRunner::OnError(CodeBlocksEvent& event)

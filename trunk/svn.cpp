@@ -66,6 +66,7 @@ EVT_MENU(ID_MENU_D_P,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_D_C,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_D_B,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_D_REV,    SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_PATCH,    SubversionPlugin::Patch)
 
 EVT_MENU(ID_MENU_RESTORE,   SubversionPlugin::Update)
 
@@ -212,7 +213,7 @@ void SubversionPlugin::OnRelease(bool appShutDown)
 
 void SubversionPlugin::OnTimer(wxTimerEvent& event)
 {
-	TempFile::CleanupCheck();
+    TempFile::CleanupCheck();
     if (Log::lastLogTime < wxGetLocalTime() - 55)
     {
         Log::Instance()->Reduce();
@@ -582,9 +583,10 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
     sub->Append( ID_MENU_D_B, "BASE" );
     sub->Append( ID_MENU_D_REV, "Revision..." );
     menu->Append( ID_MENU, "DIFF against...", sub );
+    
+    menu->AppendSeparator();
+    menu->Append( ID_MENU_PATCH, "Create Patch" );
 }
-
-
 
 
 
@@ -717,16 +719,27 @@ void SubversionPlugin::Diff(wxCommandEvent& event)
         }
         break;
     }
-    DiffDialog d(Manager::Get()->GetAppWindow(), svn);
-    wxSetCursor(wxCURSOR_WAIT);
-    d.LoadDiff(selected, revision);
-    wxSetCursor(wxCURSOR_ARROW);
-    d.SetSize(800,600);
-    d.CentreOnParent();
-    d.ShowModal();
+    //    DiffDialog d(Manager::Get()->GetAppWindow(), svn);
+    //    wxSetCursor(wxCURSOR_WAIT);
+    //    d.LoadDiff(selected, revision);
+    //    wxSetCursor(wxCURSOR_ARROW);
+    //    d.SetSize(800,600);
+    //    d.CentreOnParent();
+    //    d.ShowModal();
 }
 
-
+void SubversionPlugin::Patch(wxCommandEvent& event)
+{
+    wxString selected(GetSelection());
+    
+    wxString fn((selected.IsEmpty() ? "patchfile" : selected) + ".patch");
+    
+    patchFileName = wxFileSelector("Save patch file as...", "", fn,
+                                   "patch files (*.patch)|*.patch|text files (*.txt)|*.txt|all files (*.*)|*.*", "*.patch", wxSAVE);
+                                   
+    if(!patchFileName.IsEmpty())
+        svn->Diff(selected, "HEAD");
+}
 
 
 void SubversionPlugin::Commit(wxCommandEvent& event)
@@ -828,7 +841,7 @@ void SubversionPlugin::Commit(wxCommandEvent& event)
 void SubversionPlugin::Checkout(wxCommandEvent& event)
 {
     ProjectManager *pmgr = Manager::Get()->GetProjectManager();
-    CheckoutDialog d(Manager::Get()->GetAppWindow(), repoHistory, defaultCheckoutDir);
+    CheckoutDialog d(Manager::Get()->GetAppWindow(), repoHistory, repoHistoryCVS, defaultCheckoutDir);
     d.Centre();
     if(d.ShowModal() == wxID_OK)
     {
@@ -840,6 +853,7 @@ void SubversionPlugin::Checkout(wxCommandEvent& event)
             if(d.cvs_workingdir.IsEmpty())
                 d.cvs_workingdir = GetCheckoutDir();
                 
+            repoHistoryCVS.Add(d.cvs_repo);
             cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
             
             request_autoopen = d.cvs_auto_open;
@@ -857,7 +871,7 @@ void SubversionPlugin::Checkout(wxCommandEvent& event)
         svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision), d.noExternals );
         svn->Info(d.checkoutDir, false);
         
-        repoHistory.Insert(d.repoURL, 0);
+        repoHistory.Add(d.repoURL);
     }
 }
 
@@ -919,17 +933,17 @@ void SubversionPlugin::Import(wxCommandEvent& event)
             svn->SetPassword(d.username, d.password);
             
         wxString target(defaultCheckoutDir + "/" +DirName(d.importDir));
-
-		request_autoopen = true;
-        repoHistory.Insert(d.repoURL, 0);
-
+        
+        request_autoopen = true;
+        repoHistory.Add(d.repoURL);
+        
         cbProject *p = GetCBProject();
         if(p)
         {
             ProjectManager *pmgr = Manager::Get()->GetProjectManager();
             pmgr->CloseProject(p);
         }
-                
+        
         svn->Import(d.repoURL, d.importDir, d.comment);
         svn->Checkout(d.repoURL, target, "HEAD");
         
@@ -1109,6 +1123,7 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
     XRCCTRL(d, "cascade", wxCheckBox)->SetValue(cascade_menu);
     XRCCTRL(d, "prompt reload", wxCheckBox)->SetValue(prompt_reload);
     XRCCTRL(d, "up after co", wxCheckBox)->SetValue(up_after_co);
+    XRCCTRL(d, "verbose", wxCheckBox)->SetValue(verbose);
     
     d.RadioToggle(event);
     
@@ -1145,6 +1160,7 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
         cascade_menu    = XRCCTRL(d, "cascade", wxCheckBox)->GetValue();
         prompt_reload    = XRCCTRL(d, "prompt reload", wxCheckBox)->GetValue();
         up_after_co    = XRCCTRL(d, "up after co", wxCheckBox)->GetValue();
+        verbose    = XRCCTRL(d, "verbose", wxCheckBox)->GetValue();
         
         WriteConfig();
     }
@@ -1175,22 +1191,35 @@ void SubversionPlugin::ReadConfig()
     c->Read("/svn/cascade_menu", &cascade_menu);
     c->Read("/svn/prompt_reload", &prompt_reload);
     c->Read("/svn/up_after_co", &up_after_co);
+    c->Read("/svn/verbose", &verbose);
     
     TamperWithWindowsRegistry();
     
     if(svnbinary == "unset")
         OnFirstRun();
         
-    wxString ht("/svn/repoHist");
-    wxString val;
-    for(unsigned int i = 0; i < 16; ++i)
     {
-        wxString h = ht;
-        val = c->Read(h<<i);
-        if(!val.IsEmpty())
-            repoHistory.Add(val);
+        wxString ht("/svn/repoHist");
+        wxString val;
+        for(unsigned int i = 0; i < 16; ++i)
+        {
+            wxString h = ht;
+            val = c->Read(h<<i);
+            if(!val.IsEmpty())
+                repoHistory.Add(val);
+        }
     }
-    
+    {
+        wxString ht("/svn/repoHistCVS");
+        wxString val;
+        for(unsigned int i = 0; i < 16; ++i)
+        {
+            wxString h = ht;
+            val = c->Read(h<<i);
+            if(!val.IsEmpty())
+                repoHistoryCVS.Add(val);
+        }
+    }
 }
 
 void SubversionPlugin::WriteConfig()
@@ -1217,13 +1246,25 @@ void SubversionPlugin::WriteConfig()
     c->Write("/svn/cascade_menu", cascade_menu);
     c->Write("/svn/prompt_reload", prompt_reload);
     c->Write("/svn/up_after_co", up_after_co);
+    c->Write("/svn/verbose", verbose);
     
-    unsigned int count = repoHistory.Count() < 16 ? repoHistory.Count() : 16;
-    wxString ht("/svn/repoHist");
-    for(unsigned int i = 0; i < count; ++i)
     {
-        wxString h = ht;
-        c->Write(h<<i, repoHistory[i]);
+        unsigned int count = repoHistory.Count() < 16 ? repoHistory.Count() : 16;
+        wxString ht("/svn/repoHist");
+        for(unsigned int i = 0; i < count; ++i)
+        {
+            wxString h = ht;
+            c->Write(h<<i, repoHistory[i]);
+        }
+    }
+    {
+        unsigned int count = repoHistoryCVS.Count() < 16 ? repoHistoryCVS.Count() : 16;
+        wxString ht("/svn/repoHistCVS");
+        for(unsigned int i = 0; i < count; ++i)
+        {
+            wxString h = ht;
+            c->Write(h<<i, repoHistoryCVS[i]);
+        }
     }
 }
 
@@ -1547,8 +1588,26 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
                 s << svn->std_out[i] << "\n";
         Log::Instance()->Add(s);
     }
-
-   
+    
+    if(lastCommand.Contains(" cat "))
+    {
+        meow = svn->out;
+    }
+    
+    if(lastCommand.Contains(" diff "))
+    {
+        if(!patchFileName.IsEmpty())
+        {
+            wxFile f(patchFileName, wxFile::write);
+            f.Write(svn->out);
+            patchFileName.Empty();
+        }
+        else
+        {
+            // diff viewer
+        }
+    }
+    
     // Know nothing, assume all is fine:)
     if(verbose)
         Log::Instance()->Blue("Transaction was successful.");
@@ -1680,6 +1739,9 @@ void SubversionPlugin::OnFirstRun()
     
     svnbinary  = NastyFind("svn");
     cvsbinary  = NastyFind("cvs");
+    extdiff  = NastyFind("kdiff3");
+    if(extdiff.IsEmpty())
+        extdiff = NastyFind("tkdiff.tcl");
     
 #endif
     
@@ -1696,17 +1758,15 @@ void SubversionPlugin::TamperWithWindowsRegistry()
 {
 #ifdef __WIN32__
     wxRegKey* rKey;
-    wxString tort_bin;
-    wxString tmerg_bin;
-    wxString svn_bin;
+    wxString bin;
     
     rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\TortoiseSVN");
     if( rKey->Exists() )
     {
-        rKey->QueryValue("ProcPath", tort_bin);
+        rKey->QueryValue("ProcPath", bin);
         
-        if(wxFile::Exists(tort_bin))
-            tortoiseproc = tort_bin;
+        if(wxFile::Exists(bin))
+            tortoiseproc = bin;
     }
     delete rKey;
     
@@ -1727,14 +1787,51 @@ void SubversionPlugin::TamperWithWindowsRegistry()
     }
     delete rKey;
     
+    if(tortoiseproc.IsEmpty())
+    {
+        if(verbose)
+            Log::Instance()->Add("No working installation of TortoiseSVN was found. Although TortoiseSVN is not strictly necessary to use this plugin,\n"
+                                 "it offers valuable additional functionality and is highly recommended.\n"
+                                 "TortoiseSVN is available under http://tortoisesvn.tigris.org\n");
+                                 
+        rKey = new wxRegKey("HKEY_CURRENT_USER\\Software\\KDiff3");
+        if( rKey->Exists() )
+        {
+            rKey->QueryValue("", bin);
+            bin << "\\kdiff3.exe";
+            if(wxFile::Exists(bin))
+            {
+                extdiff = bin;
+                if(verbose)
+                    Log::Instance()->Add("KDiff3 detected.");
+            }
+        }
+        delete rKey;
+        if(extdiff.IsEmpty())
+        {
+            rKey = new wxRegKey("HKEY_CURRENT_USER\\Software\\Thingamahoochie\\WinMerge");
+            if( rKey->Exists() )
+            {
+                rKey->QueryValue("Executable", bin);
+                if(wxFile::Exists(bin))
+                {
+                    extdiff = bin;
+                    if(verbose)
+                        Log::Instance()->Add("WinMerge detected.");
+                }
+            }
+            delete rKey;
+        }
+    }
+    
     rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\TortoiseCVS");
     if( rKey->Exists() )
     {
-        rKey->QueryValue("RootDir", tort_bin);
-        tort_bin << "TortoiseAct.exe";
+        rKey->QueryValue("RootDir", bin);
+        bin << "TortoiseAct.exe";
         
-        if(wxFile::Exists(tort_bin))
-            tortoiseact = tort_bin;
+        if(wxFile::Exists(bin))
+            tortoiseact = bin;
     }
     delete rKey;
     
@@ -1742,8 +1839,8 @@ void SubversionPlugin::TamperWithWindowsRegistry()
     {
         if(!tortoiseproc.IsEmpty())
             Log::Instance()->Add("TortoiseSVN detected.");
-        if(!repoHistory.Count())
-            Log::Instance()->Add("Successfully imported history from TortoiseSVN.");
+        if(repoHistory.Count())
+            Log::Instance()->Add("Successfully imported TortoiseSVN history from registry.");
         if(!tortoiseact.IsEmpty())
             Log::Instance()->Add("TortoiseCVS detected.");
             
@@ -1805,11 +1902,17 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     // Tortoise, if not found, is assumed "missing".
     // Hopefully anyone installing a plugin to run svn has enough sense to install svn as well.
     if(name.CompareTo("svn.exe"))
+    {
+        Log::Instance()->Add("The svn executable could not be found in any of the 'usual' locations.\n"
+                             "Please do note that svn is essential for the operation of this plugin.\n"
+                             "As this is the only thing that makes sense, I will assume that svn is accessible via the %PATH% environment variable.\n"
+                             "You can set the path to the svn executable in the preferences dialog.");
         return(name);
+    }
 #endif
-        
+    
 #ifdef __linux__
-        
+    
     wxArrayString location;
     location.Add("/usr/bin");   // this is probably it, anyway
     location.Add("/usr/local/bin");
@@ -1827,8 +1930,14 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     
     // similar to above - if we can't find svn, we will assume (hope) it is in $PATH and just call "svn"
     // - if the user actually works with svn at all, this should be the case
-    return(name);
-    
+    if(name.CompareTo("svn"))
+    {
+        Log::Instance()->Add("The svn executable could not be found in any of the 'usual' locations.\n"
+                             "Please do note that svn is essential for the operation of this plugin.\n"
+                             "As this is the only thing that makes sense, I will assume that svn is accessible via the $PATH environment variable.\n"
+                             "You can set the path to the svn executable in the preferences dialog.");
+        return(name);
+    }
 #endif
     
     return wxEmptyString;

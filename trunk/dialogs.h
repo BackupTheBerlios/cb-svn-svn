@@ -68,6 +68,7 @@ enum {  ID_MENU_USER = 32000,
         ID_MENU_RESOLVEPROP,
         ID_MENU_KW_SETALL,
         ID_MENU_KW_CLEARALL,
+		ID_MENU_PATCH,
         
         ID_MENU_CVS_BRANCH,
         ID_MENU_CVS_TAG,
@@ -91,7 +92,7 @@ class CheckoutDialog : public wxDialog
 {
     SVNRunner *svn;
 public:
-    CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, const wxString & );
+    CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, const wxArrayString& repoHistCVS, const wxString & );
     ~CheckoutDialog()
     {}
     ;
@@ -272,26 +273,6 @@ private:
     void Selected(wxCommandEvent& event);
     DECLARE_EVENT_TABLE()
 };
-
-
-
-
-class DiffDialog : public wxDialog
-{
-    SVNRunner *svn;
-public:
-    DiffDialog(wxWindow *parent, SVNRunner *s);
-    ~DiffDialog()
-    {}
-    ;
-    void LoadDiff(const wxString& selected, const wxString& revision);
-    
-    
-private:
-    wxTextCtrl *diff;
-};
-
-
 
 
 
