@@ -131,7 +131,8 @@ public:
     char   ParseStatusOutputForFile(const wxString& what);
     void      AutoOpenProjects(const wxString& rootdir, bool recursive, bool others);
     
-    void  ReloadEditors(wxArrayString filenames);
+    void  ReloadEditors(const wxArrayString& filenames);
+    void  ReOpenEditor(const wxString& filenames);
     void  TamperWithWindowsRegistry();
     wxString NastyFind(const wxString& name);
     

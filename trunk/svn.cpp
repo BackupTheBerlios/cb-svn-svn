@@ -691,7 +691,7 @@ void SubversionPlugin::CVSUpdate(wxCommandEvent& event)
 }
 
 
-void SubversionPlugin::ReloadEditors(wxArrayString filenames)
+void SubversionPlugin::ReloadEditors(const wxArrayString& filenames)
 {
     if(prompt_reload && wxMessageDialog(Manager::Get()->GetAppWindow(),
                                         "Do you want to replace the editor's out-of-date versions with their respective updated versions?",
@@ -711,7 +711,14 @@ void SubversionPlugin::ReloadEditors(wxArrayString filenames)
         }
 }
 
-
+void SubversionPlugin::ReOpenEditor(const wxString& filename)
+{
+    EditorManager *em = Manager::Get()->GetEditorManager();
+    assert(em);
+    if(cbEditor *e = em->GetBuiltinEditor(filename))
+        e->Close();
+    em->Open(filename);
+}
 
 void SubversionPlugin::Diff(wxCommandEvent& event)
 {
@@ -1619,6 +1626,11 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
                     
             ReloadEditors(changed);
         }
+    }
+    
+    if(lastCommand.Contains(" lock ") || lastCommand.Contains(" unlock "))
+    {
+        ReOpenEditor(svn->GetTarget());
     }
     
     if(lastCommand.Contains(" checkout "))
