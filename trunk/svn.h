@@ -98,6 +98,7 @@ public:
     
     void   Add(wxCommandEvent& event);
     void   Delete(wxCommandEvent& event);
+    void   Lock(wxCommandEvent& event);
     
     void   PropIgnore(wxCommandEvent& event);
     void   PropMime(wxCommandEvent& event);

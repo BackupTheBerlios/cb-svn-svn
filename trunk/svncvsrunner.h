@@ -77,6 +77,9 @@ public:
     int    SVNRunner::Move(const wxString& selected, const wxString& to);
     int    SVNRunner::Add(const wxString& selected);
     int    SVNRunner::Delete(const wxString& selected);
+
+    int    SVNRunner::Lock(const wxString& selected, bool force = false);
+    int    SVNRunner::UnLock(const wxString& selected, bool force = false);
     
     wxString  SVNRunner::Cat(const wxString& selected, const wxString& rev);
     wxString  SVNRunner::Diff(const wxString& selected, const wxString& rev);

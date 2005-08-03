@@ -46,7 +46,7 @@ int SVNRunner::Run(wxString cmd)
     wxString runCmd(cmd);
     if(username > "" && password > "")
     {
-        runCmd << " --username " << username << " --password \"" << password << "\"" << ia << force;
+        runCmd << " --username " << Q(username) << " --password \"" << password << "\"" << ia << force;
         username = password = "";
     }
     else
@@ -74,8 +74,20 @@ void SVNRunner::OutputHandler()
         Fail();
         return;
     }
+
+		// Transmitting file data .svn: Commit failed (details follow):
+		// svn: Cannot verify lock on path '/base.cpp'; no matching lock-token available
+        if(blob.Contains("no matching lock-token available"))
+        {
+            Log::Instance()->Red("Someone else is holding a lock which prevents you from committing your changes.");
+
+            EmptyQueue();
+			Info(GetTarget(), false);
+            Send(RUN_NEXT_IN_QUEUE);
+        }
+
     
-    wxRegEx reg("authenti|pass|user", wxRE_ICASE);
+    wxRegEx reg("authenti|password", wxRE_ICASE);
     if(reg.Matches(blob))
     {
         PasswordDialog p(Manager::Get()->GetAppWindow());
@@ -164,6 +176,20 @@ int  SVNRunner::Commit(const wxString& selected, const wxString& message)
     SetTarget(selected);
     TempFile c(message);
     return Run("commit" + Q(selected) + "-F" + Q(c.name));
+}
+
+int  SVNRunner::Lock(const wxString& selected, bool force)
+{
+    SetTarget(selected);
+	NoInteractive();
+    return Run("lock" + Q(selected));
+}
+
+int  SVNRunner::UnLock(const wxString& selected, bool force)
+{
+    SetTarget(selected);
+    NoInteractive();
+    return Run("unlock" + Q(selected));
 }
 
 wxArrayString  SVNRunner::GetPropertyList(const wxString& selected)

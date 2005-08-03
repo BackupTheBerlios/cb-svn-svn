@@ -99,6 +99,9 @@ EVT_MENU(ID_MENU_PROP_EXECUTABLE, SubversionPlugin::PropExec)
 EVT_MENU(ID_MENU_PROP_NEEDSLOCK, SubversionPlugin::PropNeedsLock)
 EVT_MENU(ID_MENU_PROP_EXTERNALS, SubversionPlugin::PropExt)
 
+EVT_MENU(ID_MENU_LOCK, SubversionPlugin::Lock)
+EVT_MENU(ID_MENU_UNLOCK, SubversionPlugin::Lock)
+
 EVT_MENU(ID_MENU_KW_DATE,   SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_REVISION,  SubversionPlugin::PropKeywords)
 EVT_MENU(ID_MENU_KW_AUTHOR,   SubversionPlugin::PropKeywords)
@@ -593,13 +596,11 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
     if(isLocked)
     {
         menu->Append(ID_MENU_UNLOCK, "Release Lock");
-        menu->Enable(ID_MENU_UNLOCK, 0);
         menu->AppendSeparator();
     }
     else if(has_needslock)
     {
         menu->Append(ID_MENU_LOCK, "Acquire Lock");
-        menu->Enable(ID_MENU_LOCK, 0);
         menu->AppendSeparator();
     }
     
@@ -766,6 +767,19 @@ void SubversionPlugin::Patch(wxCommandEvent& event)
                                    
     if(!patchFileName.IsEmpty())
         svn->Diff(selected, "HEAD");
+}
+
+void SubversionPlugin::Lock(wxCommandEvent& event)
+{
+    wxString selected(GetSelection());
+    
+    if(wxFileName::DirExists(selected))
+        return; // no locking of directories
+        
+    if(event.GetId() == ID_MENU_LOCK)
+        svn->Lock(selected);
+    else
+        svn->UnLock(selected);
 }
 
 
@@ -1678,7 +1692,7 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
         
         // svn: Server doesn't support the lock command
         // svn: Unknown command 'lock'
-        if(update_on_conflict && svn->blob.Contains("Unknown command 'lock'"))
+        if(svn->blob.Contains("Unknown command 'lock'"))
         {
             Log::Instance()->Red("Locking is a feature only available in newer versions of subversion.\n"
                                  "You need at least version 1.2.0 both on the server and on the client side.");
