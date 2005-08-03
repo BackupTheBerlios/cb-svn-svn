@@ -86,7 +86,7 @@ public:
     void   BuildProjectMenu(wxMenu* menu, wxString name, wxString target);
     void   BuildFileMenu(wxMenu* menu, wxString name, wxString target);
     void   BuildMgrMenu(wxMenu* menu);
-    void   AppendCommonMenus(wxMenu *menu, wxString target, bool isProject);
+    void   AppendCommonMenus(wxMenu *menu, wxString target, bool isProject, bool isLocked);
     
     void   OnAttach();
     void   OnRelease(bool appShutDown);
@@ -102,6 +102,7 @@ public:
     void   PropIgnore(wxCommandEvent& event);
     void   PropMime(wxCommandEvent& event);
     void   PropExec(wxCommandEvent& event);
+    void   PropNeedsLock(wxCommandEvent& event);
     void   PropExt(wxCommandEvent& event);
     void   PropKeywords(wxCommandEvent& event);
     

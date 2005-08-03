@@ -96,6 +96,7 @@ EVT_MENU(ID_MENU_PROP_IGNORE,  SubversionPlugin::PropIgnore)
 EVT_MENU(ID_MENU_PROP_MIME,   SubversionPlugin::PropMime)
 
 EVT_MENU(ID_MENU_PROP_EXECUTABLE, SubversionPlugin::PropExec)
+EVT_MENU(ID_MENU_PROP_NEEDSLOCK, SubversionPlugin::PropNeedsLock)
 EVT_MENU(ID_MENU_PROP_EXTERNALS, SubversionPlugin::PropExt)
 
 EVT_MENU(ID_MENU_KW_DATE,   SubversionPlugin::PropKeywords)
@@ -325,6 +326,7 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
 {
     char status = 0;
     char pstatus = 0;
+    bool locked = false;
     int n = svn->std_out.GetCount();
     for(int i = 0; i < n; ++i)
     {
@@ -332,10 +334,10 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
         {
             status = (svn->std_out[i])[(size_t)0];
             pstatus = (svn->std_out[i])[(size_t)1];
+            locked =  ((svn->std_out[i])[(size_t)5] == 'K');
             break;
         }
     }
-    
     
     if(status == '?')
     {
@@ -368,7 +370,8 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
         menu->AppendSeparator();
     }
     
-    AppendCommonMenus(menu, target, false);
+    
+    AppendCommonMenus(menu, target, false, locked);
     
     if(status == 'M' || status == 'A' || status == 'D' || pstatus == 'M')
     {
@@ -388,6 +391,7 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
     int pm = 0;
     int cf = 0;
     int ms = 0;
+    int lk = 0;
     int n = svn->std_out.GetCount();
     
     for(int i = 0; i < n; ++i)
@@ -404,6 +408,8 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
             ++cf;
         if((svn->std_out[i])[(size_t)0] == '!')
             ++ms;
+        if((svn->std_out[i])[(size_t)5] == 'K')
+            ++lk;
     }
     
     if(cf)
@@ -433,6 +439,8 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
             comstr << ((fm || pm || fa) ? ", " : "") << fd << " file" << (fd == 1 ? "" : "s") << " deleted";
         if(ms)
             comstr << ((fm || pm || fa || fd || cf) ? ", " : "") << ms << " file" << (ms == 1 ? "" : "s") << " missing";
+        if(lk)
+            comstr << ((fm || pm || fa || fd || cf || ms) ? ", " : "") << lk << " lock" << (lk == 1 ? "" : "s") << " held";
             
         comstr << ")";
         
@@ -442,7 +450,7 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
         menu->AppendSeparator();
     }
     
-    AppendCommonMenus(menu, target, true);
+    AppendCommonMenus(menu, target, true, false);
     
     if(! tortoiseproc.IsEmpty())
     {
@@ -457,7 +465,7 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
 }
 
 
-void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isProject)
+void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isProject, bool isLocked)
 {
     menu->Append( ID_MENU_UPDATE, "Update (HEAD)", "Update (overwrite) your local copy with a file from the repository" );
     wxMenu *sub = new wxMenu;
@@ -486,6 +494,7 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
     bool has_exec = false;
     bool has_mime = false;
     bool has_externals = false;
+    bool has_needslock = false;
     
     int n = props.GetCount();
     for(int i = 0; i < n; ++i)
@@ -495,6 +504,7 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
         has_exec  |= (props[i] == "svn:executable");
         has_mime  |= (props[i] == "svn:mime-type");
         has_externals |= (props[i] == "svn:externals");
+        has_needslock |= (props[i] == "svn:needs-lock");
     }
     
     menu->AppendSeparator();
@@ -514,7 +524,7 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
         keywords->Append( ID_MENU_KW_AUTHOR, "Author", "", wxITEM_CHECK );
         keywords->Append( ID_MENU_KW_HEAD, "HeadURL", "", wxITEM_CHECK );
         keywords->Append( ID_MENU_KW_ID, "Id", "", wxITEM_CHECK );
-        svnprops->Append( ID_MENU, "svn:keywords", keywords );
+        svnprops->Append( ID_MENU, "keywords", keywords );
     }
     
     
@@ -529,13 +539,17 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
         fn.MakeRelativeTo(GetSelectionsProject());
         wxString f = fn.GetPath().IsEmpty() ? "Global->" : fn.GetPath()+"->";
         
+        svnprops->Append( ID_MENU_PROP_EXECUTABLE, "executable", "", wxITEM_CHECK );
+        svnprops->Append( ID_MENU_PROP_NEEDSLOCK, "needs lock", "", wxITEM_CHECK );
+        svnprops->Append( ID_MENU_PROP_MIME, has_mime ? "mime-type" : "mime-type [default]" );
+        
+        svnprops->Check(ID_MENU_PROP_EXECUTABLE, has_exec);
+        svnprops->Check(ID_MENU_PROP_NEEDSLOCK, has_needslock);
+        svnprops->AppendSeparator();
+        
         svnprops->Append( ID_MENU_PROP_IGNORE, has_ignore ? f+"svn:ignore" : f+"svn:ignore  [none]" );
         svnprops->Append( ID_MENU_PROP_EXTERNALS, has_externals ? f+"svn:externals" : f+"svn:externals  [none]" );
         
-        
-        svnprops->Append( ID_MENU_PROP_EXECUTABLE, "svn:executable", "", wxITEM_CHECK );
-        svnprops->Append( ID_MENU_PROP_MIME, has_mime ? "svn:mime-type" : "svn:mime-type [default]" );
-        svnprops->Check(ID_MENU_PROP_EXECUTABLE, has_exec);
     }
     
     if(has_keywords)
@@ -574,8 +588,21 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
     
     
     menu->Append( ID_MENU, "Properties...", propsub );
-    
     menu->AppendSeparator();
+    
+    if(isLocked)
+    {
+        menu->Append(ID_MENU_UNLOCK, "Release Lock");
+        menu->Enable(ID_MENU_UNLOCK, 0);
+        menu->AppendSeparator();
+    }
+    else if(has_needslock)
+    {
+        menu->Append(ID_MENU_LOCK, "Acquire Lock");
+        menu->Enable(ID_MENU_LOCK, 0);
+        menu->AppendSeparator();
+    }
+    
     sub = new wxMenu;
     sub->Append( ID_MENU_D_H, "HEAD" );
     sub->Append( ID_MENU_D_P, "PREV" );
@@ -1352,6 +1379,14 @@ void SubversionPlugin::PropExec(wxCommandEvent& event)
         svn->PropSet(GetSelection(), "svn:executable", "", false);
 }
 
+void SubversionPlugin::PropNeedsLock(wxCommandEvent& event)
+{
+    if(event.IsChecked())
+        svn->PropDel(GetSelection(), "svn:needs-lock");
+    else
+        svn->PropSet(GetSelection(), "svn:needs-lock", "", false);
+}
+
 void SubversionPlugin::PropExt(wxCommandEvent& event)
 {
     //FIXME: svn:externals deserves its own dialog
@@ -1639,6 +1674,14 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
             svn->PushBack();
             svn->Update(svn->GetTarget(), "HEAD");
             return;
+        }
+        
+        // svn: Server doesn't support the lock command
+        // svn: Unknown command 'lock'
+        if(update_on_conflict && svn->blob.Contains("Unknown command 'lock'"))
+        {
+            Log::Instance()->Red("Locking is a feature only available in newer versions of subversion.\n"
+                                 "You need at least version 1.2.0 both on the server and on the client side.");
         }
     }
     
