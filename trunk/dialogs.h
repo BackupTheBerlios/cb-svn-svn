@@ -17,10 +17,6 @@
 #include <wx/wx.h>
 
 
-#include "svn.h"
-
-
-#include <wx/html/htmlwin.h>
 
 enum {  ID_MENU_USER = 32000,
         ID_MENU_CHECKOUT,
@@ -93,7 +89,6 @@ enum {  ID_MENU_USER = 32000,
      
 class CheckoutDialog : public wxDialog
 {
-    SVNRunner *svn;
 public:
     CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, const wxArrayString& repoHistCVS, const wxString & );
     ~CheckoutDialog()
@@ -183,10 +178,8 @@ private:
 
 class PreferencesDialog : public wxDialog
 {
-    SubversionPlugin* plugin;
-    
 public:
-    PreferencesDialog(wxWindow* parent, SubversionPlugin* plugin);
+    PreferencesDialog(wxWindow* parent);
     ~PreferencesDialog()
     {}
     ;

@@ -16,12 +16,9 @@
 
 
 #include <wx.h>
-
-#include <wx/process.h>
-#include <pipedprocess.h>
 #include <wx/file.h>
-#include <wx/filename.h>
 
+#include "pipedprocess.h"
 #include "sdk_events.h"
 #include "manager.h"
 #include "pluginmanager.h"

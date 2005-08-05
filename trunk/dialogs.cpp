@@ -11,21 +11,17 @@
 */
 
 
-#include <wx/wxprec.h>
-#ifndef WX_PRECOMP
- #include <wx/wx.h>
-#endif
+#include <wx/wx.h>
+
 #include <wx/checklst.h>
 #include <wx/textctrl.h>
 #include <wx/regex.h>
 #include <wx/notebook.h>
 
 #include "dialogs.h"
-#include "svn.h"
 
 #include <wx/xrc/xmlres.h>
 #include <manager.h>
-#include <messagemanager.h>
 
 
 // --- Checkout Dialog ---------------------------------------------------
@@ -311,9 +307,8 @@ EVT_CHECKBOX(-1,  PreferencesDialog::RadioToggle)
 END_EVENT_TABLE()
 
 
-PreferencesDialog::PreferencesDialog(wxWindow* parent, SubversionPlugin* plugin)
+PreferencesDialog::PreferencesDialog(wxWindow* parent)
 {
-    PreferencesDialog::plugin = plugin;
     wxXmlResource::Get()->LoadDialog(this, parent, "Preferences");
 }
 

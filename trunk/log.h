@@ -15,8 +15,6 @@
 
 #include "singleton.h"
 
-#include <wx/wx.h>
-
 #include <manager.h>
 #include <messagemanager.h>
 #include <simpletextlog.h>

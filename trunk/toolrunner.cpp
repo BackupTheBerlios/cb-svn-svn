@@ -12,15 +12,11 @@
 
 
 #include "toolrunner.h"
+
 #include "svn.h"
-#include "log.h"
 #include "dialogs.h"
 
-#include <wx/regex.h>
 #include <wx/event.h>
-#include <stdio.h>
-
-
 
 
 const wxEventType EVT_WX_SUCKS = wxNewEventType();

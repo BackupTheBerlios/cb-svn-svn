@@ -13,25 +13,17 @@
 
 #include <wx/wx.h>
 
-#include <wx/regex.h>
-
 #include <wx/xrc/xmlres.h>
 #include <wx/fs_zip.h>
-#include <wx/image.h>
 
 #include "svn.h"
 
-#include "codeblocks/sdk_events.h"
-
 #include <manager.h>
 #include <sdk_events.h>
-#include <messagemanager.h>
-#include <projectmanager.h>
 #include <editormanager.h>
 
 #include <cbproject.h>
 #include <pipedprocess.h>
-#include <wx/fileconf.h>
 
 #include "dialogs.h"
 #include "toolrunner.h"
@@ -1153,7 +1145,7 @@ wxArrayString SubversionPlugin::ExtractFilesWithStatus(const char what, unsigned
 
 void SubversionPlugin::Preferences(wxCommandEvent& event)
 {
-    PreferencesDialog d(Manager::Get()->GetAppWindow(), this);
+    PreferencesDialog d(Manager::Get()->GetAppWindow());
     d.Centre();
     
     XRCCTRL(d, "svn binary path", wxTextCtrl)->SetValue(wxFileName(svnbinary).GetFullPath());

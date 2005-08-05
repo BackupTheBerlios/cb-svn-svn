@@ -17,17 +17,11 @@
 
 #include <wx/wx.h>
 
-#include <cbplugin.h>
-#include <settings.h>
-#include <messagemanager.h>
-#include <wx/dir.h>
-
 #include <manager.h>
 #include <configmanager.h>
 #include <sdk_events.h>
 #include <projectmanager.h>
 #include <projectbuildtarget.h>
-#include <simpletextlog.h>
 
 #include "toolrunner.h"
 #include "svncvsrunner.h"

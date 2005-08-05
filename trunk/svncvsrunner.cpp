@@ -18,7 +18,7 @@
 #include "dialogs.h"
 
 #include <wx/regex.h>
-#include <stdio.h>
+
 
 extern const wxEventType EVT_WX_SUCKS;
 
