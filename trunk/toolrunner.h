@@ -124,7 +124,7 @@ public:
         
         if(!f.Write(contents))
             Log::Instance()->Add("Error: unable to open tempfile.");
-		f.Close();
+        f.Close();
     };
     
     static void Cleanup()
@@ -138,19 +138,19 @@ public:
     
     static void CleanupCheck()
     {
-		wxArrayString new_oldName;
+        wxArrayString new_oldName;
         wxFile f;
         wxString tname = wxFileName::CreateTempFileName("", &f);
         int cutoff = wxFileModificationTime(tname) - 1200;
-		f.Close();
-		::wxRemoveFile(tname);
+        f.Close();
+        ::wxRemoveFile(tname);
         
         for(int i = 0; i < oldName.Count() ; ++i)
         {
             if(::wxFileExists(oldName[i]) && wxFileModificationTime(oldName[i]) < cutoff )
                 ::wxRemoveFile(oldName[i]);
-			else
-				new_oldName.Add(oldName[i]);
+            else
+                new_oldName.Add(oldName[i]);
         }
         oldName = new_oldName;
     };
@@ -178,7 +178,7 @@ public:
     wxString   out;   // "out" likewise, but preserving linebreaks
     int     lastExitCode;
     
-    ToolRunner() :  lastExitCode(0), runnerType(ToolRunner::UNDEFINED)
+    ToolRunner() :  lastExitCode(0), runnerType(ToolRunner::UNDEFINED), insert_first(0)
     {
         timer.SetOwner(this);
         plugin = Manager::Get()->GetPluginManager()->FindPluginByName("svn");
@@ -204,7 +204,17 @@ public:
         commandQueue.Empty();
     };
     
-    void PushBack()
+    void InsertFirst()
+    {
+        insert_first = true;
+    };
+    
+    void Implicit()
+    {
+        implicit_run  = true;
+    };
+    
+    void QueueAgain()
     {
         commandQueue.Insert(lastCommand, 0);
     };
@@ -218,6 +228,11 @@ public:
     wxString LastCommand()
     {
         return lastCommand;
+    };
+    
+    void AddToLastCommand(const wxString& s)
+    {
+        lastCommand << s;
     };
     
     void SetTarget(const wxString& t)
@@ -251,7 +266,6 @@ public:
     int ToolRunner::Run(const wxString& cmd);
     void ToolRunner::RunBlind(const wxString& cmd);
     
-    int ToolRunner::RunAsync(const wxString& cmd);
     void ToolRunner::RunAgain();
     void ToolRunner::RunQueue();
     
@@ -287,20 +301,33 @@ public:
         }
     };
     
+    bool IsIdle()
+    {
+        return !Running() && commandQueue.IsEmpty();
+    };
+    
+    bool SetCommand(const wxString& c)
+    {
+        subcommand = c;
+    };
+    
 protected:
+    int ToolRunner::RunAsync(const wxString& cmd);
     cbPlugin *plugin;
     wxArrayString commandQueue;
     static wxString lastCommand;
     wxString target;
     type runnerType;
+    wxString  exec;
+    wxString  subcommand;
+    bool implicit_run;
     
 private:
-    wxString  exec;
     wxTimer   timer;
     static PipedProcess *cb_process;
     static Process   *process;
     int    pid;
-    
+    bool insert_first;
     DECLARE_EVENT_TABLE()
 };
 

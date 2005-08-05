@@ -24,16 +24,13 @@ extern const wxEventType EVT_WX_SUCKS;
 
 int SVNRunner::Run(wxString cmd)
 {
-    wxString ia(" --non-interactive");
+    wxString ia;
     wxString force;
     
-    
-    if(prune_non_interactive) // a few commands will refuse to run "non-interactively", although they are not interactive :S
-    {
-        ia.Empty();
-        prune_non_interactive = false;
-    }
-    
+    if(cmd.Contains(" update ") || cmd.Contains(" commit ") || cmd.Contains(" delete ")
+            || cmd.Contains(" status ") || cmd.Contains(" lock ") || cmd.Contains(" unlock "))
+        ia = " --non-interactive";
+        
     if(do_force)
     {
         do_force = false;
@@ -74,18 +71,18 @@ void SVNRunner::OutputHandler()
         Fail();
         return;
     }
-
-		// Transmitting file data .svn: Commit failed (details follow):
-		// svn: Cannot verify lock on path '/base.cpp'; no matching lock-token available
-        if(blob.Contains("no matching lock-token available"))
-        {
-            Log::Instance()->Red("Someone else is holding a lock which prevents you from committing your changes.");
-
-            EmptyQueue();
-			Info(GetTarget(), false);
-            Send(RUN_NEXT_IN_QUEUE);
-        }
-
+    
+    // Transmitting file data .svn: Commit failed (details follow):
+    // svn: Cannot verify lock on path '/base.cpp'; no matching lock-token available
+    if(blob.Contains("no matching lock-token available"))
+    {
+        Log::Instance()->Red("Someone else is holding a lock which prevents you from committing your changes.");
+        
+        EmptyQueue();
+        Info(GetTarget(), false);
+        Send(RUN_NEXT_IN_QUEUE);
+    }
+    
     
     wxRegEx reg("authenti|password", wxRE_ICASE);
     if(reg.Matches(blob))
@@ -111,20 +108,88 @@ void SVNRunner::OutputHandler()
         return;
     }
     
+    if(remoteStatusHandler)
+    {
+        remoteStatusHandler = false;
+        RemoteStatusHandler();
+    }
+    
     ToolRunner::OutputHandler();
+}
+
+void SVNRunner::RemoteStatusHandler()
+{
+    //  L     some_dir            # svn left a lock in the .svn area of some_dir
+    //M       bar.c               # the content in bar.c has local modifications
+    //M      *bar.c               # the content in bar.c has local and remote modifications
+    // M      baz.c               # baz.c has property but no content modifications
+    //X       3rd_party           # dir is part of an externals definition
+    //?       foo.o               # svn doesn't manage foo.o
+    //!       some_dir            # svn manages this, but it's missing or incomplete
+    //~       qux                 # versioned as file/dir/link, but type has changed
+    //I       .screenrc           # svn doesn't manage this, and is set to ignore it
+    //A  +    moved_dir           # added with history of where it came from
+    //M  +    moved_dir/README    # added with history and has local modifications
+    //D       stuff/fish.c        # file is scheduled for deletion
+    //A       stuff/loot/bloo.h   # file is scheduled for addition
+    //C       stuff/loot/lump.c   # file has textual conflicts from an update
+    // C      stuff/loot/glub.c   # file has property conflicts from an update
+    //R       xyz.c               # file is scheduled for replacement
+    //    S   stuff/squawk        # file or dir has been switched to a branch
+    //     K  dog.jpg             # file is locked locally; lock-token present
+    //     O  cat.jpg             # file is locked in the repository by other user
+    //     B  bird.jpg            # file is locked locally, but lock has been broken
+    //     T  fish.jpg            # file is locked locally, but lock has been stolen
+    
+    bool need_update = 0;
+    
+    int conflict = 0;
+    int broken = 0;
+    int stolen = 0;
+    int locked = 0;
+    
+    for(int i = 0; i < std_out.Count(); ++i)
+    {
+        if(std_out[i][(size_t)7] == '*')
+            need_update = true;
+        if(std_out[i][(size_t)5] == 'C')
+            ++conflict;
+        if(std_out[i][(size_t)5] == 'B')
+            ++broken;
+        if(std_out[i][(size_t)5] == 'T')
+            ++stolen;
+        if(std_out[i][(size_t)5] == 'O' && ( std_out[i][(size_t)0] == 'M' || std_out[i][(size_t)0] == 'D'))
+            ++locked;
+            
+    }
+    
+    if(need_update)
+    {
+        wxBell();
+        InsertFirst();
+        Implicit();
+        Update(GetTarget());
+        return;
+    }
 }
 
 int SVNRunner::Status(const wxString& selected, bool minusU)
 {
     SetTarget(selected);
-    return RunBlocking("status" + Q(selected) + (minusU ? " -u" : ""));
+    if(minusU)
+    {
+        SetCommand("status");
+        Run("status" + Q(selected) + " -u");
+        return 0;
+    }
+    return RunBlocking("status" + Q(selected));
 }
 
 
 int  SVNRunner::Revert(const wxString& selected)
 {
     SetTarget(selected);
-    NoInteractive();
+    SetCommand("revert");
     return Run("revert" + Q(selected));
 }
 
@@ -138,14 +203,12 @@ int  SVNRunner::Move(const wxString& selected, const wxString& to)
 int  SVNRunner::Add(const wxString& selected)
 {
     SetTarget(selected);
-    NoInteractive();
     return RunBlocking("add" + Q(selected));
 }
 
 int  SVNRunner::Delete(const wxString& selected)
 {
     SetTarget(selected);
-    NoInteractive();
     return RunBlocking("delete" + Q(selected));
 }
 
@@ -153,12 +216,14 @@ int  SVNRunner::Delete(const wxString& selected)
 int  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals)
 {
     SetTarget(dir);
+    SetCommand("checkout");
     return Run("checkout" + Q(repo) + Q(dir) + "-r " + revision + (noExternals ? " --ignore-externals" : ""));
 }
 
 int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message)
 {
     SetTarget(dir);
+    SetCommand("import");
     TempFile c(message);
     return Run("import" + Q(dir) + Q(repo) + "-F" + Q(c.name));
 }
@@ -167,29 +232,37 @@ int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString
 int  SVNRunner::Update(const wxString& selected, const wxString& revision)
 {
     SetTarget(selected);
+    SetCommand("update");
     return Run("update" + Q(selected) + "-r " + revision);
 }
 
 
-int  SVNRunner::Commit(const wxString& selected, const wxString& message)
+int  SVNRunner::Commit(const wxString& selected, const wxString& message, bool safeCast)
 {
     SetTarget(selected);
+    SetCommand("commit");
     TempFile c(message);
+    
+    if(safeCast)
+    {
+        EnableRemoteStatusHandler();
+        Status(selected,  true);
+    }
     return Run("commit" + Q(selected) + "-F" + Q(c.name));
 }
 
 int  SVNRunner::Lock(const wxString& selected, bool force)
 {
     SetTarget(selected);
-	NoInteractive();
-    return Run("lock" + Q(selected));
+    SetCommand("lock");
+    return Run("lock" + Q(selected) + (force ? " --force" : ""));
 }
 
 int  SVNRunner::UnLock(const wxString& selected, bool force)
 {
     SetTarget(selected);
-    NoInteractive();
-    return Run("unlock" + Q(selected));
+    SetCommand("unlock");
+    return Run("unlock" + Q(selected) + (force ? " --force" : ""));
 }
 
 wxArrayString  SVNRunner::GetPropertyList(const wxString& selected)
@@ -216,6 +289,7 @@ wxString  SVNRunner::PropGet(const wxString& selected, const wxString& prop)
 int  SVNRunner::PropSet(const wxString& selected, const wxString& prop, const wxString& value, bool recursive)
 {
     SetTarget(selected);
+    SetCommand("propset");
     TempFile t(value);
     return  Run("propset" + Q(prop) + "-F" + Q(t.name) + Q(selected) + (recursive ? "-R" : ""));
     
@@ -224,12 +298,14 @@ int  SVNRunner::PropSet(const wxString& selected, const wxString& prop, const wx
 int SVNRunner::PropDel(const wxString& selected, const wxString& prop)
 {
     SetTarget(selected);
+    SetCommand("propdel");
     return  Run("propdel" + Q(prop) + Q(selected));
 }
 
 wxString SVNRunner::Cat(const wxString& selected, const wxString& rev)
 {
     SetTarget(selected);
+    SetCommand("cat");
     if(rev.IsEmpty())
         Run("cat" + Q(selected));
     else
@@ -240,6 +316,7 @@ wxString SVNRunner::Cat(const wxString& selected, const wxString& rev)
 wxString SVNRunner::Diff(const wxString& selected, const wxString& rev)
 {
     SetTarget(selected);
+    SetCommand("diff");
     if(rev.IsEmpty())
         Run("diff" + Q(selected));
     else
@@ -251,6 +328,7 @@ wxString SVNRunner::Diff(const wxString& selected, const wxString& rev)
 int SVNRunner::Info(const wxString& selected, bool minusR)
 {
     SetTarget(selected);
+    SetCommand("info");
     return  Run("info" + Q(selected) + (minusR ? "-R" : ""));
 }
 

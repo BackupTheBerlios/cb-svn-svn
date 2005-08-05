@@ -129,7 +129,7 @@ cbPlugin* GetPlugin()
 }
 
 SubversionPlugin::SubversionPlugin() :     cascade_menu(true), auto_add(true), auto_add_only_project(true),
-        auto_delete(false), force_clean(false), require_comments(true), prefill_comments(true), update_on_conflict(true),
+        auto_delete(false), force_clean(false), require_comments(true), prefill_comments(true), avoid_out_of_date(true),
         no_ask_revertable(true), never_ask(false), warn_revert(true), full_status_on_startup(false), no_props(false),
         show_resolved(false), prompt_reload(false), up_after_co(true), verbose(true)
 {
@@ -177,14 +177,14 @@ SubversionPlugin::SubversionPlugin() :     cascade_menu(true), auto_add(true), a
 
 void SubversionPlugin::OnAttach()
 {
-    ReadConfig();
     Log::Instance();   // avoid lazy creation
     
     clearTimer.SetOwner(this);
-    clearTimer.Start(60000);
+    
+    ReadConfig();
     
     svn = new SVNRunner(svnbinary);
-    svn->RunBlind("help"); // get svn into the file cache asynchronously, as we'll need it soon
+    svn->RunBlind(""); // get svn into the file cache asynchronously, as we'll need it soon
     
     /* For some reason, if you do not start Tortoise from cmd, then it won't work. I have no idea why, and neither
     *  have the guys developing Tortoise. There is no good reason why it should not work, really.
@@ -218,13 +218,13 @@ void SubversionPlugin::OnRelease(bool appShutDown)
 void SubversionPlugin::OnTimer(wxTimerEvent& event)
 {
     TempFile::CleanupCheck();
-    if (Log::lastLogTime < wxGetLocalTime() - 55)
+    if (Log::lastLogTime < wxGetLocalTime() - 180)
     {
         Log::Instance()->Reduce();
-        clearTimer.Start(120000);
+        clearTimer.Start(360000);
     }
     else
-        clearTimer.Start(60000);
+        clearTimer.Start(120000);
 }
 
 void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, const wxString& arg)
@@ -716,8 +716,10 @@ void SubversionPlugin::ReOpenEditor(const wxString& filename)
     EditorManager *em = Manager::Get()->GetEditorManager();
     assert(em);
     if(cbEditor *e = em->GetBuiltinEditor(filename))
+    {
         e->Close();
-    em->Open(filename);
+        em->Open(filename);
+    }
 }
 
 void SubversionPlugin::Diff(wxCommandEvent& event)
@@ -882,7 +884,7 @@ void SubversionPlugin::Commit(wxCommandEvent& event)
             
         DisableCheckExternals();
         
-        svn->Commit(selected, d.comment);
+        svn->Commit(selected, d.comment, avoid_out_of_date);
     }
 }
 
@@ -944,7 +946,8 @@ void SubversionPlugin::AutoOpenProjects(const wxString& rootdir, bool recursive,
         f = wxFindFirstFile(dirs[i] + "/*.cbp");
         while ( !f.IsEmpty() )
         {
-            Log::Instance()->Add("opening " + f);
+            if(verbose)
+                Log::Instance()->Add("opening " + f);
             pmgr->LoadProject(f);
             f = wxFindNextFile();
         }
@@ -953,14 +956,16 @@ void SubversionPlugin::AutoOpenProjects(const wxString& rootdir, bool recursive,
             f = wxFindFirstFile(dirs[i] + "/*.dev");
             while ( !f.IsEmpty() )
             {
-                Log::Instance()->Add("importing " + f);
+                if(verbose)
+                    Log::Instance()->Add("importing " + f);
                 pmgr->LoadProject(f);
                 f = wxFindNextFile();
             }
             f = wxFindFirstFile(dirs[i] + "/*.dsp");
             while ( !f.IsEmpty() )
             {
-                Log::Instance()->Add("importing " + f);
+                if(verbose)
+                    Log::Instance()->Add("importing " + f);
                 pmgr->LoadProject(f);
                 f = wxFindNextFile();
             }
@@ -1158,7 +1163,7 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
     XRCCTRL(d, "auto add", wxCheckBox)->SetValue(auto_add);
     XRCCTRL(d, "autoadd only project", wxCheckBox)->SetValue(auto_add_only_project);
     XRCCTRL(d, "auto remove missing", wxCheckBox)->SetValue(auto_delete);
-    XRCCTRL(d, "auto merge", wxCheckBox)->SetValue(update_on_conflict);
+    XRCCTRL(d, "auto merge", wxCheckBox)->SetValue(avoid_out_of_date);
     XRCCTRL(d, "no emtpy comments", wxCheckBox)->SetValue(require_comments);
     XRCCTRL(d, "prefill comments", wxCheckBox)->SetValue(prefill_comments);
     XRCCTRL(d, "forceclean", wxCheckBox)->SetValue(force_clean);
@@ -1195,7 +1200,7 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
         auto_add     = XRCCTRL(d, "auto add", wxCheckBox)->GetValue();
         auto_add_only_project  = XRCCTRL(d, "autoadd only project", wxCheckBox)->GetValue();
         auto_delete    = XRCCTRL(d, "auto remove missing", wxCheckBox)->GetValue();
-        update_on_conflict  = XRCCTRL(d, "auto merge", wxCheckBox)->GetValue();
+        avoid_out_of_date  = XRCCTRL(d, "auto merge", wxCheckBox)->GetValue();
         require_comments   = XRCCTRL(d, "no emtpy comments", wxCheckBox)->GetValue();
         prefill_comments   = XRCCTRL(d, "prefill comments", wxCheckBox)->GetValue();
         force_clean    = XRCCTRL(d, "forceclean", wxCheckBox)->GetValue();
@@ -1226,7 +1231,7 @@ void SubversionPlugin::ReadConfig()
     c->Read("/svn/auto_add", &auto_add);
     c->Read("/svn/auto_add_only_project", &auto_add_only_project);
     c->Read("/svn/auto_delete", &auto_delete);
-    c->Read("/svn/update_on_conflict", &update_on_conflict);
+    c->Read("/svn/avoid_out_of_date", &avoid_out_of_date);
     c->Read("/svn/require_comments", &require_comments);
     c->Read("/svn/prefill_comments", &prefill_comments);
     c->Read("/svn/force_clean", &force_clean);
@@ -1281,7 +1286,7 @@ void SubversionPlugin::WriteConfig()
     c->Write("/svn/auto_add", auto_add);
     c->Write("/svn/auto_add_only_project", auto_add_only_project);
     c->Write("/svn/auto_delete", auto_delete);
-    c->Write("/svn/update_on_conflict", update_on_conflict);
+    c->Write("/svn/avoid_out_of_date", avoid_out_of_date);
     c->Write("/svn/require_comments", require_comments);
     c->Write("/svn/prefill_comments", prefill_comments);
     c->Write("/svn/force_clean", force_clean);
@@ -1593,6 +1598,7 @@ void SubversionPlugin::EditProperty(wxCommandEvent& event)
 
 void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
 {
+    wxString cmd(event.GetString());
     if(event.GetExtraLong() == ToolRunner::SVN)
     {
         wxArrayString conflicting;
@@ -1615,7 +1621,7 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     
     wxString lastCommand(svn->LastCommand());
     
-    if(lastCommand.Contains(" commit "))
+    if(cmd.IsSameAs("commit"))
     {
         if(up_after_co)
         {
@@ -1628,18 +1634,38 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
         }
     }
     
-    if(lastCommand.Contains(" lock ") || lastCommand.Contains(" unlock "))
+    if(cmd.Contains("lock"))
     {
         ReOpenEditor(svn->GetTarget());
+        
+        // this may be a bug in svn? IMO, the transaction should fail on an existing lock
+        if(svn->blob.Contains("is already locked by"))
+            if(wxMessageDialog(Manager::Get()->GetAppWindow(),
+                               "The resource is alredy locked by another user.\n\n"
+                               "You can 'break' the existing lock and acquire your own lock on the resource if you wish to do so.\n\n"
+                               "However, locking is a mechanism that should not be handled carelessly.\n"
+                               "Before you think about breaking a lock, it is STRONGLY recommended that you communicate with the user currently holding that lock.\n\n"
+                               "Do you want to break the lock at the risk of possibly breaking more than just a lock?",
+                               "Resource locked", wxYES_NO | wxNO_DEFAULT |wxICON_EXCLAMATION).ShowModal() == wxID_YES)
+            {
+                svn->AddToLastCommand(" --force");
+                svn->RunAgain();
+                return;
+            }
+            else
+            {
+                Log::Instance()->Blue("Aborted.");
+                return;
+            }
     }
     
-    if(lastCommand.Contains(" checkout "))
+    if(cmd.IsSameAs("checkout"))
     {
         if(request_autoopen)
             AutoOpenProjects(svn->GetTarget(), true, true);
     }
     
-    if(lastCommand.Contains(" info "))
+    if(cmd.IsSameAs("info"))
     {
         wxString s;
         int n = svn->std_out.Count();
@@ -1650,12 +1676,12 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
         Log::Instance()->Add(s);
     }
     
-    if(lastCommand.Contains(" cat "))
+    if(cmd.IsSameAs("cat"))
     {
         meow = svn->out;
     }
     
-    if(lastCommand.Contains(" diff "))
+    if(cmd.IsSameAs("diff"))
     {
         if(!patchFileName.IsEmpty())
         {
@@ -1670,10 +1696,10 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     }
     
     // Know nothing, assume all is fine:)
-    if(verbose)
-        Log::Instance()->Blue("Transaction was successful.");
+    if(verbose && svn->IsIdle())
+        Log::Instance()->Blue("All transactions finished.");
         
-    if(lastCommand.Contains(" checkout ") || lastCommand.Contains(" update ") || lastCommand.Contains(" revert "))
+    if(cmd.IsSameAs("checkout") || cmd.IsSameAs("update") || cmd.IsSameAs("revert"))
         ResetCheckExternals();
         
     svn->RunQueue();
@@ -1682,23 +1708,25 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
 
 void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
 {
+    wxString cmd(event.GetString());
     if(event.GetExtraLong() == ToolRunner::SVN)
     {
         // svn:run 'svn cleanup' to remove locks (type 'svn help cleanup' for details)
         if(svn->blob.Contains("svn cleanup"))
         {
-            Log::Instance()->Blue("Running 'svn cleanup' to remove stale locks...");
-            svn->PushBack();
-            svn->Run("cleanup" + svn->GetTarget());
+            svn->QueueAgain();
+            svn->InsertFirst();
+            svn->Run("cleanup" + svn->Q(svn->GetTarget()));
             return;
         }
         
         
         // svn: Out of date: 'main.cpp' in transaction '43-1'
-        if(update_on_conflict && svn->blob.Contains("Out of date"))
+        if(avoid_out_of_date && svn->blob.Contains("Out of date"))
         {
-            svn->PushBack();
-            svn->Update(svn->GetTarget(), "HEAD");
+            svn->QueueAgain();
+            svn->InsertFirst();
+            svn->Update(svn->GetTarget());
             return;
         }
         
@@ -1913,7 +1941,8 @@ void SubversionPlugin::TamperWithWindowsRegistry()
         if(!tortoiseact.IsEmpty())
             Log::Instance()->Add("TortoiseCVS detected.");
             
-        clearTimer.Start(58000);
+        clearTimer.Start(12000);
+        Log::lastLogTime = 0;
     }
     
 #endif

@@ -154,6 +154,7 @@ ImportDialog::ImportDialog(wxWindow* parent, const wxArrayString& repoHist, cons
         c->Append(repoHist[i]);
         
     XRCCTRL(*this, "source dir", wxTextCtrl)->SetValue(imp);
+    XRCCTRL(*this, "ignore", wxTextCtrl)->SetValue("*.layout\n*.cbCache\n*.depend");
 }
 
 void ImportDialog::OnOKClick(wxCommandEvent& event)

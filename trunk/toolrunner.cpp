@@ -99,19 +99,17 @@ int ToolRunner::Run(const wxString& cmd)
 {
     wxString runCommand(exec + " " + cmd);
     
-    if(Running())
-    {
+    if(insert_first)
+        commandQueue.Insert(runCommand, 0);
+    else
         commandQueue.Add(runCommand);
-        return 0;
-    }
-    
-    wxString oldLang;
-    wxGetEnv("LANG", &oldLang);
-    wxSetEnv("LANG", "en");
-    RunAsync(runCommand);
-    wxSetEnv("LANG", oldLang);
-    Log::Instance()->fg();
-    lastCommand = runCommand;
+        
+    Finish();
+    if(!implicit_run)
+        RunQueue();
+        
+    insert_first = false;
+    implicit_run = false;
     return 0;
 };
 
@@ -145,8 +143,9 @@ int ToolRunner::RunAsync(const wxString& cmd)
 
 void ToolRunner::RunAgain()
 {
-    if(!lastCommand.IsEmpty())
-        RunAsync(lastCommand);
+    QueueAgain();
+    Finish();
+    RunQueue();
 };
 
 void ToolRunner::RunQueue()
@@ -169,7 +168,11 @@ void ToolRunner::RunBlind(const wxString& cmd)
 {
     BogusProcess *proc = new BogusProcess();
     wxString runCommand(exec + " " + cmd);
+    wxString oldLang;
+    wxGetEnv("LANG", &oldLang);
+    wxSetEnv("LANG", "en");
     wxExecute(runCommand, wxEXEC_ASYNC, proc);
+    wxSetEnv("LANG", oldLang);
 };
 
 void ToolRunner::OnTimer(wxTimerEvent& event)
@@ -220,14 +223,18 @@ void ToolRunner::Fail()
 {
     wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_FAILURE);
     e.SetExtraLong(runnerType);
+    e.SetString(subcommand);
     plugin->AddPendingEvent(e);
+    subcommand.Empty();
 };
 
 void ToolRunner::Succeed()
 {
     wxCommandEvent e(EVT_WX_SUCKS, TRANSACTION_SUCCESS);
     e.SetExtraLong(runnerType);
+    e.SetString(subcommand);
     plugin->AddPendingEvent(e);
+    subcommand.Empty();
 };
 
 void ToolRunner::Send(int cmd)

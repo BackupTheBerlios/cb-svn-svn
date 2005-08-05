@@ -36,11 +36,10 @@ class SVNRunner : public ToolRunner
     wxString username;
     wxString password;
     bool do_force;
-    bool prune_non_interactive;
-    bool block;
+    bool remoteStatusHandler;
     
 public:
-    SVNRunner(const wxString& executable) : block(false), do_force(false)
+    SVNRunner(const wxString& executable) : do_force(false), remoteStatusHandler(false)
     {
         ToolRunner::runnerType = ToolRunner::SVN;
         SetExecutable(executable);
@@ -51,15 +50,10 @@ public:
     {}
     ;
     
-    void SVNRunner::SetPassword(const wxString& user, const wxString& pass)
+    void SetPassword(const wxString& user, const wxString& pass)
     {
         username = user;
         password = pass;
-    };
-    
-    void NoInteractive() // work around "subcommand does not support --non-interactive" error
-    {
-        prune_non_interactive = true;
     };
     
     void Force() // work around "file has local modifications, use --force switch" error
@@ -67,42 +61,47 @@ public:
         do_force = true;
     };
     
-    int    SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals = false);
-    int    SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
+    int    Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals = false);
+    int    Import(const wxString& repo, const wxString& dir, const wxString &message);
     
-    int    SVNRunner::Status(const wxString& file, bool minusU = false);
-    int    SVNRunner::Update(const wxString& file, const wxString& revision = wxString("HEAD"));
-    int    SVNRunner::Commit(const wxString& selected, const wxString& message);
+    int    Status(const wxString& file, bool minusU = false);
+    int    Update(const wxString& file, const wxString& revision = wxString("HEAD"));
+    int    Commit(const wxString& selected, const wxString& message, bool safeCast = false);
     
-    int    SVNRunner::Move(const wxString& selected, const wxString& to);
-    int    SVNRunner::Add(const wxString& selected);
-    int    SVNRunner::Delete(const wxString& selected);
-
-    int    SVNRunner::Lock(const wxString& selected, bool force = false);
-    int    SVNRunner::UnLock(const wxString& selected, bool force = false);
+    int    Move(const wxString& selected, const wxString& to);
+    int    Add(const wxString& selected);
+    int    Delete(const wxString& selected);
     
-    wxString  SVNRunner::Cat(const wxString& selected, const wxString& rev);
-    wxString  SVNRunner::Diff(const wxString& selected, const wxString& rev);
+    int    Lock(const wxString& selected, bool force = false);
+    int    UnLock(const wxString& selected, bool force = false);
     
-    int     SVNRunner::Revert(const wxString& file);
+    wxString  Cat(const wxString& selected, const wxString& rev);
+    wxString  Diff(const wxString& selected, const wxString& rev);
     
-    wxString  SVNRunner::PropGet(const wxString& file, const wxString& prop);
-    int     SVNRunner::PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive);
-    int    SVNRunner::PropDel(const wxString& file, const wxString& prop);
-    int    SVNRunner::Info(const wxString& file, bool minusR);
-    wxString  SVNRunner::Info(const wxString& file);
+    int     Revert(const wxString& file);
     
-    wxArrayString SVNRunner::GetPropertyList(const wxString& file);
+    wxString  PropGet(const wxString& file, const wxString& prop);
+    int     PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive);
+    int    PropDel(const wxString& file, const wxString& prop);
+    int    Info(const wxString& file, bool minusR);
+    wxString  Info(const wxString& file);
     
-    virtual int  SVNRunner::Run(wxString cmd);
+    wxArrayString GetPropertyList(const wxString& file);
+    
+    virtual int  Run(wxString cmd);
     virtual void OutputHandler();
+    void RemoteStatusHandler();
     
-    void   SVNRunner::DumpErrors()
+    void DumpErrors()
     {
         for(unsigned int i = 0; i < std_err.Count(); ++i)
             Log::Instance()->Add(std_err[i]);
     };
     
+    void EnableRemoteStatusHandler()
+    {
+        remoteStatusHandler = true;
+    };
     
 private:
 
@@ -167,7 +166,7 @@ public:
     void CVSRunner::Commit(const wxString& target, const wxString& message)
     {
         SetTarget(target);
-		TempFile msg(message);
+        TempFile msg(message);
         wxFileName fn(target);
         wxFileName::SetCwd(fn.GetPath(wxPATH_GET_VOLUME));
         wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());

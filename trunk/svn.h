@@ -271,7 +271,7 @@ public:
     bool force_clean;
     bool require_comments;
     bool prefill_comments;
-    bool update_on_conflict;
+    bool avoid_out_of_date;
     
     bool no_ask_revertable;
     bool never_ask;
