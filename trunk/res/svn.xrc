@@ -583,8 +583,7 @@
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
 <object class="wxCheckBox" name="show resolved">
-<enabled>0</enabled>
-<label>Do show "resolved" command (know what you do!)</label>
+<label>Warn me before issuing a "resolved" command</label>
 </object>
 </object>
 <object class="sizeritem">

@@ -37,6 +37,11 @@ public:
         SetExecutable(executable);
     }
     ;
+
+	wxString QT(const wxString& s)
+	{
+	return(Q(s).Mid(1));
+	}
     
     virtual ~TortoiseRunner()
     {}
@@ -44,10 +49,7 @@ public:
     
     virtual int TortoiseRunner::Run(wxString cmd)
     {
-#ifdef LOTS_OF_DEBUG_OUTPUT
-        Log::Instance()->Add(exec + " " + cmd);
-#endif
-        
+    Log::Instance()->Add(cmd);
         ToolRunner::RunBlind(cmd);
     };
     
@@ -91,6 +93,12 @@ public:
         cmd << path << "\" /notempfile /closeonend";
         Run(cmd);
     }
+    void TortoiseRunner::Diff(const wxString& path1, const wxString& path2)
+    {
+        wxString cmd("/command:diff /path:" + QT(path1) + "/path2:" + QT(path2));
+        cmd << "\" /notempfile /closeonend";
+        Run(cmd);
+    }
     void TortoiseRunner::StatusDialog(const wxString& path)
     {
         wxString cmd("/command:repostatus /path:\"");
@@ -123,10 +131,6 @@ public:
     
     virtual int TortoiseCVSRunner::Run(wxString cmd)
     {
-#ifdef LOTS_OF_DEBUG_OUTPUT
-        Log::Instance()->Add(exec + " " + cmd);
-#endif
-        
         ToolRunner::RunBlind(cmd);
     };
     
@@ -157,6 +161,57 @@ public:
     }
 };
 
+
+
+
+
+
+
+
+
+
+class DiffRunner : public ToolRunner
+{
+public:
+    DiffRunner(const wxString& executable)
+    {
+        SetExecutable(executable);
+        if(executable.Contains("tkdiff.tcl"))
+			runnerType = ToolRunner::TKDIFF;
+		else
+			runnerType = ToolRunner::DIFF3;
+    }
+    ;
+    
+    virtual ~DiffRunner()
+    {}
+    ;
+    
+    virtual int Run(wxString cmd)
+    {
+        ToolRunner::RunBlind(cmd);
+    };
+    
+    
+    void Diff(const wxString& path1, const wxString& path2)
+    {
+        wxString cmd(Q(path1) + Q(path2));
+        Run(cmd);
+    }
+
+    void Merge(const wxString& path1, const wxString& path2, const wxString& path3)
+    {
+        wxString cmd("-m" + Q(path1) + Q(path2) + "-o" +Q(path3));
+        Run(cmd);
+    }
+
+    void Merge(const wxString& path, const wxString xCommand = wxString("-conflict"))
+    {
+        wxString cmd(xCommand + Q(path));
+        Run(cmd);
+    }
+
+};
 
 
 #endif

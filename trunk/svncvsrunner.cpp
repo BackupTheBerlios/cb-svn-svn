@@ -185,14 +185,12 @@ int SVNRunner::Status(const wxString& selected, bool minusU)
     return RunBlocking("status" + Q(selected));
 }
 
-
 int  SVNRunner::Revert(const wxString& selected)
 {
     SetTarget(selected);
     SetCommand("revert");
     return Run("revert" + Q(selected));
 }
-
 
 int  SVNRunner::Move(const wxString& selected, const wxString& to)
 {
@@ -332,6 +330,32 @@ int SVNRunner::Info(const wxString& selected, bool minusR)
     return  Run("info" + Q(selected) + (minusR ? "-R" : ""));
 }
 
+int SVNRunner::Resolved(const wxString& selected)
+{
+    SetTarget(selected);
+    SetCommand("resolved");
+    return  Run("resolved" + Q(selected));
+}
+
+void SVNRunner::Export(const wxString& src, const wxString& dest, const wxString& rev, const wxString why)
+{
+    assert(!src.IsSameAs(dest));
+    
+    SetTarget(src + "*" + dest);
+    SetCommand(wxString("export:") + why);
+    
+    Run("export" + Q(src) + Q(dest) + "-r" +Q(rev));
+}
+
+void SVNRunner::ExportToTemp(const wxString& src, const wxString& rev, const wxString why)
+{
+    TempFile dest("");
+    
+    SetTarget(src + "*" + dest.name);
+    SetCommand(wxString("export:") + why);
+    
+    Run("export" + Q(src) + Q(dest.name) + "-r" +Q(rev));
+}
 
 
 

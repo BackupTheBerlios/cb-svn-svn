@@ -138,7 +138,7 @@ public:
         wxArrayString new_oldName;
         wxFile f;
         wxString tname = wxFileName::CreateTempFileName("", &f);
-        int cutoff = wxFileModificationTime(tname) - 1200;
+        int cutoff = wxFileModificationTime(tname) - 60*60*4; // files older than 4 hours
         f.Close();
         ::wxRemoveFile(tname);
         
@@ -165,7 +165,9 @@ public:
     {
         UNDEFINED,
         SVN,
-        CVS
+        CVS,
+        DIFF3,
+        TKDIFF
     }type;
     
     
@@ -175,7 +177,7 @@ public:
     wxString   out;   // "out" likewise, but preserving linebreaks
     int     lastExitCode;
     
-    ToolRunner() :  lastExitCode(0), runnerType(ToolRunner::UNDEFINED), insert_first(0)
+    ToolRunner() :  lastExitCode(0), runnerType(ToolRunner::UNDEFINED), insert_first(0), implicit_run(0)
     {
         timer.SetOwner(this);
         plugin = Manager::Get()->GetPluginManager()->FindPluginByName("svn");

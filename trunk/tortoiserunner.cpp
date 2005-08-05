@@ -13,14 +13,6 @@
 
 #include "toolrunner.h"
 #include "tortoiserunner.h"
-#include "svncvsrunner.h"
-#include "svn.h"
-#include "log.h"
-#include "dialogs.h"
-
-#include <wx/regex.h>
-#include <stdio.h>
-
 
 
 

@@ -57,20 +57,20 @@ void Log::Add(wxString str)
 
 void Log::Red(wxString str)
 {
-	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxRED, *wxWHITE));
+    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxRED, *wxWHITE));
     Add(str);
-	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
 }
 void Log::Blue(wxString str)
 {
-	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLUE, *wxWHITE));
+    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLUE, *wxWHITE));
     Add(str);
-	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
 }
 void Log::Grey(wxString str)
 {
-	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxLIGHT_GREY, *wxWHITE));
+    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxLIGHT_GREY, *wxWHITE));
     Add(str);
-	m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
 }
 

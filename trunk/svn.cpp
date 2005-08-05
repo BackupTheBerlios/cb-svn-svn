@@ -80,6 +80,7 @@ EVT_MENU(ID_MENU_CVS_UPDATE_R,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_UPDATE_D,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_COMMIT,  SubversionPlugin::Commit)
 EVT_MENU(ID_MENU_RESOLVETOOL,  SubversionPlugin::EditConflicts)
+EVT_MENU(ID_MENU_RESOLVED,  SubversionPlugin::Resolved)
 
 EVT_MENU(ID_MENU_ADD,    SubversionPlugin::Add)
 EVT_MENU(ID_MENU_DELETE,   SubversionPlugin::Delete)
@@ -192,6 +193,22 @@ void SubversionPlugin::OnAttach()
     
     cvs = cvsbinary.IsEmpty() ? 0 : new CVSRunner(cvsbinary);
     tortoisecvs = tortoiseact.IsEmpty() ? 0 : new TortoiseCVSRunner("cmd /C " + tortoiseact);
+    
+    if(!extdiff.IsEmpty())
+    {
+#ifdef __WIN32__
+        const char* shell = "cmd /C ";
+#else
+        
+        const char* shell = "bash ";
+#endif
+        
+        if(extdiff.Contains(".tcl"))
+            diff3 = extdiff.IsEmpty() ? 0 : new DiffRunner("tclsh " + extdiff);
+        else
+            diff3 = extdiff.IsEmpty() ? 0 : new DiffRunner(shell + extdiff);
+    }
+    
 }
 
 void SubversionPlugin::OnRelease(bool appShutDown)
@@ -354,9 +371,10 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
         menu->AppendSeparator();
     }
     
-    if(status == 'C' && tortoise)
+    if(status == 'C' && (tortoise || diff3))
     {
-        menu->Append( ID_MENU_RESOLVETOOL, "Resolve file conflicts");
+        menu->Append( ID_MENU_RESOLVETOOL, "Edit file conflicts");
+        menu->Append( ID_MENU_RESOLVED, "Resolved!");
         menu->AppendSeparator();
     }
     if(pstatus == 'C' && status != 'C') // do not allow to resolve properties if files are in conflict!
@@ -367,6 +385,16 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
     
     
     AppendCommonMenus(menu, target, false, locked);
+    
+    menu->AppendSeparator();
+    wxMenu *sub = new wxMenu;
+    sub->Append( ID_MENU_D_H, "HEAD" );
+    sub->Append( ID_MENU_D_P, "PREV" );
+    sub->Append( ID_MENU_D_C, "COMMITTED" );
+    sub->Append( ID_MENU_D_B, "BASE" );
+    sub->Append( ID_MENU_D_REV, "Revision..." );
+    menu->Append( ID_MENU, "DIFF against...", sub );
+    
     
     if(status == 'M' || status == 'A' || status == 'D' || pstatus == 'M')
     {
@@ -409,11 +437,12 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
     
     if(cf)
     {
-        if(tortoise)
+        if(tortoise || diff3)
         {
             wxString comstr("Edit conflicts (");
             comstr << cf << " file" << (cf == 1 ? "" : "s") << ")";
             menu->Append( ID_MENU_RESOLVETOOL, comstr );
+            menu->Append( ID_MENU_RESOLVED, "Resolved!");
             menu->AppendSeparator();
         }
         menu->Append( ID_MENU_REVERT, "Revert..." );
@@ -596,15 +625,6 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
         menu->AppendSeparator();
     }
     
-    sub = new wxMenu;
-    sub->Append( ID_MENU_D_H, "HEAD" );
-    sub->Append( ID_MENU_D_P, "PREV" );
-    sub->Append( ID_MENU_D_C, "COMMITTED" );
-    sub->Append( ID_MENU_D_B, "BASE" );
-    sub->Append( ID_MENU_D_REV, "Revision..." );
-    menu->Append( ID_MENU, "DIFF against...", sub );
-    
-    menu->AppendSeparator();
     menu->Append( ID_MENU_PATCH, "Create Patch" );
 }
 
@@ -748,13 +768,7 @@ void SubversionPlugin::Diff(wxCommandEvent& event)
         }
         break;
     }
-    //    DiffDialog d(Manager::Get()->GetAppWindow(), svn);
-    //    wxSetCursor(wxCURSOR_WAIT);
-    //    d.LoadDiff(selected, revision);
-    //    wxSetCursor(wxCURSOR_ARROW);
-    //    d.SetSize(800,600);
-    //    d.CentreOnParent();
-    //    d.ShowModal();
+    svn->ExportToTemp(selected, revision, "diff");
 }
 
 void SubversionPlugin::Patch(wxCommandEvent& event)
@@ -1240,9 +1254,8 @@ void SubversionPlugin::ReadConfig()
     
     TamperWithWindowsRegistry();
     
-    if(svnbinary == "unset")
-        OnFirstRun();
-        
+    SearchBinaries();
+    
     {
         wxString ht("/svn/repoHist");
         wxString val;
@@ -1477,7 +1490,7 @@ void SubversionPlugin::PropKeywords(wxCommandEvent& event)
 
 void   SubversionPlugin::EditConflicts(wxCommandEvent& event)
 {
-    assert(tortoise);
+    assert(tortoise || diff3);
     
     svn->Status(svn->GetTarget());
     
@@ -1485,7 +1498,7 @@ void   SubversionPlugin::EditConflicts(wxCommandEvent& event)
     ExtractFilesWithStatus('C', conflicting);
     
     for(int i = 0; i < conflicting.Count(); ++i)
-        tortoise->ConflictEditor(conflicting[i]);
+        DoResolve(conflicting[i]);
 }
 
 void SubversionPlugin::OnFatTortoiseCVSFunctionality(wxCommandEvent& event)
@@ -1602,7 +1615,8 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
             if(tortoise)
             {
                 for(int i = 0; i < conflicting.Count(); ++i)
-                    tortoise->ConflictEditor(conflicting[i]);
+                    DoResolve(conflicting[i]);
+                    
             }
             if(verbose)
                 Log::Instance()->Blue("Transaction was successful, but conflicts remain.");
@@ -1673,6 +1687,18 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
         meow = svn->out;
     }
     
+    if(cmd.IsSameAs("export:diff"))
+    {
+        wxString dest = svn->GetTarget();
+        wxString src = dest.BeforeFirst('*');
+        dest = dest.AfterFirst('*');
+        
+        if(tortoise)
+            tortoise->Diff(src, dest);
+        else if(diff3)
+            diff3->Diff(src, dest);
+    }
+    
     if(cmd.IsSameAs("diff"))
     {
         if(!patchFileName.IsEmpty())
@@ -1680,10 +1706,6 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
             wxFile f(patchFileName, wxFile::write);
             f.Write(svn->out);
             patchFileName.Empty();
-        }
-        else
-        {
-            // diff viewer
         }
     }
     
@@ -1752,8 +1774,51 @@ void SubversionPlugin::ReRun(wxCommandEvent& event)
         svn->RunQueue();
 }
 
+void SubversionPlugin::DoResolve(const wxString& conflicting)
+{
+    wxBell();
+    Log::Instance()->Add("resolve...");
+    if(tortoise)
+        tortoise->ConflictEditor(conflicting);
+    else if(diff3)
+    {
+        /*
+        * tkdiff.tcl does not understand the -m switch that is mandatory for all others.
+        * Luckily, it has a much easier way to handle conflict files
+        */
+        if(diff3->Type() == ToolRunner::TKDIFF)
+        {
+            diff3->Merge(conflicting);
+        }
+        else
+        {
+            wxString target(conflicting);
+            wxString mine(target + ".mine");
+            wxString theirs;
+            wxString f = wxFindFirstFile( target+ ".r*");
+            while ( !f.IsEmpty() )
+            {
+                theirs = f;
+                f = wxFindNextFile();
+            }
+            diff3->Merge(mine, theirs, target);
+        }
+    }
+}
 
-
+void SubversionPlugin::Resolved(wxCommandEvent& event)
+{
+    wxString target(GetSelection());
+    
+    if(never_ask || (show_resolved == false) || (wxMessageDialog(Manager::Get()->GetAppWindow(),
+            "Do you want to issue a 'svn resolved' command?\n\n"
+            "This command does NOT resolve any conflicts, instead it tells the revision control system that you have been "
+            "manually editing the conflicting to resolve all conflicts.\n\n"
+            "Undoing the effects of a false 'resolved' command is not impossible, but it is painful. Be sure about what you do.",
+            "Resolved", wxYES_NO | wxICON_EXCLAMATION).ShowModal() == wxID_YES))
+        svn->Resolved(target);
+        
+}
 
 
 
@@ -1817,25 +1882,27 @@ wxString  SubversionPlugin::GetCheckoutDir()
     return home.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "checkout";
 }
 
-void SubversionPlugin::OnFirstRun()
+void SubversionPlugin::SearchBinaries()
 {
 #ifdef __WIN32__
 
-    svnbinary  = NastyFind("svn.exe");
-    cvsbinary  = NastyFind("cvs.exe");
-    
+    if(svnbinary.IsEmpty())
+        svnbinary  = NastyFind("svn.exe");
+    if(svnbinary.IsEmpty())
+        cvsbinary  = NastyFind("cvs.exe");
+        
 #else
-    
+        
     svnbinary  = NastyFind("svn");
     cvsbinary  = NastyFind("cvs");
     extdiff  = NastyFind("kdiff3");
     if(extdiff.IsEmpty())
         extdiff = NastyFind("tkdiff.tcl");
-    
+        
 #endif
-    
+        
 #ifdef SCO
-    
+        
     long* ptr = 0;
     *ptr = 1L;
 #endif
@@ -1935,6 +2002,7 @@ void SubversionPlugin::TamperWithWindowsRegistry()
             
         clearTimer.Start(12000);
         Log::lastLogTime = 0;
+        Log::Instance()->fg();
     }
     
 #endif
@@ -2032,11 +2100,4 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     
     return wxEmptyString;
 }
-
-
-
-
-
-
-
 

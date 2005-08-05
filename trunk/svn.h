@@ -49,10 +49,11 @@ class SubversionPlugin : public cbPlugin
 {
     IdToStringHash fileProperties;
     
-    SVNRunner  * svn;
-    TortoiseRunner * tortoise;
-    TortoiseCVSRunner * tortoisecvs;
-    CVSRunner   * cvs;
+    SVNRunner  *svn;
+    TortoiseRunner *tortoise;
+    TortoiseCVSRunner *tortoisecvs;
+    CVSRunner   *cvs;
+    DiffRunner *diff3;
     
 public:
     SubversionPlugin();
@@ -86,7 +87,7 @@ public:
     void   OnRelease(bool appShutDown);
     void   OnTimer(wxTimerEvent& event);
     
-    void   OnFirstRun();
+    void   SearchBinaries();
     void   Preferences(wxCommandEvent& event);
     void   SetUser(wxCommandEvent& event);
     
@@ -119,6 +120,8 @@ public:
     void   CVSUpdate(wxCommandEvent& event);
     
     void   EditProperty(wxCommandEvent& event);
+    void   DoResolve(const wxString& conflicting);
+    void   Resolved(wxCommandEvent& event);
     
     wxArrayString ExtractFilesWithStatus(const char what, unsigned int pos = 0);
     void      ExtractFilesWithStatus(const char what, wxArrayString& ret, unsigned int pos = 0);

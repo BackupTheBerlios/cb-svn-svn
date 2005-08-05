@@ -79,12 +79,15 @@ public:
     wxString  Diff(const wxString& selected, const wxString& rev);
     
     int     Revert(const wxString& file);
+    int     Resolved(const wxString& file);
     
     wxString  PropGet(const wxString& file, const wxString& prop);
     int     PropSet(const wxString& file, const wxString& prop, const wxString& value, bool recursive);
     int    PropDel(const wxString& file, const wxString& prop);
     int    Info(const wxString& file, bool minusR);
     wxString  Info(const wxString& file);
+    void Export(const wxString& src, const wxString& dest, const wxString& rev = wxString("HEAD"), const wxString why = wxString("diff"));
+    void ExportToTemp(const wxString& src, const wxString& rev = wxString("HEAD"), const wxString why = wxString("diff"));
     
     wxArrayString GetPropertyList(const wxString& file);
     
