@@ -262,7 +262,7 @@ public:
     };
     
     int ToolRunner::RunBlocking(const wxString& cmd);
-    int ToolRunner::Run(const wxString& cmd);
+    int ToolRunner::Run(const wxString& cmd, const wxString& cwd = wxEmptyString);
     void ToolRunner::RunBlind(const wxString& cmd);
     
     void ToolRunner::RunAgain();
@@ -311,9 +311,10 @@ public:
     };
     
 protected:
-    int ToolRunner::RunAsync(const wxString& cmd);
+    int ToolRunner::RunAsync(const wxString& cmd, const wxString& cwd);
     cbPlugin *plugin;
     wxArrayString commandQueue;
+    wxArrayString cwdQueue;
     static wxString lastCommand;
     wxString target;
     type runnerType;

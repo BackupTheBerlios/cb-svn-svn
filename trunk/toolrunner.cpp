@@ -91,15 +91,21 @@ int ToolRunner::RunBlocking(const wxString& cmd)
 
 
 
-int ToolRunner::Run(const wxString& cmd)
+int ToolRunner::Run(const wxString& cmd, const wxString& cwd)
 {
     wxString runCommand(exec + " " + cmd);
     
     if(insert_first)
+    {
         commandQueue.Insert(runCommand, 0);
+        cwdQueue.Insert(cwd, 0);
+    }
     else
+    {
         commandQueue.Add(runCommand);
-        
+        cwdQueue.Add(cwd);
+    }
+    
     Finish();
     if(!implicit_run)
         RunQueue();
@@ -109,7 +115,7 @@ int ToolRunner::Run(const wxString& cmd)
     return 0;
 };
 
-int ToolRunner::RunAsync(const wxString& cmd)
+int ToolRunner::RunAsync(const wxString& cmd, const wxString& cwd)
 {
     assert(!exec.IsEmpty() && !cmd.IsEmpty());
     std_out.Empty();
@@ -118,7 +124,7 @@ int ToolRunner::RunAsync(const wxString& cmd)
     
     Log::Instance()->Add(cmd);
     
-    cb_process = new  PipedProcess((void**)&cb_process, this, ID_PROCESS, true);
+    cb_process = new  PipedProcess((void**)&cb_process, this, ID_PROCESS, true, cwd);
     
     pid = wxExecute(cmd, wxEXEC_ASYNC, cb_process);
     if ( !pid )
@@ -150,10 +156,12 @@ void ToolRunner::RunQueue()
     {
         wxString runCommand = commandQueue[0];
         commandQueue.Remove((size_t) 0);
+        wxString cwd = cwdQueue[0];
+        cwdQueue.Remove((size_t) 0);
         wxString oldLang;
         wxGetEnv("LANG", &oldLang);
         wxSetEnv("LANG", "en");
-        RunAsync(runCommand);
+        RunAsync(runCommand, cwd);
         wxSetEnv("LANG", oldLang);
         lastCommand = runCommand;
     }

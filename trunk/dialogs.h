@@ -80,7 +80,8 @@ enum {  ID_MENU_USER = 32000,
         ID_MENU_CVS_UPDATE_R,
         ID_MENU_CVS_UPDATE_D,
         ID_MENU_CVS_LOGIN,
-        
+		ID_MENU_PATCH_F_CVS,
+		
         ID_COMBO_SRC = 32600,
         ID_COMBO_DEST,
         

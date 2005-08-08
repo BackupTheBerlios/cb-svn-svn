@@ -144,12 +144,15 @@ public:
     void CVSRunner::Login(const wxString& proto, const wxString& repo, const wxString& user, const wxString& pass)
     {
         // cvs -d :pserver:bach:p4ss30rd@faun.example.org:/usr/local/cvsroot login
+        SetTarget("");
+        SetCommand(wxString("CVS-login"));
         wxString cmd("-d " + proto + user + ":" + pass + "@" + repo + " login");
         RunBlocking(cmd);
     };
     
     void CVSRunner::Checkout(const wxString& proto, const wxString& repo, const wxString& module, const wxString& workingdir, const wxString& user, const wxString& revision)
     {
+        SetCommand(wxString("CVS-checkout"));
         SetTarget(workingdir);
         wxString cmd("-d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ (revision.IsEmpty() ? "" : " -r" + Q(revision)) + module);
         Log::Instance()->Add("cvs " + cmd);
@@ -158,23 +161,33 @@ public:
     
     void CVSRunner::Update(const wxString& target, const wxString& revision, const wxString& date)
     {
+        SetCommand(wxString("CVS-update"));
         SetTarget(target);
         wxFileName fn(target);
-        wxFileName::SetCwd(fn.GetPath(wxPATH_GET_VOLUME));
         wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());
         wxString cmd(" update " + file + (revision.IsEmpty() ? "" : " -r" + Q(revision)) + (revision.IsEmpty() ? "" : " -D" + Q(date)));
-        Run(cmd);
+        Run(cmd, fn.GetPath(wxPATH_GET_VOLUME));
     };
     
     void CVSRunner::Commit(const wxString& target, const wxString& message)
     {
+        SetCommand(wxString("CVS-commit"));
         SetTarget(target);
         TempFile msg(message);
         wxFileName fn(target);
-        wxFileName::SetCwd(fn.GetPath(wxPATH_GET_VOLUME));
         wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());
         wxString cmd(" commit " + file + " -F " + Q(msg.name));
-        Run(cmd);
+        Run(cmd, fn.GetPath(wxPATH_GET_VOLUME));
+    };
+    
+    void CVSRunner::Diff(const wxString& target)
+    {
+        SetCommand(wxString("CVS-diff"));
+        SetTarget(target);
+        wxFileName fn(target);
+        wxString file = Q(fn.GetFullName());
+        wxString cmd(" diff " + file);
+        Run(cmd, fn.GetPath(wxPATH_GET_VOLUME));
     };
     
     

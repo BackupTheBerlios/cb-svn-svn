@@ -59,6 +59,7 @@ EVT_MENU(ID_MENU_D_C,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_D_B,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_D_REV,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_PATCH,    SubversionPlugin::Patch)
+EVT_MENU(ID_MENU_PATCH_F_CVS,    SubversionPlugin::Patch)
 
 EVT_MENU(ID_MENU_RESTORE,   SubversionPlugin::Update)
 
@@ -204,7 +205,7 @@ void SubversionPlugin::OnAttach()
 #endif
         
         if(extdiff.Contains(".tcl"))
-            diff3 = extdiff.IsEmpty() ? 0 : new DiffRunner("tclsh " + extdiff);
+            diff3 = new DiffRunner("tclsh " + extdiff);
         else
             diff3 = extdiff.IsEmpty() ? 0 : new DiffRunner(shell + extdiff);
     }
@@ -278,7 +279,7 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
         return;
     }
     
-    if(DirUnderCVS(selected))
+    if(cvs && DirUnderCVS(selected))
     {
         Build_CVS_ModuleMenu(cmenu, arg);
         if (tortoisecvs && IsProject(arg))
@@ -308,13 +309,19 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
 
 void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
 {
+    assert(cvs);
+    
     menu->Append( ID_MENU_CVS_COMMIT, "[cvs] Commit" );
     menu->AppendSeparator();
     menu->Append( ID_MENU_CVS_UPDATE, "[cvs] Update" );
     menu->Append( ID_MENU_CVS_UPDATE_R, "[cvs] Update to revision..." );
     menu->Append( ID_MENU_CVS_UPDATE_D, "[cvs] Update to date..." );
-    
-    if(IsProject(arg))
+    if (!IsProject(arg))
+    {
+        menu->AppendSeparator();
+        menu->Append( ID_MENU_PATCH_F_CVS,  "[cvs] Create patch..." );
+    }
+    else
     {
         menu->AppendSeparator();
         menu->Append( ID_MENU_CVS_LOGIN, "[cvs] Login" );
@@ -781,7 +788,10 @@ void SubversionPlugin::Patch(wxCommandEvent& event)
                                    "patch files (*.patch)|*.patch|text files (*.txt)|*.txt|all files (*.*)|*.*", "*.patch", wxSAVE);
                                    
     if(!patchFileName.IsEmpty())
-        svn->Diff(selected, "HEAD");
+        if(event.GetId() == ID_MENU_PATCH_F_CVS)
+            cvs->Diff(selected);
+        else
+            svn->Diff(selected, "HEAD");
 }
 
 void SubversionPlugin::Lock(wxCommandEvent& event)
@@ -1755,6 +1765,24 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
     
     if(event.GetExtraLong() == ToolRunner::CVS)
     {
+        /*
+        *  Now tell me that CVS does not suck...
+        *  CVS exits with error if diff finds differences in files.
+        *  Seriously, what do you expect if the user runs "diff"? 
+        */
+        if(cmd.IsSameAs("CVS-diff"))
+        {
+            if(!patchFileName.IsEmpty())
+            {
+                wxFile f(patchFileName, wxFile::write);
+                f.Write(cvs->out);
+                patchFileName.Empty();
+            }
+            if(verbose && cvs->IsIdle())
+                Log::Instance()->Blue("All transactions finished.");
+            return;
+        }
+        
         NotImplemented("Error handler for CVS.");
     }
     
@@ -1868,7 +1896,7 @@ void SubversionPlugin::Resolved(wxCommandEvent& event)
 
 #ifdef __WIN32__
  #include <shlobj.h>
- #include <registry.h>
+ #include <wx/msw/registry.h>
  #ifndef CSIDL_PROGRAM_FILES
   #define CSIDL_PROGRAM_FILES  0x0026
  #endif
