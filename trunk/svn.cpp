@@ -1778,36 +1778,42 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
         
         if(!patchFileName.IsEmpty())
         {
+        TempFile temp("");
+        wxString cmd;
+        
+			binutils->SetCommand("tar/zip");
+			binutils->SetTarget(patchFileName + "*" + temp.name);
+
             if(patchFileName.Contains(".tar"))
                 binutils->SetExecutable(tarbin);
             else if(patchFileName.Contains(".zip"))
                 binutils->SetExecutable(zipbin);
                 
             if(patchFileName.Contains(".tar.gz"))
-                binutils->Run("--remove-files -zcf" + binutils->Q(patchFileName) + " *", dest);
+                cmd = "--remove-files -zcf";
             else if(patchFileName.Contains(".tar.bz2"))
-                binutils->Run("--remove-files --use-compress-program" + binutils->Q(bzip2bin) + "-cf" + binutils->Q(patchFileName) + " *", dest);
+                cmd = "--remove-files --use-compress-program" + binutils->Q(bzip2bin) + "-cf";
             else if(patchFileName.Contains(".tar"))
-                binutils->Run("--remove-files -cf " + binutils->Q(patchFileName) + " *", dest);
+                cmd = "--remove-files -cf ";
             else if(patchFileName.Contains(".zip"))
-                binutils->Run("-r -m -q -9" + binutils->Q(patchFileName) + " *", dest);
-                
+                cmd = "-r -m -q -9";
+            binutils->Run(cmd +  binutils->Q(temp.name) + " *", dest);
             patchFileName.Empty();
         }
         
     }
-    
-    if(cmd.IsSameAs("diff"))
+
+    if(cmd.IsSameAs("tar/zip"))
     {
-        if(!patchFileName.IsEmpty())
-        {
-            wxFile f(patchFileName, wxFile::write);
-            f.Write(svn->out);
-            patchFileName.Empty();
-        }
-    }
+        wxString t = binutils->GetTarget();
+        wxString dest = t.BeforeFirst('*');
+        wxString src = t.AfterFirst('*');
+		Log::Instance()->Grey("Moving " + src + " to " + dest);
+        wxRenameFile(src, dest);
+	}
     
-    // Know nothing, assume all is fine:)
+
+    // Know nothing, assume the best :)
     if(verbose && svn->IsIdle())
         Log::Instance()->Blue("All transactions finished.");
         

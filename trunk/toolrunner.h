@@ -17,6 +17,7 @@
 
 #include <wx.h>
 #include <wx/file.h>
+#include <wx/dir.h>
 
 #include "pipedprocess.h"
 #include "sdk_events.h"
@@ -126,24 +127,34 @@ public:
     
     static void Cleanup()
     {
+        wxString tempFolder = TempFolder();
+        
         for(int i = 0; i < oldName.Count() ; ++i)
         {
             if(::wxFileExists(oldName[i]))
                 ::wxRemoveFile(oldName[i]);
+        }
+        
+        
+        tempFolder = wxFindFirstFile(tempFolder + "cbsvn-*", wxDIR);
+        while ( !tempFolder.IsEmpty() )
+        {
+            // TODO: recursive delete
+            tempFolder = wxFindNextFile();
         }
     };
     
     static wxString TempFolder()
     {
         if(oldName.Count() == 0)
-			{
-			TempFile t("");
-			}
-
+        {
+            TempFile t("");
+        }
+        
         if(oldName.Count())
             return wxFileName(oldName[0]).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
             
-		return wxEmptyString;
+        return wxEmptyString;
     };
     
     static void CleanupCheck()
