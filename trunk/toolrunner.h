@@ -133,6 +133,19 @@ public:
         }
     };
     
+    static wxString TempFolder()
+    {
+        if(oldName.Count() == 0)
+			{
+			TempFile t("");
+			}
+
+        if(oldName.Count())
+            return wxFileName(oldName[0]).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+            
+		return wxEmptyString;
+    };
+    
     static void CleanupCheck()
     {
         wxArrayString new_oldName;

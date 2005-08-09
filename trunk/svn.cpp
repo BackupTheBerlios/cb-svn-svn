@@ -80,8 +80,10 @@ EVT_MENU(ID_MENU_CVS_UPDATE,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_UPDATE_R,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_UPDATE_D,  SubversionPlugin::CVSUpdate)
 EVT_MENU(ID_MENU_CVS_COMMIT,  SubversionPlugin::Commit)
+EVT_MENU(ID_MENU_CVS_LOGIN,  SubversionPlugin::CVSLogin)
 EVT_MENU(ID_MENU_RESOLVETOOL,  SubversionPlugin::EditConflicts)
 EVT_MENU(ID_MENU_RESOLVED,  SubversionPlugin::Resolved)
+EVT_MENU(ID_MENU_RELEASE,  SubversionPlugin::Release)
 
 EVT_MENU(ID_MENU_ADD,    SubversionPlugin::Add)
 EVT_MENU(ID_MENU_DELETE,   SubversionPlugin::Delete)
@@ -195,6 +197,8 @@ void SubversionPlugin::OnAttach()
     cvs = cvsbinary.IsEmpty() ? 0 : new CVSRunner(cvsbinary);
     tortoisecvs = tortoiseact.IsEmpty() ? 0 : new TortoiseCVSRunner("cmd /C " + tortoiseact);
     
+    binutils = new ToolRunner();
+    
     if(!extdiff.IsEmpty())
     {
 #ifdef __WIN32__
@@ -264,7 +268,6 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
         BuildMgrMenu(cmenu);
         if(menu != cmenu)
             menu->Append( ID_MENU, "Subversion", cmenu );
-            
         return;
     }
     
@@ -285,13 +288,13 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
         if (tortoisecvs && IsProject(arg))
         {
             cmenu->AppendSeparator();
-            cmenu->Append( ID_MENU_CVS_BRANCH, "[cvs] Branch..." );
-            cmenu->Append( ID_MENU_CVS_TAG,  "[cvs] Tag..." );
-            cmenu->Append( ID_MENU_CVS_MERGE,  "[cvs] Merge..." );
-            cmenu->Append( ID_MENU_CVS_PATCH,  "[cvs] Create patch..." );
+            cmenu->Append( ID_MENU_CVS_BRANCH, "Branch..." );
+            cmenu->Append( ID_MENU_CVS_TAG,  "Tag..." );
+            cmenu->Append( ID_MENU_CVS_MERGE,  "Merge..." );
+            cmenu->Append( ID_MENU_CVS_PATCH,  "Create patch..." );
         }
         if(menu != cmenu)
-            menu->Append( ID_MENU, "Subversion", cmenu );
+            menu->Append( ID_MENU, "[cvs]", cmenu );
         return;
     }
     
@@ -311,21 +314,20 @@ void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
 {
     assert(cvs);
     
-    menu->Append( ID_MENU_CVS_COMMIT, "[cvs] Commit" );
+    menu->Append( ID_MENU_CVS_COMMIT, "Commit" );
     menu->AppendSeparator();
-    menu->Append( ID_MENU_CVS_UPDATE, "[cvs] Update" );
-    menu->Append( ID_MENU_CVS_UPDATE_R, "[cvs] Update to revision..." );
-    menu->Append( ID_MENU_CVS_UPDATE_D, "[cvs] Update to date..." );
+    menu->Append( ID_MENU_CVS_UPDATE, "Update" );
+    menu->Append( ID_MENU_CVS_UPDATE_R, "Update to revision..." );
+    menu->Append( ID_MENU_CVS_UPDATE_D, "Update to date..." );
     if (!IsProject(arg))
     {
         menu->AppendSeparator();
-        menu->Append( ID_MENU_PATCH_F_CVS,  "[cvs] Create patch..." );
+        menu->Append( ID_MENU_PATCH_F_CVS,  "Create patch..." );
     }
     else
     {
         menu->AppendSeparator();
-        menu->Append( ID_MENU_CVS_LOGIN, "[cvs] Login" );
-        menu->Enable(ID_MENU_CVS_LOGIN, false);
+        menu->Append( ID_MENU_CVS_LOGIN, "Login" );
     }
 }
 
@@ -618,7 +620,7 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
     }
     
     
-    menu->Append( ID_MENU, "Properties...", propsub );
+    menu->Append( ID_MENU, "Properties...", propsub);
     menu->AppendSeparator();
     
     if(isLocked)
@@ -632,7 +634,12 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
         menu->AppendSeparator();
     }
     
-    menu->Append( ID_MENU_PATCH, "Create Patch" );
+    if(has_tar_or_zip)
+		{
+        menu->Append( ID_MENU_RELEASE, "Export a Release");
+        menu->AppendSeparator();
+		}   
+    menu->Append( ID_MENU_PATCH, "Create Patch");
 }
 
 
@@ -785,7 +792,7 @@ void SubversionPlugin::Patch(wxCommandEvent& event)
     wxString fn((selected.IsEmpty() ? "patchfile" : selected) + ".patch");
     
     patchFileName = wxFileSelector("Save patch file as...", "", fn,
-                                   "patch files (*.patch)|*.patch|text files (*.txt)|*.txt|all files (*.*)|*.*", "*.patch", wxSAVE);
+                                   "*.patch", "patch files (*.patch)|*.patch|text files (*.txt)|*.txt|all files (*.*)|*.*", wxSAVE);
                                    
     if(!patchFileName.IsEmpty())
         if(event.GetId() == ID_MENU_PATCH_F_CVS)
@@ -793,6 +800,46 @@ void SubversionPlugin::Patch(wxCommandEvent& event)
         else
             svn->Diff(selected, "HEAD");
 }
+
+void SubversionPlugin::Release(wxCommandEvent& event)
+{
+    assert(has_tar_or_zip);
+    wxString selected(GetSelection());
+    wxString types;
+    
+    if(!tarbin.IsEmpty())
+    {
+        if(!bzip2bin.IsEmpty())
+            types << "|bzip compressed tar (*.tar.bz2)|*.tar.bz2";
+        types << "|gzip compressed tar (*.tar.gz)|*.tar.gz";
+        types << "|tar file (*.tar)|*.tar";
+    }
+    if(!zipbin.IsEmpty())
+        types << "|zip compressed file (*.zip)|*.zip";
+        
+    types = types.Mid(1);
+    
+    patchFileName = wxFileSelector("Export release as...", "", "",
+                                   "*.tar.bz2", types, wxSAVE);
+                                   
+    if(patchFileName.IsEmpty())
+        return;
+        
+    wxString tempDir = TempFile::TempFolder() + "cbsvn-" << wxGetLocalTime();
+    
+    // de-moronize wxFileSelector
+    if(patchFileName.Contains(".bz2") && !patchFileName.Contains(".tar."))
+        patchFileName.Replace(".bz2", ".tar.bz2");
+    if(patchFileName.Contains(".gz") && !patchFileName.Contains(".tar."))
+        patchFileName.Replace(".gz", ".tar.gz");
+        
+        
+    //        if(DirUnderCVS(selected))
+    //            cvs->Export(selected);
+    //        else
+    svn->Export(selected, tempDir, "HEAD", "release");
+}
+
 
 void SubversionPlugin::Lock(wxCommandEvent& event)
 {
@@ -1045,15 +1092,24 @@ void SubversionPlugin::Import(wxCommandEvent& event)
 
 void SubversionPlugin::SetUser(wxCommandEvent& event)
 {
-
     PasswordDialog p(Manager::Get()->GetAppWindow());
     p.Centre();
     if(p.ShowModal() == wxID_OK)
+    {
         svn->SetPassword(p.username, p.password);
-    svn->Status(GetSelection(), true);
+        svn->Status(GetSelection(), true);
+    }
 }
 
-
+void SubversionPlugin::CVSLogin(wxCommandEvent& event)
+{
+    PasswordDialog p(Manager::Get()->GetAppWindow());
+    p.Centre();
+    if(p.ShowModal() == wxID_OK)
+    {
+        //cvs->Login(p.username, p.password);
+    }
+}
 
 void SubversionPlugin::Revert(wxCommandEvent& event)
 {
@@ -1240,8 +1296,11 @@ void SubversionPlugin::ReadConfig()
 {
     wxConfigBase* c = ConfigManager::Get();
     
-    svnbinary    = c->Read("/svn/svnbinary", "unset");
-    cvsbinary    = c->Read("/svn/cvsbinary");
+    svnbinary = c->Read("/svn/svnbinary");
+    cvsbinary = c->Read("/svn/cvsbinary");
+    tarbin  = c->Read("/svn/tarbinary");
+    bzip2bin = c->Read("/svn/bzip2binary");
+    zipbin  = c->Read("/svn/zipbinary");
     defaultCheckoutDir = c->Read("/svn/defaultCheckoutDir");
     
     c->Read("/svn/auto_add", &auto_add);
@@ -1296,6 +1355,9 @@ void SubversionPlugin::WriteConfig()
     
     c->Write("/svn/svnbinary", svnbinary);
     c->Write("/svn/cvsbinary", cvsbinary);
+    c->Write("/svn/tarbinary", tarbin);
+    c->Write("/svn/bzip2binary", bzip2bin);
+    c->Write("/svn/zipbinary", zipbin);
     c->Write("/svn/defaultCheckoutDir", defaultCheckoutDir);
     
     c->Write("/svn/auto_add", auto_add);
@@ -1576,7 +1638,6 @@ void SubversionPlugin::OnFatTortoiseFunctionality(wxCommandEvent& event)
     };
 }
 
-
 void SubversionPlugin::EditProperty(wxCommandEvent& event)
 {
     wxString name;
@@ -1707,6 +1768,33 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
             tortoise->Diff(src, dest);
         else if(diff3)
             diff3->Diff(src, dest);
+    }
+    
+    if(cmd.IsSameAs("export:release"))
+    {
+        wxString dest = svn->GetTarget();
+        wxString src = dest.BeforeFirst('*');
+        dest = dest.AfterFirst('*');
+        
+        if(!patchFileName.IsEmpty())
+        {
+            if(patchFileName.Contains(".tar"))
+                binutils->SetExecutable(tarbin);
+            else if(patchFileName.Contains(".zip"))
+                binutils->SetExecutable(zipbin);
+                
+            if(patchFileName.Contains(".tar.gz"))
+                binutils->Run("--remove-files -zcf" + binutils->Q(patchFileName) + " *", dest);
+            else if(patchFileName.Contains(".tar.bz2"))
+                binutils->Run("--remove-files --use-compress-program" + binutils->Q(bzip2bin) + "-cf" + binutils->Q(patchFileName) + " *", dest);
+            else if(patchFileName.Contains(".tar"))
+                binutils->Run("--remove-files -cf " + binutils->Q(patchFileName) + " *", dest);
+            else if(patchFileName.Contains(".zip"))
+                binutils->Run("-r -m -q -9" + binutils->Q(patchFileName) + " *", dest);
+                
+            patchFileName.Empty();
+        }
+        
     }
     
     if(cmd.IsSameAs("diff"))
@@ -1914,23 +2002,40 @@ void SubversionPlugin::SearchBinaries()
 {
 #ifdef __WIN32__
 
-    if(svnbinary.IsEmpty())
+    if(!wxFile::Exists(svnbinary))
         svnbinary  = NastyFind("svn.exe");
-    if(svnbinary.IsEmpty())
+    if(!wxFile::Exists(cvsbinary))
         cvsbinary  = NastyFind("cvs.exe");
-        
+    if(!wxFile::Exists(tarbin))
+        tarbin  = NastyFind("tar.exe");
+    if(!wxFile::Exists(bzip2bin))
+        bzip2bin  = NastyFind("bzip2.exe");
+    if(!wxFile::Exists(zipbin))
+        zipbin  = NastyFind("zip.exe");
+    has_tar_or_zip = !(tarbin.IsEmpty() && zipbin.IsEmpty());
+    
 #else
-        
-    svnbinary  = NastyFind("svn");
-    cvsbinary  = NastyFind("cvs");
+    
+    if(!wxFile::Exists(svnbinary))
+        svnbinary  = NastyFind("svn");
+    if(!wxFile::Exists(cvsbinary))
+        cvsbinary  = NastyFind("cvs");
+    if(!wxFile::Exists(tarbin))
+        tarbin  = NastyFind("tar");
+    if(!wxFile::Exists(bzip2bin))
+        bzip2bin  = NastyFind("bzip2");
+    if(!wxFile::Exists(zipbin))
+        zipbin  = NastyFind("zip");
+    has_tar_or_zip = !(tarbin.IsEmpty() && zipbin.IsEmpty());
+    
     extdiff  = NastyFind("kdiff3");
     if(extdiff.IsEmpty())
         extdiff = NastyFind("tkdiff.tcl");
-        
+    
 #endif
-        
+    
 #ifdef SCO
-        
+    
     long* ptr = 0;
     *ptr = 1L;
 #endif
@@ -2070,6 +2175,9 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     location.Add("\\bin");
     location.Add("\\cvs");
     location.Add("\\TortoiseCVS");
+    location.Add("\\msys\\bin");
+    location.Add("\\mingw\\bin");
+    location.Add("\\cygwin\\bin");
     
     
     int lc = location.GetCount();  // I never trust these are really inline, are they...?
@@ -2087,12 +2195,12 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     // In the case of svn, we assume that if we have not found it, then it is (hopefully) in PATH.
     // Tortoise, if not found, is assumed "missing".
     // Hopefully anyone installing a plugin to run svn has enough sense to install svn as well.
-    if(name.CompareTo("svn.exe"))
+    if(name.IsSameAs("svn.exe"))
     {
         Log::Instance()->Add("The svn executable could not be found in any of the 'usual' locations.\n"
                              "Please do note that svn is essential for the operation of this plugin.\n"
                              "As this is the only thing that makes sense, I will assume that svn is accessible via the %PATH% environment variable.\n"
-                             "You can set the path to the svn executable in the preferences dialog.");
+                             "You can set the path to the svn executable in the preferences dialog.\n");
         return(name);
     }
 #endif
@@ -2116,12 +2224,12 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
     
     // similar to above - if we can't find svn, we will assume (hope) it is in $PATH and just call "svn"
     // - if the user actually works with svn at all, this should be the case
-    if(name.CompareTo("svn"))
+    if(name.IsSameAs("svn"))
     {
         Log::Instance()->Add("The svn executable could not be found in any of the 'usual' locations.\n"
                              "Please do note that svn is essential for the operation of this plugin.\n"
                              "As this is the only thing that makes sense, I will assume that svn is accessible via the $PATH environment variable.\n"
-                             "You can set the path to the svn executable in the preferences dialog.");
+                             "You can set the path to the svn executable in the preferences dialog.\n");
         return(name);
     }
 #endif

@@ -54,6 +54,7 @@ class SubversionPlugin : public cbPlugin
     TortoiseCVSRunner *tortoisecvs;
     CVSRunner   *cvs;
     DiffRunner *diff3;
+    ToolRunner *binutils;
     
 public:
     SubversionPlugin();
@@ -118,10 +119,12 @@ public:
     void   OnFatTortoiseFunctionality(wxCommandEvent& event);
     void   OnFatTortoiseCVSFunctionality(wxCommandEvent& event);
     void   CVSUpdate(wxCommandEvent& event);
+    void   CVSLogin(wxCommandEvent& event);
     
     void   EditProperty(wxCommandEvent& event);
     void   DoResolve(const wxString& conflicting);
     void   Resolved(wxCommandEvent& event);
+    void   Release(wxCommandEvent& event);
     
     wxArrayString ExtractFilesWithStatus(const char what, unsigned int pos = 0);
     void      ExtractFilesWithStatus(const char what, wxArrayString& ret, unsigned int pos = 0);
@@ -260,6 +263,9 @@ public:
     wxString tortoiseproc;
     wxString tortoiseact;
     wxString extdiff;
+    wxString tarbin;
+    wxString bzip2bin;
+    wxString zipbin;
     
     bool cascade_menu;
     bool auto_add;
@@ -286,6 +292,7 @@ public:
     wxTimer clearTimer;
     wxString patchFileName;
     wxString meow;
+    bool has_tar_or_zip;
 protected:
 private:
     DECLARE_EVENT_TABLE()
