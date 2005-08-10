@@ -635,10 +635,10 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
     }
     
     if(has_tar_or_zip)
-		{
+    {
         menu->Append( ID_MENU_RELEASE, "Export a Release");
         menu->AppendSeparator();
-		}   
+    }
     menu->Append( ID_MENU_PATCH, "Create Patch");
 }
 
@@ -1739,7 +1739,12 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     if(cmd.IsSameAs("checkout"))
     {
         if(request_autoopen)
-            AutoOpenProjects(svn->GetTarget(), true, true);
+        {
+            if(event.GetExtraLong() == ToolRunner::SVN)
+                AutoOpenProjects(svn->GetTarget(), true, true);
+            if(event.GetExtraLong() == ToolRunner::CVS)
+                AutoOpenProjects(cvs->GetTarget(), true, true);
+        }
     }
     
     if(cmd.IsSameAs("info"))
@@ -1772,47 +1777,44 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     
     if(cmd.IsSameAs("export:release"))
     {
-        wxString dest = svn->GetTarget();
-        wxString src = dest.BeforeFirst('*');
-        dest = dest.AfterFirst('*');
+        wxString dest = svn->GetTarget().AfterFirst('*');
         
         if(!patchFileName.IsEmpty())
         {
-        TempFile temp("");
-        wxString cmd;
-        
-			binutils->SetCommand("tar/zip");
-			binutils->SetTarget(patchFileName + "*" + temp.name);
-
+            wxString tarpath(wxFileName(patchFileName).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR)); // must not Q()!
+            wxString tarfile(binutils->Q(wxFileName(patchFileName).GetFullName()));
+            
+            wxString cmd;
+            
             if(patchFileName.Contains(".tar"))
+            {
                 binutils->SetExecutable(tarbin);
+                cmd = "--remove-files ";
+            }
             else if(patchFileName.Contains(".zip"))
+            {
                 binutils->SetExecutable(zipbin);
-                
-            if(patchFileName.Contains(".tar.gz"))
-                cmd = "--remove-files -zcf";
-            else if(patchFileName.Contains(".tar.bz2"))
-                cmd = "--remove-files --use-compress-program" + binutils->Q(bzip2bin) + "-cf";
-            else if(patchFileName.Contains(".tar"))
-                cmd = "--remove-files -cf ";
-            else if(patchFileName.Contains(".zip"))
                 cmd = "-r -m -q -9";
-            binutils->Run(cmd +  binutils->Q(temp.name) + " *", dest);
+                binutils->Run(cmd +  binutils->Q(patchFileName) + ".", dest);  // must not Q()!
+                patchFileName.Empty();
+                return;
+            }
+            
+            if(patchFileName.Contains(".tar.gz"))
+                cmd << "-zcf";
+            else if(patchFileName.Contains(".tar.bz2"))
+                cmd << "--use-compress-program" << binutils->Q(bzip2bin) << "-cf";
+            else if(patchFileName.Contains(".tar"))
+                cmd << "-cf ";
+
+            
+            binutils->Run(cmd +  tarfile + "-C" + binutils->Q(dest) + ".", tarpath);
             patchFileName.Empty();
         }
         
     }
-
-    if(cmd.IsSameAs("tar/zip"))
-    {
-        wxString t = binutils->GetTarget();
-        wxString dest = t.BeforeFirst('*');
-        wxString src = t.AfterFirst('*');
-		Log::Instance()->Grey("Moving " + src + " to " + dest);
-        wxRenameFile(src, dest);
-	}
     
-
+    
     // Know nothing, assume the best :)
     if(verbose && svn->IsIdle())
         Log::Instance()->Blue("All transactions finished.");

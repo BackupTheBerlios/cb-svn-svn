@@ -152,7 +152,7 @@ public:
     
     void CVSRunner::Checkout(const wxString& proto, const wxString& repo, const wxString& module, const wxString& workingdir, const wxString& user, const wxString& revision)
     {
-        SetCommand(wxString("CVS-checkout"));
+        SetCommand(wxString("checkout"));
         SetTarget(workingdir);
         wxString cmd("-z6 -d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ (revision.IsEmpty() ? "" : " -r" + Q(revision)) + module);
         Log::Instance()->Add("cvs " + cmd);
@@ -189,8 +189,8 @@ public:
         wxString cmd(" -z6 diff " + file);
         Run(cmd, fn.GetPath(wxPATH_GET_VOLUME));
     };
-    
-    
+
+   
     //    int    CVSRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
     //    int    CVSRunner::Add(const wxString& selected);
     //    int    CVSRunner::Delete(const wxString& selected);
