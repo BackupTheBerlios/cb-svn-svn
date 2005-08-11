@@ -164,7 +164,7 @@ public:
         SetTarget(target);
         wxFileName fn(target);
         wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());
-        wxString cmd(" -z6 update " + file + (revision.IsEmpty() ? "" : " -r" + Q(revision)) + (revision.IsEmpty() ? "" : " -D" + Q(date)));
+        wxString cmd(" -z6 update " + file + (revision.IsEmpty() ? "" : " -r" + Q(revision)) + (date.IsEmpty() ? "" : " -D" + Q(date)));
         Run(cmd, fn.GetPath(wxPATH_GET_VOLUME));
     };
     
