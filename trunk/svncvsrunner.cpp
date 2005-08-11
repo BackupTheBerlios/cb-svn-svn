@@ -24,12 +24,12 @@ extern const wxEventType EVT_WX_SUCKS;
 
 int SVNRunner::Run(wxString cmd)
 {
-    wxString ia;
+    wxString ia(" --non-interactive ");
     wxString force;
     
-    if(cmd.Contains(" update ") || cmd.Contains(" commit ") || cmd.Contains(" delete ")
-            || cmd.Contains(" status ") || cmd.Contains(" lock ") || cmd.Contains(" unlock "))
-        ia = " --non-interactive";
+    if(subcommand.IsSameAs("add") || subcommand.IsSameAs("cleanup") || subcommand.IsSameAs("info")
+            || subcommand.IsSameAs("resolved") || subcommand.IsSameAs("revert"))
+        ia = "";
         
     if(do_force)
     {
@@ -43,7 +43,7 @@ int SVNRunner::Run(wxString cmd)
     wxString runCmd(cmd);
     if(username > "" && password > "")
     {
-        runCmd << " --username " << Q(username) << " --password \"" << password << "\"" << ia << force;
+        runCmd << "--username" << Q(username) << "--password" << Q(password) << ia << force;
         username = password = "";
     }
     else
@@ -84,7 +84,7 @@ void SVNRunner::OutputHandler()
     }
     
     
-    wxRegEx reg("authenti|password", wxRE_ICASE);
+    wxRegEx reg("Authentication realm|password", wxRE_ICASE);
     if(reg.Matches(blob))
     {
         PasswordDialog p(Manager::Get()->GetAppWindow());
@@ -207,7 +207,7 @@ int  SVNRunner::Add(const wxString& selected)
 int  SVNRunner::Delete(const wxString& selected)
 {
     SetTarget(selected);
-    return RunBlocking("delete" + Q(selected));
+    return Run("delete" + Q(selected));
 }
 
 
@@ -237,9 +237,9 @@ int  SVNRunner::Update(const wxString& selected, const wxString& revision)
 
 int  SVNRunner::Commit(const wxString& selected, const wxString& message, bool safeCast)
 {
+    TempFile c(message);
     SetTarget(selected);
     SetCommand("commit");
-    TempFile c(message);
     
     if(safeCast)
     {

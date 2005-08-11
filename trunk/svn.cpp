@@ -463,7 +463,7 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
         menu->Append( ID_MENU_REVERT, "Revert..." );
         menu->AppendSeparator();
     }
-    else if(fm || pm || fa)
+    else if(fm || pm || fa || fd)
     {
         wxString comstr("Commit (");
         
@@ -471,15 +471,16 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
             comstr << fm << " file" << (fm == 1 ? "" : "s");
         if(pm)
             comstr << (fm ? ", " : "") << pm << (pm == 1 ? " property" : " properties");
-        comstr << " modified";
+        if(fm || pm)
+            comstr << " modified";
         if(fa)
-            comstr << ((fm || pm) ? ", " : "") << fa << " file" << (fa == 1 ? "" : "s") << " added";
+            comstr << (comstr.IsEmpty() ? "" : ", ") << fa << " file" << (fa == 1 ? "" : "s") << " added";
         if(fd)
-            comstr << ((fm || pm || fa) ? ", " : "") << fd << " file" << (fd == 1 ? "" : "s") << " deleted";
+            comstr << (comstr.IsEmpty() ? "" : ", ") << fd << " file" << (fd == 1 ? "" : "s") << " deleted";
         if(ms)
-            comstr << ((fm || pm || fa || fd || cf) ? ", " : "") << ms << " file" << (ms == 1 ? "" : "s") << " missing";
+            comstr << (comstr.IsEmpty() ? "" : ", ") << ms << " file" << (ms == 1 ? "" : "s") << " missing";
         if(lk)
-            comstr << ((fm || pm || fa || fd || cf || ms) ? ", " : "") << lk << " lock" << (lk == 1 ? "" : "s") << " held";
+            comstr << (comstr.IsEmpty() ? "" : ", ") << lk << " lock" << (lk == 1 ? "" : "s") << " held";
             
         comstr << ")";
         
@@ -735,7 +736,7 @@ void SubversionPlugin::ReloadEditors(const wxArrayString& filenames)
     for(int i = 0; i < filenames.Count(); ++i)
         if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
         {
-            Log::Instance()->Add("reloading " + filenames[i]);
+            //Log::Instance()->Add("reloading " + filenames[i]);
             e->Reload();
         }
 }
@@ -1695,6 +1696,7 @@ void SubversionPlugin::EditProperty(wxCommandEvent& event)
 void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
 {
     wxString cmd(event.GetString());
+    
     if(event.GetExtraLong() == ToolRunner::SVN)
     {
         wxArrayString conflicting;
@@ -1718,15 +1720,14 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     
     wxString lastCommand(svn->LastCommand());
     
-    if(cmd.IsSameAs("commit"))
+    if(lastCommand.Contains(" commit ")) // cannot rely on cmd here due to RemoteStatusHandler
     {
         if(up_after_co)
         {
             wxArrayString changed;
             for(unsigned int i = 0; i < svn->std_out.Count(); ++i)
-                if(svn->std_out[i].StartsWith("Adding") || svn->std_out[i].StartsWith("Sending"))
-                    changed.Add(svn->std_out[i].Mid(15).Trim());
-                    
+                if(svn->std_out[i].Contains("Adding") || svn->std_out[i].Contains("Sending"))
+                    changed.Add(svn->std_out[i].Mid(12).Strip(wxString::both));
             ReloadEditors(changed);
         }
     }
