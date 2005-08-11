@@ -641,7 +641,7 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
         menu->AppendSeparator();
     }
     
-    if(has_tar_or_zip && !isProject)
+    if(has_tar_or_zip && isProject)
     {
         menu->Append( ID_MENU_RELEASE, "Export a Release");
         menu->AppendSeparator();
@@ -837,16 +837,22 @@ void SubversionPlugin::Release(wxCommandEvent& event)
     if(patchFileName.Contains(".gz") && !patchFileName.Contains(".tar."))
         patchFileName.Replace(".gz", ".tar.gz");
         
-        
+    wxTextEntryDialog d(NULL,
+                        "Please enter the desired revision to export from:\n",
+                        "Export a Release", "HEAD");
+    d.ShowModal();
+    wxString rev = d.GetValue();
+    if(rev.IsEmpty())
+        return;
+
     if(DirUnderCVS(selected))
     {
         wxString repo;
         wxString module;
         if(TamperWithCVS(repo, module))
         {
-            //            cvs->Export(selected);
-            Log::Instance()->Add("repo   : " + repo);
-            Log::Instance()->Add("module : " + module);
+            tempDir = wxString("cbsvn-") << wxGetLocalTime();
+            cvs->Export(repo, module, tempDir, TempFile::TempFolder(), rev);
         }
         else
         {
@@ -855,7 +861,7 @@ void SubversionPlugin::Release(wxCommandEvent& event)
         return;
     }
     
-    svn->Export(selected, tempDir, "HEAD", "release");
+    svn->Export(selected, tempDir, rev, "release");
 }
 
 
@@ -1802,7 +1808,9 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     
     if(cmd.IsSameAs("export:release"))
     {
-        wxString dest = svn->GetTarget().AfterFirst('*');
+        ToolRunner *tool = (event.GetExtraLong() == ToolRunner::SVN) ? (ToolRunner *) svn : (ToolRunner *) cvs;
+        
+        wxString dest = tool->GetTarget().AfterFirst('*');
         
         if(!patchFileName.IsEmpty())
         {
@@ -1832,7 +1840,9 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
             else if(patchFileName.Contains(".tar"))
                 cmd << "-cf";
                 
-                
+            //Log::Instance()->Add(tarpath);
+            //Log::Instance()->Add(cmd +  tarfile + "-C" + binutils->Q(dest) + ".");
+            
             binutils->Run(cmd +  tarfile + "-C" + binutils->Q(dest) + ".", tarpath);
             patchFileName.Empty();
         }

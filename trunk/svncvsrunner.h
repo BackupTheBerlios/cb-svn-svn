@@ -144,14 +144,14 @@ public:
     {
         // cvs -d :pserver:bach:p4ss30rd@faun.example.org:/usr/local/cvsroot login
         SetTarget("");
-        SetCommand(wxString("CVS-login"));
+        SetCommand("CVS-login");
         wxString cmd("-z6 -d " + proto + user + ":" + pass + "@" + repo + " login");
         RunBlocking(cmd);
     };
     
     void CVSRunner::Checkout(const wxString& proto, const wxString& repo, const wxString& module, const wxString& workingdir, const wxString& user, const wxString& revision)
     {
-        SetCommand(wxString("checkout"));
+        SetCommand("checkout");
         SetTarget(workingdir);
         wxString cmd("-z6 -d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ (revision.IsEmpty() ? "" : " -r" + Q(revision)) + module);
         Log::Instance()->Add("cvs " + cmd);
@@ -160,7 +160,7 @@ public:
     
     void CVSRunner::Update(const wxString& target, const wxString& revision, const wxString& date)
     {
-        SetCommand(wxString("CVS-update"));
+        SetCommand("CVS-update");
         SetTarget(target);
         wxFileName fn(target);
         wxString file = wxDirExists(target) ? "" : Q(fn.GetFullName());
@@ -170,7 +170,7 @@ public:
     
     void CVSRunner::Commit(const wxString& target, const wxString& message)
     {
-        SetCommand(wxString("CVS-commit"));
+        SetCommand("CVS-commit");
         SetTarget(target);
         TempFile msg(message);
         wxFileName fn(target);
@@ -181,7 +181,7 @@ public:
     
     void CVSRunner::Diff(const wxString& target)
     {
-        SetCommand(wxString("CVS-diff"));
+        SetCommand("CVS-diff");
         SetTarget(target);
         wxFileName fn(target);
         wxString file = Q(fn.GetFullName());
@@ -189,7 +189,16 @@ public:
         Run(cmd, fn.GetPath(wxPATH_GET_VOLUME));
     };
 
-   
+
+    void CVSRunner::Export(const wxString& repo, const wxString& module, const wxString& dir, const wxString& cwd, const wxString& rev)
+    {
+        SetCommand("export:release");
+        SetTarget("*" + cwd + dir);
+        wxString cmd(" -z6 -d " + Q(repo) + "export -f -r" + Q(rev) + "-d" + Q(dir) + Q(module));
+        Run(cmd, cwd);
+    };
+
+  
     //    int    CVSRunner::Import(const wxString& repo, const wxString& dir, const wxString &message);
     //    int    CVSRunner::Add(const wxString& selected);
     //    int    CVSRunner::Delete(const wxString& selected);
