@@ -59,7 +59,6 @@ EVT_MENU(ID_MENU_D_C,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_D_B,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_D_REV,    SubversionPlugin::Diff)
 EVT_MENU(ID_MENU_PATCH,    SubversionPlugin::Patch)
-EVT_MENU(ID_MENU_PATCH_F_CVS,    SubversionPlugin::Patch)
 
 EVT_MENU(ID_MENU_RESTORE,   SubversionPlugin::Update)
 
@@ -70,6 +69,7 @@ EVT_MENU(ID_MENU_SWITCH,   SubversionPlugin::OnFatTortoiseFunctionality)
 EVT_MENU(ID_MENU_MERGE,    SubversionPlugin::OnFatTortoiseFunctionality)
 EVT_MENU(ID_MENU_CREATE,   SubversionPlugin::OnFatTortoiseFunctionality)
 EVT_MENU(ID_MENU_RELOCATE,   SubversionPlugin::OnFatTortoiseFunctionality)
+EVT_MENU(ID_MENU_TSVN_PATCH,   SubversionPlugin::OnFatTortoiseFunctionality)
 
 EVT_MENU(ID_MENU_CVS_BRANCH,  SubversionPlugin::OnFatTortoiseCVSFunctionality)
 EVT_MENU(ID_MENU_CVS_TAG,   SubversionPlugin::OnFatTortoiseCVSFunctionality)
@@ -322,10 +322,16 @@ void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
     if (!IsProject(arg))
     {
         menu->AppendSeparator();
-        menu->Append( ID_MENU_PATCH_F_CVS,  "Create patch..." );
+        menu->Append( ID_MENU_PATCH,  "Create patch..." );
     }
     else
     {
+        if(has_tar_or_zip)
+        {
+            menu->AppendSeparator();
+            menu->Append( ID_MENU_RELEASE, "Export a Release");
+        }
+        
         menu->AppendSeparator();
         menu->Append( ID_MENU_CVS_LOGIN, "Login" );
     }
@@ -634,12 +640,12 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
         menu->AppendSeparator();
     }
     
-    if(has_tar_or_zip)
+    if(has_tar_or_zip && !isProject)
     {
         menu->Append( ID_MENU_RELEASE, "Export a Release");
         menu->AppendSeparator();
     }
-    menu->Append( ID_MENU_PATCH, "Create Patch");
+    menu->Append( isProject ? ID_MENU_TSVN_PATCH : ID_MENU_PATCH, "Create Patch");
 }
 
 
@@ -729,10 +735,7 @@ void SubversionPlugin::ReloadEditors(const wxArrayString& filenames)
     for(int i = 0; i < filenames.Count(); ++i)
         if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
         {
-#ifdef LOTS_OF_DEBUG_OUTPUT
-            Log::Instance()->Add("Reload "+filenames[i]);
-#endif
-            
+            Log::Instance()->Add("reloading " + filenames[i]);
             e->Reload();
         }
 }
@@ -795,7 +798,7 @@ void SubversionPlugin::Patch(wxCommandEvent& event)
                                    "*.patch", "patch files (*.patch)|*.patch|text files (*.txt)|*.txt|all files (*.*)|*.*", wxSAVE);
                                    
     if(!patchFileName.IsEmpty())
-        if(event.GetId() == ID_MENU_PATCH_F_CVS)
+        if(DirUnderCVS(selected))
             cvs->Diff(selected);
         else
             svn->Diff(selected, "HEAD");
@@ -834,9 +837,23 @@ void SubversionPlugin::Release(wxCommandEvent& event)
         patchFileName.Replace(".gz", ".tar.gz");
         
         
-    //        if(DirUnderCVS(selected))
-    //            cvs->Export(selected);
-    //        else
+    if(DirUnderCVS(selected))
+    {
+        wxString repo;
+        wxString module;
+        if(TamperWithCVS(repo, module))
+        {
+            //            cvs->Export(selected);
+            Log::Instance()->Add("repo   : " + repo);
+            Log::Instance()->Add("module : " + module);
+        }
+        else
+        {
+            Log::Instance()->Red("Could not successfully tamper with CVS. Unable to determine repository.");
+        }
+        return;
+    }
+    
     svn->Export(selected, tempDir, "HEAD", "release");
 }
 
@@ -1605,7 +1622,6 @@ void SubversionPlugin::OnFatTortoiseCVSFunctionality(wxCommandEvent& event)
 
 void SubversionPlugin::OnFatTortoiseFunctionality(wxCommandEvent& event)
 {
-    assert(event.GetId() >= ID_MENU_BRANCH && event.GetId() <= ID_MENU_RELOCATE);
     assert(tortoise);
     
     wxString p(GetSelection());
@@ -1634,6 +1650,10 @@ void SubversionPlugin::OnFatTortoiseFunctionality(wxCommandEvent& event)
         
         case ID_MENU_RELOCATE:
         tortoise->Relocate(p);
+        break;
+        
+        case ID_MENU_TSVN_PATCH:
+        tortoise->Patch(p);
         break;
     };
 }
@@ -1738,13 +1758,9 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     
     if(cmd.IsSameAs("checkout"))
     {
+        ToolRunner *tool = (event.GetExtraLong() == ToolRunner::SVN) ? (ToolRunner *) svn : (ToolRunner *) cvs;
         if(request_autoopen)
-        {
-            if(event.GetExtraLong() == ToolRunner::SVN)
-                AutoOpenProjects(svn->GetTarget(), true, true);
-            if(event.GetExtraLong() == ToolRunner::CVS)
-                AutoOpenProjects(cvs->GetTarget(), true, true);
-        }
+            AutoOpenProjects(tool->GetTarget(), true, true);
     }
     
     if(cmd.IsSameAs("info"))
@@ -1758,9 +1774,17 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
         Log::Instance()->Add(s);
     }
     
-    if(cmd.IsSameAs("cat"))
+    if(cmd.IsSameAs("diff"))
     {
-        meow = svn->out;
+        if(svn->out.IsEmpty())
+            Log::Instance()->Add("No differences, skipping output file generation.");
+        else
+            if(!patchFileName.IsEmpty())
+            {
+                wxFile f(patchFileName, wxFile::write);
+                f.Write(svn->out);
+                patchFileName.Empty();
+            }
     }
     
     if(cmd.IsSameAs("export:diff"))
@@ -1805,9 +1829,9 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
             else if(patchFileName.Contains(".tar.bz2"))
                 cmd << "--use-compress-program" << binutils->Q(bzip2bin) << "-cf";
             else if(patchFileName.Contains(".tar"))
-                cmd << "-cf ";
-
-            
+                cmd << "-cf";
+                
+                
             binutils->Run(cmd +  tarfile + "-C" + binutils->Q(dest) + ".", tarpath);
             patchFileName.Empty();
         }
@@ -1868,12 +1892,15 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
         */
         if(cmd.IsSameAs("CVS-diff"))
         {
-            if(!patchFileName.IsEmpty())
-            {
-                wxFile f(patchFileName, wxFile::write);
-                f.Write(cvs->out);
-                patchFileName.Empty();
-            }
+            if(cvs->out.IsEmpty())
+                Log::Instance()->Add("No differences, skipping output file generation.");
+            else
+                if(!patchFileName.IsEmpty())
+                {
+                    wxFile f(patchFileName, wxFile::write);
+                    f.Write(cvs->out);
+                    patchFileName.Empty();
+                }
             if(verbose && cvs->IsIdle())
                 Log::Instance()->Blue("All transactions finished.");
             return;
@@ -1900,8 +1927,6 @@ void SubversionPlugin::ReRun(wxCommandEvent& event)
 
 void SubversionPlugin::DoResolve(const wxString& conflicting)
 {
-    wxBell();
-    Log::Instance()->Add("resolve...");
     if(tortoise)
         tortoise->ConflictEditor(conflicting);
     else if(diff3)
@@ -1920,7 +1945,7 @@ void SubversionPlugin::DoResolve(const wxString& conflicting)
             wxString mine(target + ".mine");
             wxString theirs;
             wxString f = wxFindFirstFile( target+ ".r*");
-            while ( !f.IsEmpty() )
+            while ( !f.IsEmpty() ) // we're only interested in the last one
             {
                 theirs = f;
                 f = wxFindNextFile();
@@ -1941,7 +1966,6 @@ void SubversionPlugin::Resolved(wxCommandEvent& event)
             "Undoing the effects of a false 'resolved' command is not impossible, but it is painful. Be sure about what you do.",
             "Resolved", wxYES_NO | wxICON_EXCLAMATION).ShowModal() == wxID_YES))
         svn->Resolved(target);
-        
 }
 
 

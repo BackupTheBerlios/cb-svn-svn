@@ -300,17 +300,6 @@ int SVNRunner::PropDel(const wxString& selected, const wxString& prop)
     return  Run("propdel" + Q(prop) + Q(selected));
 }
 
-wxString SVNRunner::Cat(const wxString& selected, const wxString& rev)
-{
-    SetTarget(selected);
-    SetCommand("cat");
-    if(rev.IsEmpty())
-        Run("cat" + Q(selected));
-    else
-        Run("cat" + Q(selected) + "-r" +Q(rev) );
-    return out;
-}
-
 wxString SVNRunner::Diff(const wxString& selected, const wxString& rev)
 {
     SetTarget(selected);

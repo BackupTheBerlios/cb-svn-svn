@@ -99,6 +99,12 @@ public:
         cmd << "\" /notempfile /closeonend";
         Run(cmd);
     }
+    void TortoiseRunner::Patch(const wxString& path)
+    {
+        wxString cmd("/command:createpatch /path:" + QT(path));
+        cmd << "\" /notempfile /closeonend";
+        Run(cmd);
+    }
     void TortoiseRunner::StatusDialog(const wxString& path)
     {
         wxString cmd("/command:repostatus /path:\"");

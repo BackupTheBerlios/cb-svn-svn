@@ -75,7 +75,6 @@ public:
     int    Lock(const wxString& selected, bool force = false);
     int    UnLock(const wxString& selected, bool force = false);
     
-    wxString  Cat(const wxString& selected, const wxString& rev);
     wxString  Diff(const wxString& selected, const wxString& rev);
     
     int     Revert(const wxString& file);

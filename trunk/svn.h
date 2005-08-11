@@ -16,6 +16,8 @@
 
 
 #include <wx/wx.h>
+#include <wx/wfstream.h>
+#include <wx/txtstrm.h>
 
 #include <manager.h>
 #include <configmanager.h>
@@ -254,6 +256,27 @@ public:
             
         s =  wxFileName(arg).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "CVS";
         return wxFileName::DirExists(s);
+    }
+    
+    bool TamperWithCVS(wxString& repo, wxString& module)
+    {
+        /*
+        * Let's all hope that the CVS developers never change the incorrect naming
+        * of these files, or my code will break...
+        */
+        wxString cvsdir(GetSelectionsProject() + "/CVS/");
+        wxFile repoFile(cvsdir + "Root");
+        wxFile moduleFile(cvsdir + "Repository");
+        
+        if(repoFile.IsOpened() && moduleFile.IsOpened())
+        {
+            wxFileInputStream repoFS(repoFile);
+            wxFileInputStream moduleFS(moduleFile);
+            repo = wxTextInputStream(repoFS).ReadLine();
+            module = wxTextInputStream(moduleFS).ReadLine();
+            return true;
+        }
+        return false;
     }
     
     
