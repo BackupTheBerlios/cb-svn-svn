@@ -51,6 +51,7 @@ public:
     {
     Log::Instance()->Add(cmd);
         ToolRunner::RunBlind(cmd);
+	return 0;
     };
     
     
@@ -138,6 +139,7 @@ public:
     virtual int TortoiseCVSRunner::Run(wxString cmd)
     {
         ToolRunner::RunBlind(cmd);
+        return 0;
     };
     
     
@@ -196,6 +198,7 @@ public:
     virtual int Run(wxString cmd)
     {
         ToolRunner::RunBlind(cmd);
+        return 0;
     };
     
     

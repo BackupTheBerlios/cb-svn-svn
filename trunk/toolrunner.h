@@ -30,10 +30,10 @@
 
 enum
 {
-    TRANSACTION_SUCCESS,
-    TRANSACTION_FAILURE,
-    RUN_AGAIN,
-    RUN_NEXT_IN_QUEUE
+  TRANSACTION_SUCCESS,
+  TRANSACTION_FAILURE,
+  RUN_AGAIN,
+  RUN_NEXT_IN_QUEUE
 };
 
 
@@ -43,155 +43,155 @@ extern EVTIMPORT const wxEventType EVT_WX_SUCKS;
 
 
 class BogusProcess : public wxProcess
-{
-public:
+  {
+  public:
     BogusProcess::BogusProcess()
     {
-        Redirect();  // We won't make use of this, but it prevents a DOS window from showing up
-        Detach();   // Auto-delete when OnTerminate() returns... hopefully
+      Redirect();  // We won't make use of this, but it prevents a DOS window from showing up
+      Detach();   // Auto-delete when OnTerminate() returns... hopefully
     }
-};
-
-
+  };
+  
+  
 class Process : public wxProcess
-{
+  {
     wxInputStream *stream_stdout;
     wxInputStream *stream_stderr;
     
     bool running;
-public:
+  public:
     int exitCode;
     wxArrayString std_out;
     wxArrayString std_err;
     
     bool Running()
     {
-        return running;
+      return running;
     };
     
     Process::Process()
     {
-        Redirect();
-        running = true;
+      Redirect();
+      running = true;
     };
     
     void FlushPipe()
     {
-        wxString line;
-        stream_stdout = GetInputStream();
-        stream_stderr = GetErrorStream();
-        assert(stream_stdout);
-        assert(stream_stderr);
-        wxTextInputStream t_stream_stdout(*stream_stdout);
-        wxTextInputStream t_stream_stderr(*stream_stderr);
-        
-        while(! stream_stdout->Eof() )
+      wxString line;
+      stream_stdout = GetInputStream();
+      stream_stderr = GetErrorStream();
+      assert(stream_stdout);
+      assert(stream_stderr);
+      wxTextInputStream t_stream_stdout(*stream_stdout);
+      wxTextInputStream t_stream_stderr(*stream_stderr);
+      
+      while(! stream_stdout->Eof() )
         {
-            line = t_stream_stdout.ReadLine();
-            std_out.Add(line);
+          line = t_stream_stdout.ReadLine();
+          std_out.Add(line);
         }
         
-        while(! stream_stderr->Eof() )
+      while(! stream_stderr->Eof() )
         {
-            line = t_stream_stderr.ReadLine();
-            std_err.Add(line);
+          line = t_stream_stderr.ReadLine();
+          std_err.Add(line);
         }
     };
     
     virtual void OnTerminate(int pid, int status)
     {
-        FlushPipe();
-        exitCode = status;
-        running = false;
+      FlushPipe();
+      exitCode = status;
+      running = false;
     }
-};
-
-
-
+  };
+  
+  
+  
 class TempFile
-{
+  {
     static wxArrayString oldName;
-public:
+  public:
     wxString name;
     
     TempFile(const wxString& contents)
     {
-        wxFile f;
-        name = wxFileName::CreateTempFileName("", &f);
-        oldName.Add(name);
-        
-        if(!f.Write(contents))
-            Log::Instance()->Add("Error: unable to open tempfile.");
-        f.Close();
+      wxFile f;
+      name = wxFileName::CreateTempFileName("", &f);
+      oldName.Add(name);
+      
+      if(!f.Write(contents))
+        Log::Instance()->Add("Error: unable to open tempfile.");
+      f.Close();
     };
     
     static void Cleanup()
     {
-        wxString tempFolder = TempFolder();
-        
-        for(int i = 0; i < oldName.Count() ; ++i)
+      wxString tempFolder = TempFolder();
+      
+      for(unsigned int i = 0; i < oldName.Count() ; ++i)
         {
-            if(::wxFileExists(oldName[i]))
-                ::wxRemoveFile(oldName[i]);
+          if(::wxFileExists(oldName[i]))
+            ::wxRemoveFile(oldName[i]);
         }
         
         
-        tempFolder = wxFindFirstFile(tempFolder + "cbsvn-*", wxDIR);
-        while ( !tempFolder.IsEmpty() )
+      tempFolder = wxFindFirstFile(tempFolder + "cbsvn-*", wxDIR);
+      while ( !tempFolder.IsEmpty() )
         {
-            // TODO: recursive delete
-            tempFolder = wxFindNextFile();
+          // TODO: recursive delete
+          tempFolder = wxFindNextFile();
         }
     };
     
     static wxString TempFolder()
     {
-        if(oldName.Count() == 0)
+      if(oldName.Count() == 0)
         {
-            TempFile t("");
+          TempFile t("");
         }
         
-        if(oldName.Count())
-            return wxFileName(oldName[0]).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
-            
-        return wxEmptyString;
+      if(oldName.Count())
+        return wxFileName(oldName[0]).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
+        
+      return wxEmptyString;
     };
     
     static void CleanupCheck()
     {
-        wxArrayString new_oldName;
-        wxFile f;
-        wxString tname = wxFileName::CreateTempFileName("", &f);
-        int cutoff = wxFileModificationTime(tname) - 60*60*4; // files older than 4 hours
-        f.Close();
-        ::wxRemoveFile(tname);
-        
-        for(int i = 0; i < oldName.Count() ; ++i)
+      wxArrayString new_oldName;
+      wxFile f;
+      wxString tname = wxFileName::CreateTempFileName("", &f);
+      int cutoff = wxFileModificationTime(tname) - 60*60*4; // files older than 4 hours
+      f.Close();
+      ::wxRemoveFile(tname);
+      
+      for(unsigned int i = 0; i < oldName.Count() ; ++i)
         {
-            if(::wxFileExists(oldName[i]) && wxFileModificationTime(oldName[i]) < cutoff )
-                ::wxRemoveFile(oldName[i]);
-            else
-                new_oldName.Add(oldName[i]);
+          if(::wxFileExists(oldName[i]) && wxFileModificationTime(oldName[i]) < cutoff )
+            ::wxRemoveFile(oldName[i]);
+          else
+            new_oldName.Add(oldName[i]);
         }
-        oldName = new_oldName;
+      oldName = new_oldName;
     };
-};
-
-
-
-
-
+  };
+  
+  
+  
+  
+  
 class ToolRunner : public wxEvtHandler
-{
-public:
-
+  {
+  public:
+  
     typedef enum
     {
-        UNDEFINED,
-        SVN,
-        CVS,
-        DIFF3,
-        TKDIFF
+      UNDEFINED,
+      SVN,
+      CVS,
+      DIFF3,
+      TKDIFF
     }type;
     
     
@@ -201,11 +201,11 @@ public:
     wxString   out;   // "out" likewise, but preserving linebreaks
     int     lastExitCode;
     
-    ToolRunner() :  lastExitCode(0), runnerType(ToolRunner::UNDEFINED), insert_first(0), implicit_run(0)
+    ToolRunner() :  lastExitCode(0), runnerType(ToolRunner::UNDEFINED), implicit_run(0), insert_first(0)
     {
-        timer.SetOwner(this);
-        plugin = Manager::Get()->GetPluginManager()->FindPluginByName("svn");
-        assert(plugin);
+      timer.SetOwner(this);
+      plugin = Manager::Get()->GetPluginManager()->FindPluginByName("svn");
+      assert(plugin);
     };
     
     virtual ~ToolRunner()
@@ -214,75 +214,75 @@ public:
     
     void SetExecutable(const wxString& executable)
     {
-        exec = executable;
+      exec = executable;
     };
     
     wxString GetExecutable()
     {
-        return exec;
+      return exec;
     };
     
     void EmptyQueue()
     {
-        commandQueue.Empty();
+      commandQueue.Empty();
     };
     
     void InsertFirst()
     {
-        insert_first = true;
+      insert_first = true;
     };
     
     void Implicit()
     {
-        implicit_run  = true;
+      implicit_run  = true;
     };
     
     void QueueAgain()
     {
-        commandQueue.Insert(lastCommand, 0);
+      commandQueue.Insert(lastCommand, 0);
     };
     
     
     wxString GetTarget()
     {
-        return target;
+      return target;
     };
     
     wxString LastCommand()
     {
-        return lastCommand;
+      return lastCommand;
     };
     
     void AddToLastCommand(const wxString& s)
     {
-        lastCommand << s;
+      lastCommand << s;
     };
     
     void SetTarget(const wxString& t)
     {
-        target = t;
+      target = t;
     };
     
     
     wxString GetQueued()
     {
-        if(commandQueue.Count())
-            return commandQueue[0];
-        else
-            return wxEmptyString;
+      if(commandQueue.Count())
+        return commandQueue[0];
+      else
+        return wxEmptyString;
     };
     
     type Type()
     {
-        return runnerType;
+      return runnerType;
     };
     
     wxString Q(const wxString & in)
     {
-        wxString out(" \"");
-        out << in << "\" ";
-        out.Replace("\\", "/", true);
-        return out;
+      wxString out(" \"");
+      out << in << "\" ";
+      out.Replace("\\", "/", true);
+      return out;
     };
     
     int ToolRunner::RunBlocking(const wxString& cmd);
@@ -299,10 +299,10 @@ public:
     
     virtual void OutputHandler()
     {
-        if(lastExitCode)
-            Fail();
-        else
-            Succeed();
+      if(lastExitCode)
+        Fail();
+      else
+        Succeed();
     };
     
     void Fail();
@@ -311,30 +311,41 @@ public:
     
     bool Running()
     {
-        return cb_process || process;
+      return cb_process || process;
     };
     
     void Finish()
     {
-        while(Running())
+      while(Running())
         {
-            if (cb_process)
-                ((PipedProcess*)cb_process)->HasInput();
-            wxYield();
+          if (cb_process)
+            ((PipedProcess*)cb_process)->HasInput();
+          wxYield();
         }
     };
     
     bool IsIdle()
     {
-        return !Running() && commandQueue.IsEmpty();
+      return !Running() && commandQueue.IsEmpty();
     };
     
-    bool SetCommand(const wxString& c)
+    void SetCommand(const wxString& c)
     {
-        subcommand = c;
+      subcommand = c;
     };
     
-protected:
+    void SetPlink(const wxString& c)
+    {
+      plink = c;
+    };
+    
+    void Kill(wxSignal signal)
+    {
+      if(pid)
+        wxKill(pid, signal);
+    };
+    
+  protected:
     int ToolRunner::RunAsync(const wxString& cmd, const wxString& cwd);
     cbPlugin *plugin;
     wxArrayString commandQueue;
@@ -345,16 +356,17 @@ protected:
     wxString  exec;
     wxString  subcommand;
     bool implicit_run;
+    wxString plink;
     
-private:
+  private:
     wxTimer   timer;
     static PipedProcess *cb_process;
     static Process   *process;
     int    pid;
     bool insert_first;
     DECLARE_EVENT_TABLE()
-};
-
-
+  };
+  
+  
 #endif
-
+  

@@ -44,7 +44,7 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
     c = XRCCTRL(*this, "repository url", wxComboBox);
     assert(c);
     
-    for(int i = 0; i < repoHist.Count(); i++)
+    for(unsigned int i = 0; i < repoHist.Count(); i++)
         c->Append(repoHist[i]);
         
     if(repoHist.Count())
@@ -54,7 +54,7 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
     c = XRCCTRL(*this, "cvs_repo", wxComboBox);
     assert(c);
     
-    for(int i = 0; i < repoHistCVS.Count(); i++)
+    for(unsigned int i = 0; i < repoHistCVS.Count(); i++)
         c->Append(repoHistCVS[i]);
         
     if(repoHistCVS.Count())
@@ -146,7 +146,7 @@ ImportDialog::ImportDialog(wxWindow* parent, const wxArrayString& repoHist, cons
     wxComboBox* c = XRCCTRL(*this, "repository url", wxComboBox);
     assert(c);
     
-    for(int i = 0; i < repoHist.Count(); i++)
+    for(unsigned int i = 0; i < repoHist.Count(); i++)
         c->Append(repoHist[i]);
         
     XRCCTRL(*this, "source dir", wxTextCtrl)->SetValue(imp);
@@ -223,7 +223,7 @@ CommitDialog::CommitDialog(wxWindow* parent, const wxArrayString& addList, bool 
         wxXmlResource::Get()->LoadDialog(this, parent, "CommitAdd");
         wxCheckListBox* list = XRCCTRL(*this, "listcontrol", wxCheckListBox);
         assert(list);
-        for(int i = 0; i < addList.Count(); ++i)
+        for(unsigned int i = 0; i < addList.Count(); ++i)
         {
             list->Append(addList[i]);
             list->Check(i, true);
@@ -438,7 +438,7 @@ void IgnoreEditorDialog::OnSelectClick(wxCommandEvent& event)
         fd.GetPaths(p);
         
         value = XRCCTRL(*this, "value", wxTextCtrl)->GetValue();
-        for(int i = 0; i < p.Count(); ++i)
+        for(unsigned int i = 0; i < p.Count(); ++i)
         {
             wxFileName fn(p[i]);
             fn.MakeRelativeTo(dir);
@@ -472,7 +472,7 @@ RevertDialog::RevertDialog(wxWindow* parent, const wxArrayString& revertList, co
     wxXmlResource::Get()->LoadDialog(this, parent, "Revert");
     wxCheckListBox* list = XRCCTRL(*this, "listcontrol", wxCheckListBox);
     assert(list);
-    for(int i = 0; i < revertList.Count(); ++i)
+    for(unsigned int i = 0; i < revertList.Count(); ++i)
     {
         list->Append(revertList[i]);
     }

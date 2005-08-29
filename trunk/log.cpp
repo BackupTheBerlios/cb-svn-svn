@@ -18,7 +18,7 @@
 #include <manager.h>
 #include <messagemanager.h>
 #include <configmanager.h>
-#include <simpletextlog.h>
+#include "svnlog.h"
 
 
 #include "log.h"
@@ -27,23 +27,33 @@ int Log::lastLogTime = 0;
 
 Log::Log()
 {
-    MessageManager* msgMan = Manager::Get()->GetMessageManager();
-    
-    m_log = new SimpleTextLog(msgMan, "cb::svn");
-    
-    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE, wxFont(8, wxMODERN, wxNORMAL, wxNORMAL)));
-    
-    index = msgMan->AddLog(m_log);
-    
-    wxFileSystem fs;
-    wxString zip(ConfigManager::Get()->Read("data_path") + "/svn.zip#zip:\\");
-    
-    if(wxFSFile* file = fs.OpenFile(zip + "log.png"))
+  MessageManager* msgMan = Manager::Get()->GetMessageManager();
+  
+  wxFileSystem fs;
+  wxString zip(ConfigManager::Get()->Read("data_path") + "/svn.zip#zip:\\");
+  
+  
+  if(wxFSFile* file = fs.OpenFile(zip + "skull.png"))
     {
-        wxBitmap bmp(wxImage(*(file->GetStream()), wxBITMAP_TYPE_PNG));
-        delete file;
-        msgMan->SetLogImage(index, bmp);
+      wxBitmap skull(wxImage(*(file->GetStream()), wxBITMAP_TYPE_PNG));
+      delete file;
+      m_log = new SVNLog(msgMan, "cb::svn", &skull);
     }
+  else
+    m_log = new SVNLog(msgMan, "cb::svn");
+    
+  m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE, wxFont(8, wxMODERN, wxNORMAL, wxNORMAL)));
+  
+  index = msgMan->AddLog(m_log);
+  
+  if(wxFSFile* file = fs.OpenFile(zip + "log.png"))
+    {
+      wxBitmap bmp(wxImage(*(file->GetStream()), wxBITMAP_TYPE_PNG));
+      delete file;
+      msgMan->SetLogImage(index, bmp);
+    }
+    
+    
 }
 
 Log::~Log()
@@ -51,26 +61,26 @@ Log::~Log()
 
 void Log::Add(wxString str)
 {
-    m_log->AddLog(str);
-    lastLogTime = wxGetLocalTime();
+  m_log->AddLog(str);
+  lastLogTime = wxGetLocalTime();
 }
 
 void Log::Red(wxString str)
 {
-    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxRED, *wxWHITE));
-    Add(str);
-    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+  m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxRED, *wxWHITE));
+  Add(str);
+  m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
 }
 void Log::Blue(wxString str)
 {
-    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLUE, *wxWHITE));
-    Add(str);
-    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+  m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLUE, *wxWHITE));
+  Add(str);
+  m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
 }
 void Log::Grey(wxString str)
 {
-    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxLIGHT_GREY, *wxWHITE));
-    Add(str);
-    m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
+  m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxLIGHT_GREY, *wxWHITE));
+  Add(str);
+  m_log->GetTextControl()->SetDefaultStyle(wxTextAttr(*wxBLACK, *wxWHITE));
 }
 

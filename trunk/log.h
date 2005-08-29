@@ -14,17 +14,16 @@
 #define __LOG_H_
 
 #include "singleton.h"
+#include "svnlog.h"
 
 #include <manager.h>
 #include <messagemanager.h>
-#include <simpletextlog.h>
-
 
 class Log : public Singleton<Log>
 {
     friend class Singleton<Log>;
     
-    SimpleTextLog *m_log;
+    SVNLog *m_log;
     int    index;
     
 private:

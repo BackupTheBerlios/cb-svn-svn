@@ -617,10 +617,19 @@
 <object class="sizeritem">
 <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
 <border>5</border>
-<object class="wxCheckBox" name="verbose">
-<label>Log everything ("verbose mode")</label>
+<object class="wxCheckBox" name="svn_ssh">
+<label>Set SVN_SSH</label>
 </object>
 </object>
+
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="cvs_rsh">
+<label>Set CVS_RSH</label>
+</object>
+</object>
+
 </object>
 </object>
 <object class="spacer">

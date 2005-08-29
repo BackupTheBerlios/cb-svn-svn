@@ -19,12 +19,12 @@
 			</Target>
 		</Build>
 		<Compiler>
+			<Add option="-Wall"/>
 			<Add option="-D__GNUWIN32__"/>
 			<Add option="-DWXUSINGDLL"/>
 			<Add option="-DBUILDING_PLUGIN"/>
 		</Compiler>
 		<Linker>
-			<Add option="-s"/>
 			<Add library="codeblocks"/>
 			<Add library="wxmsw242"/>
 			<Add directory="C:\CodeBlocks"/>
@@ -93,6 +93,16 @@
 			<Option target="default"/>
 		</Unit>
 		<Unit filename="svncvsrunner.h">
+			<Option compilerVar=""/>
+			<Option compile="0"/>
+			<Option link="0"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="svnlog.cpp">
+			<Option compilerVar="CPP"/>
+			<Option target="default"/>
+		</Unit>
+		<Unit filename="svnlog.h">
 			<Option compilerVar=""/>
 			<Option compile="0"/>
 			<Option link="0"/>

@@ -86,9 +86,14 @@ enum {  ID_MENU_USER = 32000,
         ID_COMBO_SRC = 32600,
         ID_COMBO_DEST,
         
-        ID_TIMER,
         ID_PROCESS,
+        ID_BLIP,
+        ID_FORCEKILL
      };
+
+
+const int ID_VERBOSE_CHECK = wxNewId();
+const int ID_SKULL_BUTTON = wxNewId();
      
 class CheckoutDialog : public wxDialog
 {
