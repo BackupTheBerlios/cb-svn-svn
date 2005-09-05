@@ -36,7 +36,6 @@ END_EVENT_TABLE()
 
 CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, const wxArrayString& repoHistCVS, const wxString& defaultCheckoutDir)
 {
-
     wxXmlResource::Get()->LoadDialog(this, parent, "Checkout");
     
     wxComboBox* c;
@@ -50,7 +49,6 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
     if(repoHist.Count())
         c->SetSelection(0);
 
-
     c = XRCCTRL(*this, "cvs_repo", wxComboBox);
     assert(c);
     
@@ -59,12 +57,10 @@ CheckoutDialog::CheckoutDialog(wxWindow* parent, const wxArrayString& repoHist, 
         
     if(repoHistCVS.Count())
         c->SetSelection(0);
-
         
     XRCCTRL(*this, "working dir", wxTextCtrl)->SetValue(defaultCheckoutDir);
     XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->SetValue(defaultCheckoutDir);
     XRCCTRL(*this, "repository url", wxComboBox)->SetSelection(0);
-    XRCCTRL(*this, "cvs_proto", wxComboBox)->SetSelection(0);
     XRCCTRL(*this, "cvs_repo", wxComboBox)->SetSelection(0);
 }
 
@@ -80,8 +76,6 @@ void CheckoutDialog::OnOKClick(wxCommandEvent& event)
 {
     checkoutDir = XRCCTRL(*this, "working dir", wxTextCtrl)->GetValue();
     repoURL  = XRCCTRL(*this, "repository url", wxComboBox)->GetValue();
-    username  = XRCCTRL(*this, "username", wxTextCtrl)->GetValue();
-    password  = XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
     revision  = XRCCTRL(*this, "revision", wxComboBox)->GetValue();
     autoOpen  = XRCCTRL(*this, "auto_open", wxCheckBox)->GetValue();
     noExternals = XRCCTRL(*this, "ignore ext", wxCheckBox)->GetValue();
@@ -89,9 +83,6 @@ void CheckoutDialog::OnOKClick(wxCommandEvent& event)
     cvs_workingdir = XRCCTRL(*this, "cvs_workingdir", wxTextCtrl)->GetValue();
     cvs_repo   = XRCCTRL(*this, "cvs_repo", wxComboBox)->GetValue();
     cvs_module  = XRCCTRL(*this, "cvs_module", wxTextCtrl)->GetValue();
-    cvs_user   = XRCCTRL(*this, "cvs_user", wxTextCtrl)->GetValue();
-    cvs_pass   = XRCCTRL(*this, "cvs_pass", wxTextCtrl)->GetValue();
-    cvs_proto   = XRCCTRL(*this, "cvs_proto", wxComboBox)->GetValue();
     cvs_auto_open  = XRCCTRL(*this, "cvs_auto_open", wxCheckBox)->GetValue();
     cvs_revision  = XRCCTRL(*this, "cvs_revision", wxTextCtrl)->GetValue();
     use_cvs_instead  = XRCCTRL(*this, "notebook", wxNotebook)->GetSelection();
@@ -113,9 +104,9 @@ void CheckoutDialog::OnOKClick(wxCommandEvent& event)
             wxMessageDialog(Manager::Get()->GetAppWindow(),
                             "Please provide a repository URL in one of the following formats:\n\n"
                             "svn://some.server/path/from/svnroot/repo/\n"
-                            "svn+ssh://some.server/absolute/path/to/repo/\n"
+                            "svn+ssh://[user@]some.server/absolute/path/to/repo/\n"
                             "http://some.server/repo/\n"
-                            "https://some.server/repo/",
+                            "https://[user@]some.server/repo/",
                             "SVN Checkout", wxOK).ShowModal();
             return;
         }

@@ -142,6 +142,7 @@ public:
     
     void CVSRunner::Login(const wxString& proto, const wxString& repo, const wxString& user, const wxString& pass)
     {
+    // FIXME: this has to be changed to respect new meaning of repo
         // cvs -d :pserver:bach:p4ss30rd@faun.example.org:/usr/local/cvsroot login
         SetTarget("");
         SetCommand("CVS-login");
@@ -153,8 +154,7 @@ public:
     {
         SetCommand("checkout");
         SetTarget(workingdir);
-        wxString cmd("-z6 -d " + proto + user + "@" + repo + " checkout -d" + Q(workingdir)+ (revision.IsEmpty() ? "" : " -r" + Q(revision)) + module);
-        Log::Instance()->Add("cvs " + cmd);
+        wxString cmd("-z6 -d " + repo + " checkout -d" + Q(workingdir)+ (revision.IsEmpty() ? "" : " -r" + Q(revision)) + Q(module));
         Run(cmd);
     };
     

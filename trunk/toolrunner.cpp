@@ -135,7 +135,7 @@ int ToolRunner::RunAsync(const wxString& cmd, const wxString& cwd)
   blob.Empty();
   
   Log::Instance()->Add(cmd);
-  
+ 
   cb_process = new  PipedProcess((void**)&cb_process, this, ID_PROCESS, true, cwd);
   
   wxString oldLang;

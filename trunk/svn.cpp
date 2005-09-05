@@ -1792,8 +1792,6 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
       ToolRunner *tool = (event.GetExtraLong() == ToolRunner::SVN) ? (ToolRunner *) svn : (ToolRunner *) cvs;
       if(request_autoopen)
         AutoOpenProjects(tool->GetTarget(), true, true);
-
-	  svn->Info(tool->GetTarget(), false);
     }
     
   if(cmd.IsSameAs("info"))
@@ -1802,7 +1800,6 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
       int n = svn->std_out.Count();
       
       for(int i = 0; i < n; ++i)
-        if(svn->std_out[i].Contains("UUID") || svn->std_out[i].Contains("Revision") || svn->std_out[i].Contains("Last"))
           s << svn->std_out[i] << "\n";
       Log::Instance()->Add(s);
     }
@@ -1877,7 +1874,7 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
     
     
   // Know nothing, assume the best :)
-  if(verbose && svn->IsIdle())
+  if(svn->IsIdle())
     Log::Instance()->Blue("All transactions finished.");
     
   if(cmd.IsSameAs("checkout") || cmd.IsSameAs("update") || cmd.IsSameAs("revert"))
@@ -2253,7 +2250,6 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
   location.Add("\\bin");
   location.Add("\\cvs");
   location.Add("\\TortoiseCVS");
-  location.Add("\\msys\\bin");
   location.Add("\\mingw\\bin");
   location.Add("\\cygwin\\bin");
   

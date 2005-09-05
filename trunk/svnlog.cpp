@@ -62,7 +62,6 @@ void SVNLog::Forward(wxCommandEvent& event)
         plugin->Kill();
       if(event.GetId() == ID_VERBOSE_CHECK)
         {
-          wxBell();
           plugin->Verbose(event.IsChecked());
         }
     }
