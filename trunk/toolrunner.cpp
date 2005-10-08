@@ -58,7 +58,7 @@ int ToolRunner::RunBlocking(const wxString& cmd)
       wxSetEnv("SVN_SSH", plink);
       wxSetEnv("CVS_RSH", plink);
     }
-  if ( wxExecute(runCommand, wxEXEC_ASYNC, process) == -1 )
+  if ( wxExecute(runCommand, wxEXEC_ASYNC, process) == 0 )
     {
       Log::Instance()->Red("Execution failed.");
       Log::Instance()->Red("Command: " + runCommand);
