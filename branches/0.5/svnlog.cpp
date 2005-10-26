@@ -1,21 +1,16 @@
-/*
-* This file is part of the Code::Blocks SVN Plugin
-* Copyright (C) 2005 Thomas Denk
-*
-* This program is licensed under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 of the License,
-* or (at your option) any later version.
-*
-* $HeadURL$
-* $Id$
-*/
-#include <wx/wx.h>
-#include <wx/image.h>
-#include "manager.h"
-#include "pluginmanager.h"
-#include "svn.h"
-#include "svnlog.h"
-#include "dialogs.h"
+// This file is part of the Code::Blocks SVN Plugin
+// Copyright (C) 2005 Thomas Denk
+//
+// This program is licensed under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2 of the License,
+// or (at your option) any later version.
+//
+// $HeadURL$
+// $Id$
+
+
+#include "precompile.h"
+
 
 BEGIN_EVENT_TABLE(SVNLog, SimpleTextLog)
 EVT_BUTTON(ID_SKULL_BUTTON,   SVNLog::Forward)
@@ -28,7 +23,7 @@ SVNLog::SVNLog(wxNotebook* parent, const wxString& title, wxBitmap *skull)
   wxSizer* bs = GetTextControl()->GetContainingSizer();
   if (bs)
     {
-      wxFlexGridSizer *grd = new wxFlexGridSizer(2, 0, 0);
+      wxFlexGridSizer *grd = new wxFlexGridSizer(3, 0, 0);
       grd->AddGrowableCol(1);
       
       wxCheckBox *c = new wxCheckBox( this, ID_VERBOSE_CHECK, wxT("Show all output (\"verbose logging\")"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -38,6 +33,9 @@ SVNLog::SVNLog(wxNotebook* parent, const wxString& title, wxBitmap *skull)
         c->SetValue(plugin->verbose);
         
       grd->Add(c, 0, wxALIGN_CENTER|wxRIGHT|wxTOP, 5);
+      
+      wxButton *b = new wxButton(this, ID_LOG_CLEAR, "C");
+      grd->Add(b, 0, wxALIGN_RIGHT, 0);
       
       if(skull)
         {

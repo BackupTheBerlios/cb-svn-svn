@@ -1,27 +1,15 @@
-/*
-* This file is part of the Code::Blocks SVN Plugin
-* Copyright (C) 2005 Thomas Denk
-*
-* This program is licensed under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 of the License,
-* or (at your option) any later version.
-*
-* $HeadURL$
-* $Id$
-*/
+// This file is part of the Code::Blocks SVN Plugin
+// Copyright (C) 2005 Thomas Denk
+//
+// This program is licensed under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2 of the License,
+// or (at your option) any later version.
+//
+// $HeadURL$
+// $Id$
 
+#include "precompile.h"
 
-#include <wx/wx.h>
-
-#include <wx/checklst.h>
-#include <wx/textctrl.h>
-#include <wx/regex.h>
-#include <wx/notebook.h>
-
-#include "dialogs.h"
-
-#include <wx/xrc/xmlres.h>
-#include <manager.h>
 
 
 // --- Checkout Dialog ---------------------------------------------------
@@ -148,8 +136,8 @@ void ImportDialog::OnOKClick(wxCommandEvent& event)
 {
     importDir = XRCCTRL(*this, "source dir", wxTextCtrl)->GetValue();
     repoURL = XRCCTRL(*this, "repository url", wxComboBox)->GetValue();
-    username = XRCCTRL(*this, "username", wxTextCtrl)->GetValue();
-    password = XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
+//    username = XRCCTRL(*this, "username", wxTextCtrl)->GetValue();
+//    password = XRCCTRL(*this, "password", wxTextCtrl)->GetValue();
     comment = XRCCTRL(*this, "comment", wxComboBox)->GetValue();
     trunkify = XRCCTRL(*this, "trunkify", wxCheckBox)->GetValue();
     
@@ -294,6 +282,7 @@ void CommitDialog::OnCancelClick(wxCommandEvent& event)
 BEGIN_EVENT_TABLE(PreferencesDialog, wxDialog)
 EVT_BUTTON(XRCID("wxID_OK"),  PreferencesDialog::OnOKClick)
 EVT_BUTTON(XRCID("wxID_CANCEL"), PreferencesDialog::OnCancelClick)
+EVT_BUTTON(XRCID("wxID_SFT"), PreferencesDialog::OnCancelClick)
 EVT_CHECKBOX(-1,  PreferencesDialog::RadioToggle)
 END_EVENT_TABLE()
 
@@ -311,6 +300,8 @@ void PreferencesDialog::OnOKClick(wxCommandEvent& event)
 
 void PreferencesDialog::OnCancelClick(wxCommandEvent& event)
 {
+if(event.GetId() == XRCID("wxID_SFT"))
+wxBell();
     EndModal(wxID_CANCEL);
 }
 

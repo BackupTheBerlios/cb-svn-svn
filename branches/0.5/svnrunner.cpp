@@ -1,23 +1,15 @@
-/*
-* This file is part of the Code::Blocks SVN Plugin
-* Copyright (C) 2005 Thomas Denk
-*
-* This program is licensed under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 of the License,
-* or (at your option) any later version.
-*
-* $HeadURL$
-* $Id$
-*/
+// This file is part of the Code::Blocks SVN Plugin
+// Copyright (C) 2005 Thomas Denk
+//
+// This program is licensed under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2 of the License,
+// or (at your option) any later version.
+//
+// $HeadURL$
+// $Id$
 
 
-#include "toolrunner.h"
-#include "svncvsrunner.h"
-#include "svn.h"
-#include "log.h"
-#include "dialogs.h"
-
-#include <wx/regex.h>
+#include "precompile.h"
 
 
 extern const wxEventType EVT_WX_SUCKS;
@@ -27,8 +19,8 @@ int SVNRunner::Run(wxString cmd)
   wxString ia(" --non-interactive ");
   wxString force;
   
-  if(subcommand.IsSameAs("add") || subcommand.IsSameAs("cleanup") || subcommand.IsSameAs("info")
-          || subcommand.IsSameAs("resolved") || subcommand.IsSameAs("revert"))
+  if(newJob.verb.IsSameAs("add") || newJob.verb.IsSameAs("cleanup") || newJob.verb.IsSameAs("info")
+          || newJob.verb.IsSameAs("resolved") || newJob.verb.IsSameAs("revert"))
     ia = "";
     
   if(do_force)
@@ -41,12 +33,12 @@ int SVNRunner::Run(wxString cmd)
   Manager::Get()->GetAppWindow()->SetStatusText("svn " +cmd);
   
   wxString runCmd(cmd);
-  if(username > "" && password > "")
-    {
-      runCmd << "--username" << Q(username) << "--password" << Q(password) << ia << force;
-      username = password = "";
-    }
-  else
+//  if(username > "" && password > "")
+//    {
+//      runCmd << "--username" << Q(username) << "--password" << Q(password) << ia << force;
+//      username = password = "";
+//    }
+//  else
     runCmd << ia << force;
     
   ToolRunner::Run(runCmd);
@@ -62,16 +54,7 @@ int SVNRunner::Run(wxString cmd)
 void SVNRunner::OutputHandler()
 {
   Manager::Get()->GetAppWindow()->SetStatusText("");
-  
-  if(blob.Contains("Connection is read-only"))
-    {
-      Log::Instance()->Red("Subversion returned 'Connection is read-only'.");
-      Log::Instance()->Add("  This means you either provided no authentication tokens at all (try 'Set User...'), \n"
-                           "  or you are correctly logged in but do not have write access enabled (check conf/svnserve.conf).");
-      Fail();
-      return;
-    }
-    
+     
   // Transmitting file data .svn: Commit failed (details follow):
   // svn: Cannot verify lock on path '/base.cpp'; no matching lock-token available
   if(blob.Contains("no matching lock-token available"))
@@ -84,7 +67,7 @@ void SVNRunner::OutputHandler()
     }
     
     
-  wxRegEx reg("Authentication realm|password", wxRE_ICASE);
+  wxRegEx reg("read-only|Authentication realm|password", wxRE_ICASE);
   if(reg.Matches(blob))
     {
       PasswordDialog p(Manager::Get()->GetAppWindow());
@@ -92,17 +75,18 @@ void SVNRunner::OutputHandler()
       if(p.ShowModal() == wxID_CANCEL || p.username == "")
         {
           Log::Instance()->Add("User cancelled authentication.");
+          Fail();
           return ;
         }
         
-      username = p.username;
-      password = p.password;
+//      username = p.username;
+//      password = p.password;
       std_err.Empty();
       
-      if(lastCommand.Contains("--username"))
-        lastCommand = lastCommand.Left(lastCommand.Index("--username"));
+      if(currentJob.commandline.Contains("--username"))
+        currentJob.commandline = currentJob.commandline.Left(currentJob.commandline.Index("--username"));
         
-      lastCommand << " --username " << p.username << " --password \"" << p.password;
+      currentJob.commandline << " --username" << Q(p.username) << "--password" << Q(p.password);
       
       Send(RUN_AGAIN);
       return;
@@ -211,19 +195,19 @@ int  SVNRunner::Delete(const wxString& selected)
 }
 
 
-int  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals)
+void  SVNRunner::Checkout(const wxString& repo, const wxString& dir, const wxString& revision, bool noExternals)
 {
   SetTarget(dir);
   SetCommand("checkout");
-  return Run("checkout" + Q(repo) + Q(dir) + "-r " + revision + (noExternals ? " --ignore-externals" : ""));
+  Run("checkout" + Q(repo) + Q(dir) + "-r " + revision + (noExternals ? " --ignore-externals" : ""));
 }
 
-int  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message)
+void  SVNRunner::Import(const wxString& repo, const wxString& dir, const wxString &message)
 {
   SetTarget(dir);
   SetCommand("import");
   TempFile c(message);
-  return Run("import" + Q(dir) + Q(repo) + "-F" + Q(c.name));
+  Run("import" + Q(dir) + Q(repo) + "-F" + Q(c.name));
 }
 
 

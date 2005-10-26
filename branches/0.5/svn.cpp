@@ -1,131 +1,98 @@
-/*
-* This file is part of the Code::Blocks SVN Plugin
-* Copyright (C) 2005 Thomas Denk
-*
-* This program is licensed under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 of the License,
-* or (at your option) any later version.
-*
-* $HeadURL$
-* $Id$
-*/
+// This file is part of the Code::Blocks SVN Plugin
+// Copyright (C) 2005 Thomas Denk
+//
+// This program is licensed under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2 of the License,
+// or (at your option) any later version.
+//
+// $HeadURL$
+// $Id$
 
 
-#include <wx/wx.h>
-
-#include <wx/xrc/xmlres.h>
-#include <wx/fs_zip.h>
-
-#include "svn.h"
-
-#include <manager.h>
-#include <sdk_events.h>
-#include <editormanager.h>
-
-#include <cbproject.h>
-#include <pipedprocess.h>
-
-#include "dialogs.h"
-#include "toolrunner.h"
-
-#ifdef __WIN32__
-const bool filenames_are_unix = false;
-#else
-const bool filenames_are_unix = true;
-#endif
-
+#include "precompile.h"
 
 extern const wxEventType EVT_WX_SUCKS;
 
 BEGIN_EVENT_TABLE(SubversionPlugin, cbPlugin)
 
-EVT_MENU(ID_MENU_PREFS, SubversionPlugin::Preferences)
+EVT_MENU(ID_MENU_PREFS,             SubversionPlugin::Preferences)
+EVT_MENU(ID_MENU_IMPORT,            SubversionPlugin::Import)
+EVT_MENU(ID_MENU_CHECKOUT,          SubversionPlugin::Checkout)
+EVT_MENU(ID_MENU_COMMIT,            SubversionPlugin::Commit)
+EVT_MENU(ID_MENU_UPDATE,            SubversionPlugin::Update)
+EVT_MENU(ID_MENU_UP_P,              SubversionPlugin::Update)
+EVT_MENU(ID_MENU_UP_C,              SubversionPlugin::Update)
+EVT_MENU(ID_MENU_UP_B,              SubversionPlugin::Update)
+EVT_MENU(ID_MENU_UP_REV,            SubversionPlugin::Update)
 
-EVT_MENU(ID_MENU_IMPORT,   SubversionPlugin::Import)
-EVT_MENU(ID_MENU_CHECKOUT,   SubversionPlugin::Checkout)
+EVT_MENU(ID_MENU_D_H,               SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_P,               SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_C,               SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_B,               SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_D_REV,             SubversionPlugin::Diff)
+EVT_MENU(ID_MENU_PATCH,             SubversionPlugin::Patch)
 
-EVT_MENU(ID_MENU_USER,    SubversionPlugin::SetUser)
+EVT_MENU(ID_MENU_RESTORE,           SubversionPlugin::Update)
+EVT_MENU(ID_MENU_REVERT,            SubversionPlugin::Revert)
 
-EVT_MENU(ID_MENU_COMMIT,    SubversionPlugin::Commit)
-EVT_MENU(ID_MENU_UPDATE,   SubversionPlugin::Update)
-EVT_MENU(ID_MENU_UP_P,    SubversionPlugin::Update)
-EVT_MENU(ID_MENU_UP_C,    SubversionPlugin::Update)
-EVT_MENU(ID_MENU_UP_B,    SubversionPlugin::Update)
-EVT_MENU(ID_MENU_UP_REV,   SubversionPlugin::Update)
+EVT_MENU(ID_MENU_BRANCH,            SubversionPlugin::OnFatTortoiseFunctionality)
+EVT_MENU(ID_MENU_SWITCH,            SubversionPlugin::OnFatTortoiseFunctionality)
+EVT_MENU(ID_MENU_MERGE,             SubversionPlugin::OnFatTortoiseFunctionality)
+EVT_MENU(ID_MENU_CREATE,            SubversionPlugin::OnFatTortoiseFunctionality)
+EVT_MENU(ID_MENU_RELOCATE,          SubversionPlugin::OnFatTortoiseFunctionality)
+EVT_MENU(ID_MENU_TSVN_PATCH,        SubversionPlugin::OnFatTortoiseFunctionality)
 
-EVT_MENU(ID_MENU_D_H,    SubversionPlugin::Diff)
-EVT_MENU(ID_MENU_D_P,    SubversionPlugin::Diff)
-EVT_MENU(ID_MENU_D_C,    SubversionPlugin::Diff)
-EVT_MENU(ID_MENU_D_B,    SubversionPlugin::Diff)
-EVT_MENU(ID_MENU_D_REV,    SubversionPlugin::Diff)
-EVT_MENU(ID_MENU_PATCH,    SubversionPlugin::Patch)
+EVT_MENU(ID_MENU_CVS_BRANCH,        SubversionPlugin::OnFatTortoiseCVSFunctionality)
+EVT_MENU(ID_MENU_CVS_TAG,           SubversionPlugin::OnFatTortoiseCVSFunctionality)
+EVT_MENU(ID_MENU_CVS_MERGE,         SubversionPlugin::OnFatTortoiseCVSFunctionality)
+EVT_MENU(ID_MENU_CVS_PATCH,         SubversionPlugin::OnFatTortoiseCVSFunctionality)
 
-EVT_MENU(ID_MENU_RESTORE,   SubversionPlugin::Update)
+EVT_MENU(ID_MENU_CVS_UPDATE,        SubversionPlugin::CVSUpdate)
+EVT_MENU(ID_MENU_CVS_UPDATE_R,      SubversionPlugin::CVSUpdate)
+EVT_MENU(ID_MENU_CVS_UPDATE_D,      SubversionPlugin::CVSUpdate)
+EVT_MENU(ID_MENU_CVS_COMMIT,        SubversionPlugin::Commit)
+EVT_MENU(ID_MENU_CVS_LOGIN,         SubversionPlugin::CVSLogin)
+EVT_MENU(ID_MENU_RESOLVETOOL,       SubversionPlugin::EditConflicts)
+EVT_MENU(ID_MENU_RESOLVED,          SubversionPlugin::Resolved)
+EVT_MENU(ID_MENU_RELEASE,           SubversionPlugin::Release)
 
-EVT_MENU(ID_MENU_REVERT,   SubversionPlugin::Revert)
+EVT_MENU(ID_MENU_ADD,               SubversionPlugin::Add)
+EVT_MENU(ID_MENU_DELETE,            SubversionPlugin::Delete)
 
-EVT_MENU(ID_MENU_BRANCH,   SubversionPlugin::OnFatTortoiseFunctionality)
-EVT_MENU(ID_MENU_SWITCH,   SubversionPlugin::OnFatTortoiseFunctionality)
-EVT_MENU(ID_MENU_MERGE,    SubversionPlugin::OnFatTortoiseFunctionality)
-EVT_MENU(ID_MENU_CREATE,   SubversionPlugin::OnFatTortoiseFunctionality)
-EVT_MENU(ID_MENU_RELOCATE,   SubversionPlugin::OnFatTortoiseFunctionality)
-EVT_MENU(ID_MENU_TSVN_PATCH,   SubversionPlugin::OnFatTortoiseFunctionality)
+EVT_MENU(ID_MENU_PROP_IGNORE,       SubversionPlugin::PropIgnore)
+EVT_MENU(ID_MENU_PROP_MIME,         SubversionPlugin::PropMime)
 
-EVT_MENU(ID_MENU_CVS_BRANCH,  SubversionPlugin::OnFatTortoiseCVSFunctionality)
-EVT_MENU(ID_MENU_CVS_TAG,   SubversionPlugin::OnFatTortoiseCVSFunctionality)
-EVT_MENU(ID_MENU_CVS_MERGE,   SubversionPlugin::OnFatTortoiseCVSFunctionality)
-EVT_MENU(ID_MENU_CVS_PATCH,   SubversionPlugin::OnFatTortoiseCVSFunctionality)
+EVT_MENU(ID_MENU_PROP_EXECUTABLE,   SubversionPlugin::PropExec)
+EVT_MENU(ID_MENU_PROP_NEEDSLOCK,    SubversionPlugin::PropNeedsLock)
+EVT_MENU(ID_MENU_PROP_EXTERNALS,    SubversionPlugin::PropExt)
 
-EVT_MENU(ID_MENU_CVS_UPDATE,  SubversionPlugin::CVSUpdate)
-EVT_MENU(ID_MENU_CVS_UPDATE_R,  SubversionPlugin::CVSUpdate)
-EVT_MENU(ID_MENU_CVS_UPDATE_D,  SubversionPlugin::CVSUpdate)
-EVT_MENU(ID_MENU_CVS_COMMIT,  SubversionPlugin::Commit)
-EVT_MENU(ID_MENU_CVS_LOGIN,  SubversionPlugin::CVSLogin)
-EVT_MENU(ID_MENU_RESOLVETOOL,  SubversionPlugin::EditConflicts)
-EVT_MENU(ID_MENU_RESOLVED,  SubversionPlugin::Resolved)
-EVT_MENU(ID_MENU_RELEASE,  SubversionPlugin::Release)
+EVT_MENU(ID_MENU_LOCK,              SubversionPlugin::Lock)
+EVT_MENU(ID_MENU_UNLOCK,            SubversionPlugin::Lock)
 
-EVT_MENU(ID_MENU_ADD,    SubversionPlugin::Add)
-EVT_MENU(ID_MENU_DELETE,   SubversionPlugin::Delete)
+EVT_MENU(ID_MENU_KW_DATE,           SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_REVISION,       SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_AUTHOR,         SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_HEAD,           SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_ID,             SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_SETALL,         SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_KW_CLEARALL,       SubversionPlugin::PropKeywords)
+EVT_MENU(ID_MENU_PROP_NEW,          SubversionPlugin::EditProperty)
 
-EVT_MENU(ID_MENU_PROP_IGNORE,  SubversionPlugin::PropIgnore)
-EVT_MENU(ID_MENU_PROP_MIME,   SubversionPlugin::PropMime)
+EVT_TIMER(ID_BLIP,                  SubversionPlugin::OnTimer)
+EVT_TIMER(ID_FORCEKILL,             SubversionPlugin::ForceKill)
 
-EVT_MENU(ID_MENU_PROP_EXECUTABLE, SubversionPlugin::PropExec)
-EVT_MENU(ID_MENU_PROP_NEEDSLOCK, SubversionPlugin::PropNeedsLock)
-EVT_MENU(ID_MENU_PROP_EXTERNALS, SubversionPlugin::PropExt)
-
-EVT_MENU(ID_MENU_LOCK, SubversionPlugin::Lock)
-EVT_MENU(ID_MENU_UNLOCK, SubversionPlugin::Lock)
-
-EVT_MENU(ID_MENU_KW_DATE,   SubversionPlugin::PropKeywords)
-EVT_MENU(ID_MENU_KW_REVISION,  SubversionPlugin::PropKeywords)
-EVT_MENU(ID_MENU_KW_AUTHOR,   SubversionPlugin::PropKeywords)
-EVT_MENU(ID_MENU_KW_HEAD,   SubversionPlugin::PropKeywords)
-EVT_MENU(ID_MENU_KW_ID,    SubversionPlugin::PropKeywords)
-EVT_MENU(ID_MENU_KW_SETALL,   SubversionPlugin::PropKeywords)
-EVT_MENU(ID_MENU_KW_CLEARALL,  SubversionPlugin::PropKeywords)
-
-EVT_MENU(ID_MENU_PROP_NEW,   SubversionPlugin::EditProperty)
-
-EVT_TIMER(ID_BLIP, SubversionPlugin::OnTimer)
-EVT_TIMER(ID_FORCEKILL, SubversionPlugin::ForceKill)
-
-SCREW_THIS_MACRO_ABUSE(TRANSACTION_SUCCESS, SubversionPlugin::TransactionSuccess)
-SCREW_THIS_MACRO_ABUSE(TRANSACTION_FAILURE, SubversionPlugin::TransactionFailure)
-SCREW_THIS_MACRO_ABUSE(RUN_AGAIN,   SubversionPlugin::ReRun)
-SCREW_THIS_MACRO_ABUSE(RUN_NEXT_IN_QUEUE, SubversionPlugin::ReRun)
-
+SCREW_THIS_MACRO_ABUSE(TRANSACTION_SUCCESS,     SubversionPlugin::TransactionSuccess)
+SCREW_THIS_MACRO_ABUSE(TRANSACTION_FAILURE,     SubversionPlugin::TransactionFailure)
+SCREW_THIS_MACRO_ABUSE(RUN_AGAIN,               SubversionPlugin::ReRun)
+SCREW_THIS_MACRO_ABUSE(RUN_NEXT_IN_QUEUE,       SubversionPlugin::ReRun)
+EVT_MIDDLE_DOWN(SubversionPlugin::Ping)
 
 END_EVENT_TABLE()
 
+CB_IMPLEMENT_PLUGIN(SubversionPlugin)
 
-cbPlugin* GetPlugin()
-{
-  return new SubversionPlugin;
-}
-
-SubversionPlugin::SubversionPlugin() :     cascade_menu(true), auto_add(true), auto_add_only_project(true),
+SubversionPlugin::SubversionPlugin() :
+    cascade_menu(true), auto_add(true), auto_add_only_project(true),
     auto_delete(false), force_clean(false), require_comments(true), prefill_comments(true), avoid_out_of_date(true),
     no_ask_revertable(true), never_ask(false), warn_revert(true), full_status_on_startup(false), no_props(false),
     show_resolved(false), prompt_reload(false), up_after_co(true), svn_ssh(true),
@@ -134,94 +101,61 @@ SubversionPlugin::SubversionPlugin() :     cascade_menu(true), auto_add(true), a
   wxFileSystem::AddHandler(new wxZipFSHandler);
   wxXmlResource::Get()->InitAllHandlers();
   wxXmlResource::Get()->Load(ConfigManager::Get()->Read("data_path", wxEmptyString) + "/svn.zip#zip:*.xrc");
-  
   m_PluginInfo.name = "svn";
   m_PluginInfo.title = "Subversion";
-  
+
   {
     wxString rev("$Revision$"); // let svn:keywords fill in the revision number
     wxString date("$Date$");
-    rev.Replace("$", "");     // but make it a bit prettier
+    rev.Replace("$", "");
     wxRegEx reg("(\\(.*\\))", wxRE_ICASE);
     if(reg.Matches(date))
       date = reg.GetMatch(date, 1);
-      
+
     m_PluginInfo.version = "0.4   " + rev + date;
   }
-  
+
   wxString repo("$HeadURL$");
   repo = repo.Mid(repo.Index(' ')+1).BeforeLast('/') + "/";
-  
+
   m_PluginInfo.description = "code::blocks revision control using subversion\n\n"
                              "Subversion is an advanced revision control system intended to replace CVS.\n\n"
                              "If you develop under Windows, do not forget to get TortoiseSVN as well.\n\n"
                              "References:\nhttp://subversion.tigris.org\nhttp://tortoisesvn.tigris.org\n\n"
                              "Subversion access to the cb-svn project is available at:\n"
                              + repo;
-                             
+
   m_PluginInfo.author = "Thomas Denk";
   m_PluginInfo.authorEmail = "cb-svn@users.berlios.de";
-  
+
   m_PluginInfo.authorWebsite = "http://cb-svn.berlios.de";
   m_PluginInfo.thanksTo = wxEmptyString;
-  
+
   m_PluginInfo.license = "This program is licensed under the terms of the\n\n"
                          "GNU General Public License Version 2, June 1991\n"
                          "http://www.gnu.org/copyleft/gpl.htm\n\n";
-                         
+
   m_PluginInfo.hasConfigure = true;
-  
 }
 
 void SubversionPlugin::OnAttach()
 {
-  Log::Instance();   // avoid lazy creation
-  
+
+  { // prevent crash if user does a bad install
+    wxDialog dlg;
+    if(!wxXmlResource::Get()->LoadDialog(&dlg, 0, "Preferences"))
+      {
+        m_PluginInfo.hasConfigure = false;
+        cbThrow("Failed to access resource file (bad installation?).");
+      }
+  }
+
+  InitToolrunners();
+  svn->RunBlind(""); // get svn into the file cache (Windows)
+
+  Log::Instance();   // don't like lazy creation
+
   ReadConfig();
-  
-  svn = new SVNRunner(svnbinary);
-  svn->RunBlind(""); // get svn into the file cache asynchronously, as we'll need it soon
-  
-  /* For some reason, if you do not start Tortoise from cmd, then it won't work. I have no idea why, and neither
-  *  have the guys developing Tortoise. There is no good reason why it should not work, really.
-  *  It is apparently not specifically my code, though. It rather seems to be that wxExecute is broken somehow,
-  *  since Tortoise does work fine if you use *anything* except wxExecute() to call it
-  *  - including popen(), CreateProcess(), execv(), and system().
-  *  On the other hand, Tortoise does not even run using the original "exec" sample from wxWindows, which we may assume does
-  *  implement wxExecute() "correctly".
-  *  I would use popen() as the much better alternative (not only does it work, it also reduces code size by 20kB!),
-  *  but could not live with a DOS window constantly popping up under Windows.
-  */
-  tortoise = tortoiseproc.IsEmpty() ? 0 : new TortoiseRunner("cmd /C " + tortoiseproc);
-  
-  cvs = cvsbinary.IsEmpty() ? 0 : new CVSRunner(cvsbinary);
-  tortoisecvs = tortoiseact.IsEmpty() ? 0 : new TortoiseCVSRunner("cmd /C " + tortoiseact);
-  
-  binutils = new ToolRunner();
-  
-  if(!plink.IsEmpty())
-    {
-      if(svn_ssh)
-        svn->SetPlink(plink);
-      if(cvs_rsh)
-        cvs->SetPlink(plink);
-    }
-    
-  if(!extdiff.IsEmpty())
-    {
-#ifdef __WIN32__
-      const char* shell = "cmd /C ";
-#else
-      
-      const char* shell = "bash ";
-#endif
-      
-      if(extdiff.Contains(".tcl"))
-        diff3 = new DiffRunner("tclsh " + extdiff);
-      else
-        diff3 = extdiff.IsEmpty() ? 0 : new DiffRunner(shell + extdiff);
-    }
-    
 }
 
 void SubversionPlugin::OnRelease(bool appShutDown)
@@ -229,17 +163,52 @@ void SubversionPlugin::OnRelease(bool appShutDown)
   WriteConfig();
   Manager::Get()->GetAppWindow()->SetStatusText("Waiting for in-progress transactions to finish...");
   Log::Instance()->fg();
-  if(svn && svn->Running())
+  if(svn.Valid() && svn->Running())
     svn->Finish();
-  if(cvs && cvs->Running())
+  if(cvs.Valid() && cvs->Running())
     cvs->Finish();
   Manager::Get()->GetAppWindow()->SetStatusText("");
-  TempFile::Cleanup();
 }
+
+
+void SubversionPlugin::InitToolrunners()
+{
+  svn = new SVNRunner(svnbinary);
+
+  tortoise = tortoiseproc.IsEmpty() ? 0 : new TortoiseRunner("cmd /C " + tortoiseproc);
+
+  cvs = cvsbinary.IsEmpty() ? 0 : new CVSRunner(cvsbinary);
+  tortoisecvs = tortoiseact.IsEmpty() ? 0 : new TortoiseCVSRunner("cmd /C " + tortoiseact);
+
+  binutils = new ToolRunner();
+
+  if(!plink.IsEmpty())
+    {
+      if(svn_ssh)
+        svn->SetPlink(plink);
+      if(cvs_rsh)
+        cvs->SetPlink(plink);
+    }
+
+  if(!extdiff.IsEmpty())
+    {
+#ifdef __WIN32__
+      const char* shell = "cmd /C ";
+#else
+
+      const char* shell = "bash ";
+#endif
+
+      if(extdiff.Contains(".tcl"))
+        diff3 = new DiffRunner("tclsh " + extdiff);
+      else
+        diff3 = extdiff.IsEmpty() ? 0 : new DiffRunner(shell + extdiff);
+    }
+}
+
 
 void SubversionPlugin::OnTimer(wxTimerEvent& event)
 {
-  TempFile::CleanupCheck();
   if (Log::lastLogTime < wxGetLocalTime() - 180)
     {
       Log::Instance()->Reduce();
@@ -249,48 +218,48 @@ void SubversionPlugin::OnTimer(wxTimerEvent& event)
     clearTimer.Start(120000);
 }
 
+
 void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, const wxString& arg)
 {
   wxMenu* cmenu;
-  
+
   if (!menu || !m_IsAttached || type != mtProjectManager)
     return;
-    
+
   menu->AppendSeparator();
-  
+
   if(svn->Running()) // this may be more user-friendly than wxEnableTopLevelWindows(false)
     {
       menu->Append(ID_MENU, "Revision Control");
       menu->Enable(ID_MENU, false);
       return;
     }
-    
+
   if(cascade_menu)
     cmenu = new wxMenu;
   else
     cmenu = menu;
-    
-    
-  if (arg.IsEmpty())
+
+  if (arg.IsEmpty()) // clicked on white area
     {
       BuildMgrMenu(cmenu);
       if(menu != cmenu)
         menu->Append( ID_MENU, "Subversion", cmenu );
       return;
     }
-    
+
   wxString selected(GetSelection());
-  
+
   if(!DirUnderVersionControl(selected) && !DirUnderCVS(selected))
     {
       cmenu->Append( ID_MENU_IMPORT, "Import Project (currently unversioned)" );
-      
+
       if(menu != cmenu)
         menu->Append( ID_MENU, "Subversion", cmenu );
       return;
     }
-    
-  if(cvs && DirUnderCVS(selected))
+
+  if(cvs.Valid() && DirUnderCVS(selected))
     {
       Build_CVS_ModuleMenu(cmenu, arg);
       if (tortoisecvs && IsProject(arg))
@@ -305,15 +274,15 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
         menu->Append( ID_MENU, "[cvs]", cmenu );
       return;
     }
-    
+
   svn->Status(selected);
-  
+
   if (IsProject(arg))
     BuildProjectMenu(cmenu, arg, selected);
   else
     BuildFileMenu(cmenu, arg, selected);
-    
-    
+
+
   if(menu != cmenu)
     menu->Append( ID_MENU, "Subversion", cmenu );
 }
@@ -321,7 +290,7 @@ void SubversionPlugin::BuildModuleMenu(const ModuleType type, wxMenu* menu, cons
 void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
 {
   assert(cvs);
-  
+
   menu->Append( ID_MENU_CVS_COMMIT, "Commit" );
   menu->AppendSeparator();
   menu->Append( ID_MENU_CVS_UPDATE, "Update" );
@@ -339,7 +308,7 @@ void SubversionPlugin::Build_CVS_ModuleMenu(wxMenu* menu, const wxString& arg)
           menu->AppendSeparator();
           menu->Append( ID_MENU_RELEASE, "Export a Release");
         }
-        
+
       menu->AppendSeparator();
       menu->Append( ID_MENU_CVS_LOGIN, "Login" );
     }
@@ -373,13 +342,13 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
           break;
         }
     }
-    
+
   if(status == '?')
     {
       menu->Append( ID_MENU_ADD, "Add (currently not versioned)" );
       return;
     }
-    
+
   if(status == '!')
     {
       menu->Append( ID_MENU_RESTORE, "Restore (file is missing)" );
@@ -387,13 +356,13 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
       menu->Append( ID_MENU_DELETE,  "Remove from version control" );
       return;
     }
-    
+
   if(status == 'M' || status == 'A' || status == 'D' || pstatus == 'M')
     {
       menu->Append( ID_MENU_COMMIT, "Commit", "Copy your local modifications to a new revision in the repository" );
       menu->AppendSeparator();
     }
-    
+
   if(status == 'C' && (tortoise || diff3))
     {
       menu->Append( ID_MENU_RESOLVETOOL, "Edit file conflicts");
@@ -405,10 +374,10 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
       menu->Append( ID_MENU_RESOLVEPROP, "Resolve property conflicts");
       menu->AppendSeparator();
     }
-    
-    
+
+
   AppendCommonMenus(menu, target, false, locked);
-  
+
   menu->AppendSeparator();
   wxMenu *sub = new wxMenu;
   sub->Append( ID_MENU_D_H, "HEAD" );
@@ -417,14 +386,14 @@ void SubversionPlugin::BuildFileMenu(wxMenu* menu, wxString name, wxString targe
   sub->Append( ID_MENU_D_B, "BASE" );
   sub->Append( ID_MENU_D_REV, "Revision..." );
   menu->Append( ID_MENU, "DIFF against...", sub );
-  
-  
+
+
   if(status == 'M' || status == 'A' || status == 'D' || pstatus == 'M')
     {
       menu->AppendSeparator();
       menu->Append(ID_MENU_REVERT, "Revert");
     }
-    
+
   menu->AppendSeparator();
   menu->Append( ID_MENU_DELETE, "Delete", "Remove from project, delete, and schedule for deletion from repository. Can be reverted." );
 }
@@ -439,7 +408,7 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
   int ms = 0;
   int lk = 0;
   int n = svn->std_out.GetCount();
-  
+
   for(int i = 0; i < n; ++i)
     {
       if((svn->std_out[i])[(size_t)0] == 'M' )
@@ -457,10 +426,10 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
       if((svn->std_out[i])[(size_t)5] == 'K')
         ++lk;
     }
-    
+
   if(cf)
     {
-      if(tortoise || diff3)
+      if(tortoise.Valid() || diff3.Valid())
         {
           wxString comstr("Edit conflicts (");
           comstr << cf << " file" << (cf == 1 ? "" : "s") << ")";
@@ -474,7 +443,7 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
   else if(fm || pm || fa || fd)
     {
       wxString comstr("Commit (");
-      
+
       if(fm)
         comstr << fm << " file" << (fm == 1 ? "" : "s");
       if(pm)
@@ -489,17 +458,17 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
         comstr << (comstr.IsEmpty() ? "" : ", ") << ms << " file" << (ms == 1 ? "" : "s") << " missing";
       if(lk)
         comstr << (comstr.IsEmpty() ? "" : ", ") << lk << " lock" << (lk == 1 ? "" : "s") << " held";
-        
+
       comstr << ")";
-      
+
       menu->Append( ID_MENU_COMMIT, comstr );
       menu->AppendSeparator();
       menu->Append( ID_MENU_REVERT, "Revert..." );
       menu->AppendSeparator();
     }
-    
+
   AppendCommonMenus(menu, target, true, false);
-  
+
   if(! tortoiseproc.IsEmpty())
     {
       menu->AppendSeparator();
@@ -508,8 +477,6 @@ void SubversionPlugin::BuildProjectMenu(wxMenu* menu, wxString name, wxString ta
       menu->Append( ID_MENU_MERGE,  "Merge..." );
       menu->Append( ID_MENU_RELOCATE, "Relocate..." );
     }
-  menu->AppendSeparator();
-  menu->Append( ID_MENU_USER, "Set User...", "Set (or change) username and password for the next transaction.");
 }
 
 
@@ -522,28 +489,27 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
   sub->Append( ID_MENU_UP_B, "BASE" );
   sub->Append( ID_MENU_UP_REV, "Revision..." );
   menu->Append( ID_MENU, "Update to...", sub );
-  
+
   if(!fileProperties.empty())
     {
       IdToStringHash::iterator it;
-      for( it = fileProperties.begin(); it != fileProperties.end(); ++it ) // remove all the old rubbish
-        Disconnect(it->first);            // from the event tables
+      for( it = fileProperties.begin(); it != fileProperties.end(); ++it )  // remove all the old rubbish
+        Disconnect(it->first);                                              // from the event tables
       fileProperties.clear();
     }
-    
+
   if(no_props)
     return;
-    
+
   wxArrayString props = svn->GetPropertyList(target);
-  
-  
+
   bool has_ignore = false;
   bool has_keywords = false;
   bool has_exec = false;
   bool has_mime = false;
   bool has_externals = false;
   bool has_needslock = false;
-  
+
   int n = props.GetCount();
   for(int i = 0; i < n; ++i)
     {
@@ -554,9 +520,9 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       has_externals |= (props[i] == "svn:externals");
       has_needslock |= (props[i] == "svn:needs-lock");
     }
-    
+
   menu->AppendSeparator();
-  
+
   wxMenu* keywords = new wxMenu;
   wxMenu* svnprops = new wxMenu;
   if(isProject)
@@ -574,8 +540,8 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       keywords->Append( ID_MENU_KW_ID, "Id", "", wxITEM_CHECK );
       svnprops->Append( ID_MENU, "keywords", keywords );
     }
-    
-    
+
+
   if(isProject)
     {
       svnprops->Append( ID_MENU_PROP_IGNORE, has_ignore ? "svn:ignore" : "svn:ignore [none]" );
@@ -586,20 +552,20 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       wxFileName fn(target);
       fn.MakeRelativeTo(GetSelectionsProject());
       wxString f = fn.GetPath().IsEmpty() ? "Global->" : fn.GetPath()+"->";
-      
+
       svnprops->Append( ID_MENU_PROP_EXECUTABLE, "executable", "", wxITEM_CHECK );
       svnprops->Append( ID_MENU_PROP_NEEDSLOCK, "needs lock", "", wxITEM_CHECK );
       svnprops->Append( ID_MENU_PROP_MIME, has_mime ? "mime-type" : "mime-type [default]" );
-      
+
       svnprops->Check(ID_MENU_PROP_EXECUTABLE, has_exec);
       svnprops->Check(ID_MENU_PROP_NEEDSLOCK, has_needslock);
       svnprops->AppendSeparator();
-      
+
       svnprops->Append( ID_MENU_PROP_IGNORE, has_ignore ? f+"svn:ignore" : f+"svn:ignore  [none]" );
       svnprops->Append( ID_MENU_PROP_EXTERNALS, has_externals ? f+"svn:externals" : f+"svn:externals  [none]" );
-      
+
     }
-    
+
   if(has_keywords)
     {
       wxString kw = svn->PropGet(target, "svn:keywords");
@@ -609,18 +575,18 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       keywords->Check(ID_MENU_KW_HEAD,  kw.Contains("HeadURL"));
       keywords->Check(ID_MENU_KW_ID,  kw.Contains("Id"));
     }
-    
+
   wxMenu* propsub = new wxMenu;
   propsub->Append( ID_MENU, "svn", svnprops );
   propsub->Append( ID_MENU_PROP_NEW, "New Property");
-  
-  
+
+
   props.Remove("svn:ignore");
   props.Remove("svn:keywords");
   props.Remove("svn:executable");
   props.Remove("svn:mime-type");
   props.Remove("svn:externals");
-  
+
   if(props.Count())
     {
       propsub->AppendSeparator();
@@ -633,11 +599,11 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
           Connect(tid, wxEVT_COMMAND_MENU_SELECTED, (wxObjectEventFunction) &SubversionPlugin::EditProperty);
         }
     }
-    
-    
+
+
   menu->Append( ID_MENU, "Properties...", propsub);
   menu->AppendSeparator();
-  
+
   if(isLocked)
     {
       menu->Append(ID_MENU_UNLOCK, "Release Lock");
@@ -648,7 +614,7 @@ void SubversionPlugin::AppendCommonMenus(wxMenu *menu, wxString target, bool isP
       menu->Append(ID_MENU_LOCK, "Acquire Lock");
       menu->AppendSeparator();
     }
-    
+
   if(has_tar_or_zip && isProject)
     {
       menu->Append( ID_MENU_RELEASE, "Export a Release");
@@ -663,21 +629,21 @@ void SubversionPlugin::Update(wxCommandEvent& event)
 {
   wxString revision("HEAD");
   wxString selected(GetSelection());
-  
+
   switch(event.GetId())
     {
-      case ID_MENU_UPDATE:
+    case ID_MENU_UPDATE:
       break;
-      case ID_MENU_UP_P:
+    case ID_MENU_UP_P:
       revision = "PREV";
       break;
-      case ID_MENU_UP_C:
+    case ID_MENU_UP_C:
       revision = "COMMITTED";
       break;
-      case ID_MENU_UP_B:
+    case ID_MENU_UP_B:
       revision = "BASE";
       break;
-      case ID_MENU_UP_REV:
+    case ID_MENU_UP_REV:
       {
         wxTextEntryDialog d(NULL,
                             "Please enter:\n"
@@ -688,14 +654,14 @@ void SubversionPlugin::Update(wxCommandEvent& event)
                             "{2002-02-17}  {15:30}  {2002-02-17 15:30}  {20020217T1530}",
                             "Update to revision...");
         d.ShowModal();
-        
+
         revision = d.GetValue();
         if(revision == wxEmptyString)
           return;
       }
       break;
     }
-    
+
   DisableCheckExternals();
   svn->Update(selected, revision);
 }
@@ -704,9 +670,9 @@ void SubversionPlugin::CVSUpdate(wxCommandEvent& event)
 {
   wxString revision;
   wxString date;
-  
+
   wxString selected(GetSelection());
-  
+
   if(event.GetId() == ID_MENU_CVS_UPDATE_R)
     {
       wxTextEntryDialog d(NULL,
@@ -738,13 +704,12 @@ void SubversionPlugin::ReloadEditors(const wxArrayString& filenames)
                                       "Do you want to replace the editor's out-of-date versions with their respective updated versions?",
                                       "Reload editor", wxYES_NO).ShowModal() == wxID_NO)
     return;
-    
+
   EditorManager *em = Manager::Get()->GetEditorManager();
   assert(em);
   for(unsigned int i = 0; i < filenames.Count(); ++i)
     if(cbEditor *e = em->GetBuiltinEditor(filenames[i]))
       {
-        //Log::Instance()->Add("reloading " + filenames[i]);
         e->Reload();
       }
 }
@@ -764,19 +729,19 @@ void SubversionPlugin::Diff(wxCommandEvent& event)
 {
   wxString revision("HEAD");
   wxString selected(GetSelection());
-  
+
   switch(event.GetId())
     {
-      case ID_MENU_D_P:
+    case ID_MENU_D_P:
       revision = "PREV";
       break;
-      case ID_MENU_D_C:
+    case ID_MENU_D_C:
       revision = "COMMITTED";
       break;
-      case ID_MENU_D_B:
+    case ID_MENU_D_B:
       revision = "BASE";
       break;
-      case ID_MENU_D_REV:
+    case ID_MENU_D_REV:
       {
         wxTextEntryDialog d(NULL,
                             "Please enter:\n"
@@ -787,7 +752,7 @@ void SubversionPlugin::Diff(wxCommandEvent& event)
                             "{2002-02-17}  {15:30}  {2002-02-17 15:30}  {20020217T1530}",
                             "Compare to revision...");
         d.ShowModal();
-        
+
         revision = d.GetValue();
         if(revision == wxEmptyString)
           return;
@@ -800,12 +765,12 @@ void SubversionPlugin::Diff(wxCommandEvent& event)
 void SubversionPlugin::Patch(wxCommandEvent& event)
 {
   wxString selected(GetSelection());
-  
+
   wxString fn((selected.IsEmpty() ? "patchfile" : selected) + ".patch");
-  
+
   patchFileName = wxFileSelector("Save patch file as...", "", fn,
                                  "*.patch", "patch files (*.patch)|*.patch|text files (*.txt)|*.txt|all files (*.*)|*.*", wxSAVE);
-                                 
+
   if(!patchFileName.IsEmpty())
     if(DirUnderCVS(selected))
       cvs->Diff(selected);
@@ -818,7 +783,7 @@ void SubversionPlugin::Release(wxCommandEvent& event)
   assert(has_tar_or_zip);
   wxString selected(GetSelection());
   wxString types;
-  
+
   if(!tarbin.IsEmpty())
     {
       if(!bzip2bin.IsEmpty())
@@ -828,23 +793,23 @@ void SubversionPlugin::Release(wxCommandEvent& event)
     }
   if(!zipbin.IsEmpty())
     types << "|zip compressed file (*.zip)|*.zip";
-    
+
   types = types.Mid(1);
-  
+
   patchFileName = wxFileSelector("Export release as...", "", "",
                                  "*.tar.bz2", types, wxSAVE);
-                                 
+
   if(patchFileName.IsEmpty())
     return;
-    
+
   wxString tempDir = TempFile::TempFolder() + "cbsvn-" << wxGetLocalTime();
-  
+
   // de-moronize wxFileSelector
   if(patchFileName.Contains(".bz2") && !patchFileName.Contains(".tar."))
     patchFileName.Replace(".bz2", ".tar.bz2");
   if(patchFileName.Contains(".gz") && !patchFileName.Contains(".tar."))
     patchFileName.Replace(".gz", ".tar.gz");
-    
+
   wxTextEntryDialog d(NULL,
                       "Please enter the desired revision to export from:\n",
                       "Export a Release", "HEAD");
@@ -852,7 +817,7 @@ void SubversionPlugin::Release(wxCommandEvent& event)
   wxString rev = d.GetValue();
   if(rev.IsEmpty())
     return;
-    
+
   if(DirUnderCVS(selected))
     {
       wxString repo;
@@ -868,7 +833,7 @@ void SubversionPlugin::Release(wxCommandEvent& event)
         }
       return;
     }
-    
+
   svn->Export(selected, tempDir, rev, "release");
 }
 
@@ -876,10 +841,10 @@ void SubversionPlugin::Release(wxCommandEvent& event)
 void SubversionPlugin::Lock(wxCommandEvent& event)
 {
   wxString selected(GetSelection());
-  
+
   if(wxFileName::DirExists(selected))
     return; // no locking of directories
-    
+
   if(event.GetId() == ID_MENU_LOCK)
     svn->Lock(selected);
   else
@@ -890,36 +855,36 @@ void SubversionPlugin::Lock(wxCommandEvent& event)
 void SubversionPlugin::Commit(wxCommandEvent& event)
 {
   wxString selected(GetSelection());
-  
+
   if(DirUnderCVS(selected))
     {
       wxArrayString files;
       CommitDialog d(Manager::Get()->GetAppWindow(), files, require_comments);
       d.Centre();
-      
+
       if(d.ShowModal() == wxID_OK)
         cvs->Commit(selected, d.comment);
       return;
     }
-    
+
   svn->Status(selected);
-  
+
   wxArrayString files;
   wxArrayString toAdd;
-  
+
   wxArrayString missing = ExtractFilesWithStatus('?');
-  
+
   if(auto_add)
     files = wxArrayString();
   else
     files = missing;
-    
+
   CommitDialog d(Manager::Get()->GetAppWindow(), files, require_comments);
   if(prefill_comments)
     {
       wxArrayString modified = ExtractFilesWithStatus('M');
       wxString prefill;
-      
+
       for(unsigned int i = 0; i < modified.Count(); ++i)
         {
           modified[i] = wxFileName(modified[i]).GetFullName();
@@ -928,7 +893,7 @@ void SubversionPlugin::Commit(wxCommandEvent& event)
       d.SetComment(prefill);
     }
   d.Centre();
-  
+
   if(d.ShowModal() == wxID_OK)
     {
       if(auto_delete)
@@ -949,7 +914,7 @@ void SubversionPlugin::Commit(wxCommandEvent& event)
               if (array)
                 {
                   unsigned int n = array->GetCount();
-                  
+
                   for (unsigned int k = 0; k < missing.Count(); ++k)
                     for (unsigned int i = 0; i < n; ++i)
                       {
@@ -961,24 +926,24 @@ void SubversionPlugin::Commit(wxCommandEvent& event)
                           }
                       }
                 }
-                
+
             }
           else
             toAdd = missing;
         }
       else
         toAdd = d.finalList;
-        
+
       wxString concat;
       for(unsigned int i = 0; i < toAdd.Count(); ++i) // better call svn with 637 paramters than run svn 637 times...
         concat << " \"" << toAdd[i] << "\" ";
       concat = concat.Mid(2, concat.Length()-4);  // svn->Add() wraps in double quotes already
-      
+
       if(!concat.IsEmpty())
         svn->Add(concat);
-        
+
       DisableCheckExternals();
-      
+
       svn->Commit(selected, d.comment, avoid_out_of_date);
     }
 }
@@ -991,29 +956,29 @@ void SubversionPlugin::Checkout(wxCommandEvent& event)
     {
       if(d.use_cvs_instead)
         {
-          if(!d.cvs_pass.IsEmpty())
-            cvs->Login(d.cvs_proto, d.cvs_repo, d.cvs_user, d.cvs_pass);
-            
+          //          if(!d.cvs_pass.IsEmpty())
+          //            cvs->Login(d.cvs_proto, d.cvs_repo, d.cvs_user, d.cvs_pass);
+
           if(d.cvs_workingdir.IsEmpty())
             d.cvs_workingdir = GetCheckoutDir();
-            
+
           repoHistoryCVS.Add(d.cvs_repo);
-          cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
-          
+          //          cvs->Checkout(d.cvs_proto, d.cvs_repo, d.cvs_module, d.cvs_workingdir, d.cvs_user, d.cvs_revision);
+
           request_autoopen = d.cvs_auto_open;
           return;
         }
-        
-      if(!d.username.IsEmpty())
-        svn->SetPassword(d.username, d.password);
-        
+
+      //      if(!d.username.IsEmpty())
+      //        svn->SetPassword(d.username, d.password);
+
       if(d.checkoutDir.IsEmpty())
         d.checkoutDir = GetCheckoutDir();
-        
+
       request_autoopen = d.autoOpen;
-      
+
       svn->Checkout(d.repoURL, d.checkoutDir, (d.revision.IsEmpty() ? wxString("HEAD") : d.revision), d.noExternals );
-      
+
       repoHistory.Add(d.repoURL);
     }
 }
@@ -1023,7 +988,7 @@ void SubversionPlugin::AutoOpenProjects(const wxString& rootdir, bool recursive,
   ProjectManager *pmgr = Manager::Get()->GetProjectManager();
   wxArrayString dirs;
   wxString f;
-  
+
   dirs.Add(rootdir);
   if(recursive)
     {
@@ -1064,7 +1029,7 @@ void SubversionPlugin::AutoOpenProjects(const wxString& rootdir, bool recursive,
             }
         }
     }
-    
+
 }
 
 
@@ -1075,61 +1040,55 @@ void SubversionPlugin::Import(wxCommandEvent& event)
   d.Centre();
   if(d.ShowModal() == wxID_OK)
     {
-      if(!d.username.IsEmpty())
-        svn->SetPassword(d.username, d.password);
-        
+      //      if(!d.username.IsEmpty())
+      //        svn->SetPassword(d.username, d.password);
+
       wxString target(defaultCheckoutDir + "/" +DirName(d.importDir));
-      
-      request_autoopen = true;
+
       repoHistory.Add(d.repoURL);
-      
-      cbProject *p = GetCBProject();
-      if(p)
-        {
-          ProjectManager *pmgr = Manager::Get()->GetProjectManager();
-          pmgr->CloseProject(p);
-        }
-        
+
+      importedProject = GetCBProject();
+
       svn->Import(d.repoURL, d.importDir, d.comment);
       svn->Checkout(d.repoURL, target, "HEAD");
-      
+
       if(!d.keywords.IsEmpty())
         svn->PropSet(target, "svn:keywords", d.keywords, true);
-        
+
       if(!d.ignore.IsEmpty())
         svn->PropSet(target, "svn:ignore", d.ignore, true);
-        
+
       if(!d.externals.IsEmpty())
         svn->PropSet(target, "svn:externals", d.externals, true);
-        
+
       if(!d.copy.IsEmpty())
         svn->PropSet(target, "copyright", d.copy, true);
-        
+
       if(!d.home.IsEmpty())
         svn->PropSet(target, "home", d.home, true);
-        
+
       if(!d.docs.IsEmpty())
         svn->PropSet(target, "documentation", d.docs, true);
-        
+
       if(!d.contact.IsEmpty())
         svn->PropSet(target, "contact", d.contact, true);
-        
+
       if(!d.arch.IsEmpty())
         svn->PropSet(target, "architecture", d.arch, true);
     }
 }
 
 
-void SubversionPlugin::SetUser(wxCommandEvent& event)
-{
-  PasswordDialog p(Manager::Get()->GetAppWindow());
-  p.Centre();
-  if(p.ShowModal() == wxID_OK)
-    {
-      svn->SetPassword(p.username, p.password);
-      svn->Status(GetSelection(), true);
-    }
-}
+//void SubversionPlugin::SetUser(wxCommandEvent& event)
+//{
+//  PasswordDialog p(Manager::Get()->GetAppWindow());
+//  p.Centre();
+//  if(p.ShowModal() == wxID_OK)
+//    {
+//      svn->SetPassword(p.username, p.password);
+//      svn->Status(GetSelection(), true);
+//    }
+//}
 
 void SubversionPlugin::CVSLogin(wxCommandEvent& event)
 {
@@ -1144,18 +1103,18 @@ void SubversionPlugin::CVSLogin(wxCommandEvent& event)
 void SubversionPlugin::Revert(wxCommandEvent& event)
 {
   wxString target(GetSelection());
-  
+
   svn->Status(target);
-  
+
   wxArrayString mods;
   wxArrayString files;
-  
+
   int n = svn->std_out.Count();
   for(int i = 0; i < n; ++i)
     {
       if(svn->std_out[i][(size_t)0] == '?')
         continue;
-        
+
       wxString f(LocalPath(svn->std_out[i].Mid(7)));
       if(f.StartsWith(".."))
         f = "[project]";
@@ -1173,14 +1132,14 @@ void SubversionPlugin::Revert(wxCommandEvent& event)
       if(svn->std_out[i][(size_t)1] == 'M')
         s << (s.Length()? ", " : "") <<  "has property changes";
       s = f + "   (" + s + ")";
-      
+
       if(svn->std_out[i].Length())
         {
           mods.Add(s);
           files.Add(svn->std_out[i].Mid(7));
         }
     }
-    
+
   if(::wxDirExists(target)) // seems like we have a project folder here
     {
       RevertDialog d(Manager::Get()->GetAppWindow(), mods, files);
@@ -1199,14 +1158,14 @@ void SubversionPlugin::Revert(wxCommandEvent& event)
       wxString localMods;
       if(warn_revert && ParseStatusOutputForFile(target) == 'M')
         localMods = "\nWARNING:\n\nThis file has local modifications which you will lose if you revert it.\n\n\n";
-        
+
       if(never_ask || wxMessageDialog(Manager::Get()->GetAppWindow(), localMods + "Do you want to revert the file " + target + "?", (localMods.IsEmpty() ? "Revert" : "Revert over Modifications"), wxYES_NO).ShowModal() == wxID_YES)
         {
           DisableCheckExternals();
           svn->Revert(target);
         }
     }
-    
+
 }
 
 
@@ -1257,11 +1216,11 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
 {
   PreferencesDialog d(Manager::Get()->GetAppWindow());
   d.Centre();
-  
+
   XRCCTRL(d, "svn binary path", wxTextCtrl)->SetValue(wxFileName(svnbinary).GetFullPath());
   XRCCTRL(d, "cvs binary path", wxTextCtrl)->SetValue(wxFileName(cvsbinary).GetFullPath());
   XRCCTRL(d, "std checkout", wxTextCtrl)->SetValue(defaultCheckoutDir);
-  
+
   XRCCTRL(d, "auto add", wxCheckBox)->SetValue(auto_add);
   XRCCTRL(d, "autoadd only project", wxCheckBox)->SetValue(auto_add_only_project);
   XRCCTRL(d, "auto remove missing", wxCheckBox)->SetValue(auto_delete);
@@ -1280,32 +1239,32 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
   XRCCTRL(d, "up after co", wxCheckBox)->SetValue(up_after_co);
   XRCCTRL(d, "svn_ssh", wxCheckBox)->SetValue(svn_ssh);
   XRCCTRL(d, "cvs_rsh", wxCheckBox)->SetValue(cvs_rsh);
-  
+
   if(plink.IsEmpty())
     {
       XRCCTRL(d, "svn_ssh", wxCheckBox)->Enable(false);
       XRCCTRL(d, "cvs_rsh", wxCheckBox)->Enable(false);
     }
-    
+
   d.RadioToggle(event);
-  
+
   if(d.ShowModal() == wxID_OK)
     {
       svnbinary     = XRCCTRL(d, "svn binary path", wxTextCtrl)->GetValue();
       cvsbinary  = XRCCTRL(d, "cvs binary path", wxTextCtrl)->GetValue();
       defaultCheckoutDir  = XRCCTRL(d, "std checkout", wxTextCtrl)->GetValue();
-      
+
       if(!svnbinary.IsEmpty())
         if(!svn)
           svn = new SVNRunner(svnbinary);
-          
+
       if(!cvsbinary.IsEmpty())
         if(!cvs)
           cvs = new CVSRunner(cvsbinary);
-          
+
       svn->SetExecutable(svnbinary);
       cvs->SetExecutable(cvsbinary);
-      
+
       auto_add     = XRCCTRL(d, "auto add", wxCheckBox)->GetValue();
       auto_add_only_project  = XRCCTRL(d, "autoadd only project", wxCheckBox)->GetValue();
       auto_delete    = XRCCTRL(d, "auto remove missing", wxCheckBox)->GetValue();
@@ -1324,13 +1283,13 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
       up_after_co    = XRCCTRL(d, "up after co", wxCheckBox)->GetValue();
       svn_ssh    = XRCCTRL(d, "svn_ssh", wxCheckBox)->GetValue();
       cvs_rsh    = XRCCTRL(d, "cvs_rsh", wxCheckBox)->GetValue();
-      
+
       if(!plink.IsEmpty())
         {
           svn->SetPlink(svn_ssh ? plink : "");
           cvs->SetPlink(cvs_rsh ? plink : "");
         }
-        
+
       WriteConfig();
     }
 }
@@ -1339,14 +1298,14 @@ void SubversionPlugin::Preferences(wxCommandEvent& event)
 void SubversionPlugin::ReadConfig()
 {
   wxConfigBase* c = ConfigManager::Get();
-  
+
   svnbinary = c->Read("/svn/svnbinary");
   cvsbinary = c->Read("/svn/cvsbinary");
   tarbin  = c->Read("/svn/tarbinary");
   bzip2bin = c->Read("/svn/bzip2binary");
   zipbin  = c->Read("/svn/zipbinary");
   defaultCheckoutDir = c->Read("/svn/defaultCheckoutDir");
-  
+
   c->Read("/svn/auto_add", &auto_add);
   c->Read("/svn/auto_add_only_project", &auto_add_only_project);
   c->Read("/svn/auto_delete", &auto_delete);
@@ -1366,11 +1325,11 @@ void SubversionPlugin::ReadConfig()
   c->Read("/svn/svn_ssh", &svn_ssh);
   c->Read("/svn/cvs_rsh", &cvs_rsh);
   c->Read("/svn/verbose", &verbose);
-  
+
   TamperWithWindowsRegistry();
-  
+
   SearchBinaries();
-  
+
   {
     wxString ht("/svn/repoHist");
     wxString val;
@@ -1398,14 +1357,14 @@ void SubversionPlugin::ReadConfig()
 void SubversionPlugin::WriteConfig()
 {
   wxConfigBase* c = ConfigManager::Get();
-  
+
   c->Write("/svn/svnbinary", svnbinary);
   c->Write("/svn/cvsbinary", cvsbinary);
   c->Write("/svn/tarbinary", tarbin);
   c->Write("/svn/bzip2binary", bzip2bin);
   c->Write("/svn/zipbinary", zipbin);
   c->Write("/svn/defaultCheckoutDir", defaultCheckoutDir);
-  
+
   c->Write("/svn/auto_add", auto_add);
   c->Write("/svn/auto_add_only_project", auto_add_only_project);
   c->Write("/svn/auto_delete", auto_delete);
@@ -1425,7 +1384,7 @@ void SubversionPlugin::WriteConfig()
   c->Write("/svn/svn_ssh", svn_ssh);
   c->Write("/svn/cvs_rsh", cvs_rsh);
   c->Write("/svn/verbose", verbose);
-  
+
   {
     unsigned int count = repoHistory.Count() < 16 ? repoHistory.Count() : 16;
     wxString ht("/svn/repoHist");
@@ -1455,10 +1414,10 @@ void SubversionPlugin::Add(wxCommandEvent& event)
 void SubversionPlugin::Delete(wxCommandEvent& event)
 {
   wxString selected(GetSelection());
-  
+
   if(never_ask)
     svn->Force();
-    
+
   if(never_ask || no_ask_revertable || wxMessageDialog(Manager::Get()->GetAppWindow(), "Issue a 'svn delete' on the file " + selected + "?\n\nThis will not only delete the from disk, but also remove it from revision control.", "Delete File", wxYES_NO).ShowModal() == wxID_YES)
     {
       svn->Delete(selected);
@@ -1483,17 +1442,17 @@ void SubversionPlugin::Delete(wxCommandEvent& event)
 void SubversionPlugin::PropIgnore(wxCommandEvent& event)
 {
   wxString target(GetSelection());
-  
+
   if(!::wxDirExists(target))               // svn:ignore only valid on directories
     target = wxFileName(target).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
-    
+
   wxString value = svn->PropGet(target, "svn:ignore");
-  
+
   IgnoreEditorDialog d(Manager::Get()->GetAppWindow(), target, value, target);
   d.Centre();
   wxString localPath = LocalPath(target);
   d.SetTitle("svn:ignore" + (localPath.IsEmpty() ? "" : " on " + localPath));
-  
+
   if(d.ShowModal() == wxID_OK)
     {
       svn->PropSet(target, "svn:ignore", d.value, false);
@@ -1504,13 +1463,13 @@ void SubversionPlugin::PropMime(wxCommandEvent& event)
 {
   wxString target = GetSelection();
   wxString mime = svn->PropGet(target, "svn:mime-type");
-  
+
   wxTextEntryDialog d(Manager::Get()->GetAppWindow(),
                       "Please provide a mime-type for the file " + LocalPath(target) +
                       "\n or leave empty to use the default type.\n\n"
                       "Note that a mime type outside text/* will effectively disable all merging capabilities.",
                       "svn:mime-type on " + LocalPath(target), mime);
-                      
+
   if(d.ShowModal() ==  wxID_OK)
     {
       mime = d.GetValue();
@@ -1519,7 +1478,7 @@ void SubversionPlugin::PropMime(wxCommandEvent& event)
       else
         svn->PropSet(target, "svn:mime-type", mime, false);
     }
-    
+
 }
 
 void SubversionPlugin::PropExec(wxCommandEvent& event)
@@ -1541,20 +1500,20 @@ void SubversionPlugin::PropNeedsLock(wxCommandEvent& event)
 void SubversionPlugin::PropExt(wxCommandEvent& event)
 {
   //FIXME: svn:externals deserves its own dialog
-  
+
   wxString file(GetSelection());
-  
+
   if(!::wxDirExists(file))
     file = wxFileName(file).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR);
-    
+
   wxString value(svn->PropGet(file, "svn:externals"));
-  
+
   PropertyEditorDialog d(Manager::Get()->GetAppWindow(), "svn:externals", value);
   d.Centre();
   wxString loc = LocalPath(file);
   loc = loc == "" ? "[top dir]" : loc;
   d.SetTitle("Property editor: " + loc);
-  
+
   if(d.ShowModal() == wxID_OK)
     {
       svn->PropSet(file, d.name, d.value, false);
@@ -1568,42 +1527,42 @@ void SubversionPlugin::PropExt(wxCommandEvent& event)
 void SubversionPlugin::PropKeywords(wxCommandEvent& event)
 {
   wxString item;
-  
+
   switch(event.GetId())
     {
-      case ID_MENU_KW_DATE:
+    case ID_MENU_KW_DATE:
       item << "Date";
       break;
-      case ID_MENU_KW_REVISION:
+    case ID_MENU_KW_REVISION:
       item << "Revision";
       break;
-      case ID_MENU_KW_AUTHOR:
+    case ID_MENU_KW_AUTHOR:
       item << "Author";
       break;
-      case ID_MENU_KW_HEAD:
+    case ID_MENU_KW_HEAD:
       item << "HeadURL";
       break;
-      case ID_MENU_KW_ID:
+    case ID_MENU_KW_ID:
       item << "Id";
       break;
-      case ID_MENU_KW_SETALL:
+    case ID_MENU_KW_SETALL:
       svn->PropSet(GetSelection(), "svn:keywords", "Date Revision Author HeadURL Id", true);
       return;
-      case ID_MENU_KW_CLEARALL:
+    case ID_MENU_KW_CLEARALL:
       svn->PropSet(GetSelection(), "svn:keywords", "", true);
       return;
     }
   wxString kw = svn->PropGet(GetSelection(), "svn:keywords");
-  
+
   if(kw.Contains(item))
     kw.Replace(item, "");
   else
     kw << "  " << item;
-    
+
   kw.Replace("\n", " ", true); // this is probably unneeded, but better do it anyway just in case
   kw.Replace("  ", " ", true);
   kw.Trim(false);
-  
+
   svn->PropSet(GetSelection(), "svn:keywords", kw, true);
 }
 
@@ -1611,12 +1570,12 @@ void SubversionPlugin::PropKeywords(wxCommandEvent& event)
 void   SubversionPlugin::EditConflicts(wxCommandEvent& event)
 {
   assert(tortoise || diff3);
-  
+
   svn->Status(svn->GetTarget());
-  
+
   wxArrayString conflicting;
   ExtractFilesWithStatus('C', conflicting);
-  
+
   for(unsigned int i = 0; i < conflicting.Count(); ++i)
     DoResolve(conflicting[i]);
 }
@@ -1624,24 +1583,24 @@ void   SubversionPlugin::EditConflicts(wxCommandEvent& event)
 void SubversionPlugin::OnFatTortoiseCVSFunctionality(wxCommandEvent& event)
 {
   assert(tortoisecvs);
-  
+
   wxString p(GetSelection());
-  
+
   switch(event.GetId())
     {
-      case ID_MENU_CVS_BRANCH:
+    case ID_MENU_CVS_BRANCH:
       tortoisecvs->Branch(p);
       break;
-      
-      case ID_MENU_CVS_TAG:
+
+    case ID_MENU_CVS_TAG:
       tortoisecvs->Tag(p);
       break;
-      
-      case ID_MENU_CVS_MERGE:
+
+    case ID_MENU_CVS_MERGE:
       tortoisecvs->Merge(p);
       break;
-      
-      case ID_MENU_CVS_PATCH:
+
+    case ID_MENU_CVS_PATCH:
       tortoisecvs->Patch(p);
       break;
     };
@@ -1654,36 +1613,36 @@ void SubversionPlugin::OnFatTortoiseCVSFunctionality(wxCommandEvent& event)
 void SubversionPlugin::OnFatTortoiseFunctionality(wxCommandEvent& event)
 {
   assert(tortoise);
-  
+
   wxString p(GetSelection());
-  
+
   switch(event.GetId())
     {
-      case ID_MENU_BRANCH:
+    case ID_MENU_BRANCH:
       tortoise->Branch(p);
       break;
-      
-      case ID_MENU_SWITCH:
+
+    case ID_MENU_SWITCH:
       tortoise->Switch(p);
       break;
-      
-      case ID_MENU_MERGE:
+
+    case ID_MENU_MERGE:
       tortoise->Merge(p);
       break;
-      
-      case ID_MENU_CREATE:
+
+    case ID_MENU_CREATE:
       {
         wxString d(::wxDirSelector("Please point to the location where the new repository will be created."));
         if(!d.IsEmpty())
           tortoise->Create(d);
       }
       break;
-      
-      case ID_MENU_RELOCATE:
+
+    case ID_MENU_RELOCATE:
       tortoise->Relocate(p);
       break;
-      
-      case ID_MENU_TSVN_PATCH:
+
+    case ID_MENU_TSVN_PATCH:
       tortoise->Patch(p);
       break;
     };
@@ -1694,7 +1653,7 @@ void SubversionPlugin::EditProperty(wxCommandEvent& event)
   wxString name;
   wxString value;
   wxString file(GetSelection());
-  
+
   if(event.GetId() == ID_MENU_PROP_NEW)
     {
       name = "NewPropertyName";
@@ -1704,13 +1663,13 @@ void SubversionPlugin::EditProperty(wxCommandEvent& event)
       name = fileProperties[event.GetId()];
       value = svn->PropGet(file, name);
     }
-    
+
   PropertyEditorDialog d(Manager::Get()->GetAppWindow(), name, value);
   d.Centre();
   wxString loc = LocalPath(file);
   loc = loc == "" ? "[top dir]" : loc;
   d.SetTitle("Property editor: " + loc);
-  
+
   if(d.ShowModal() == wxID_OK)
     {
       svn->PropSet(file, d.name, d.value, false);
@@ -1726,30 +1685,30 @@ void SubversionPlugin::EditProperty(wxCommandEvent& event)
 void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
 {
   wxString cmd(event.GetString());
-  
-  if(event.GetExtraLong() == ToolRunner::SVN)
+
+  if(event.GetExtraLong() == SVN)
     {
       wxArrayString conflicting;
       ExtractFilesWithStatus('C', conflicting);
-      
+
       if(conflicting.Count())
         {
           svn->EmptyQueue();  // Although the command was successful, files in conflict are still a failure, so break here
-          if(tortoise)
+          if(tortoise.Valid())
             {
               for(unsigned int i = 0; i < conflicting.Count(); ++i)
                 DoResolve(conflicting[i]);
-                
+
             }
           if(verbose)
             Log::Instance()->Blue("Transaction was successful, but conflicts remain.");
           return;
         }
-        
+
     }
-    
-  wxString lastCommand(svn->LastCommand());
-  
+
+  wxString lastCommand(svn->GetVerb());
+
   if(lastCommand.Contains(" commit ")) // cannot rely on cmd here due to RemoteStatusHandler
     {
       if(up_after_co)
@@ -1761,11 +1720,11 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
           ReloadEditors(changed);
         }
     }
-    
+
   if(cmd.Contains("lock"))
     {
       ReOpenEditor(svn->GetTarget());
-      
+
       // this may be a bug in svn? IMO, the transaction should fail on an existing lock
       if(svn->blob.Contains("is already locked by"))
         if(wxMessageDialog(Manager::Get()->GetAppWindow(),
@@ -1776,7 +1735,7 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
                            "Do you want to break the lock at the risk of possibly breaking more than just a lock?",
                            "Resource locked", wxYES_NO | wxNO_DEFAULT |wxICON_EXCLAMATION).ShowModal() == wxID_YES)
           {
-            svn->AddToLastCommand(" --force");
+            svn->AddToCommand(" --force");
             svn->RunAgain();
             return;
           }
@@ -1786,24 +1745,31 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
             return;
           }
     }
-    
+
   if(cmd.IsSameAs("checkout"))
     {
-      ToolRunner *tool = (event.GetExtraLong() == ToolRunner::SVN) ? (ToolRunner *) svn : (ToolRunner *) cvs;
+      ToolRunner *tool = (event.GetExtraLong() == SVN) ? (ToolRunner *) svn : (ToolRunner *) cvs;
+
+      if(importedProject) // close original after successful import + checkout
+        {
+          Manager::Get()->GetProjectManager()->CloseProject(importedProject);
+          importedProject = 0;
+          request_autoopen = true;  // we sure want to reopen
+        }
       if(request_autoopen)
         AutoOpenProjects(tool->GetTarget(), true, true);
     }
-    
+
   if(cmd.IsSameAs("info"))
     {
       wxString s;
       int n = svn->std_out.Count();
-      
+
       for(int i = 0; i < n; ++i)
-          s << svn->std_out[i] << "\n";
+        s << svn->std_out[i] << "\n";
       Log::Instance()->Add(s);
     }
-    
+
   if(cmd.IsSameAs("diff"))
     {
       if(svn->out.IsEmpty())
@@ -1816,32 +1782,32 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
             patchFileName.Empty();
           }
     }
-    
+
   if(cmd.IsSameAs("export:diff"))
     {
       wxString dest = svn->GetTarget();
       wxString src = dest.BeforeFirst('*');
       dest = dest.AfterFirst('*');
-      
-      if(tortoise)
+
+      if(tortoise.Valid())
         tortoise->Diff(src, dest);
-      else if(diff3)
+      else if(diff3.Valid())
         diff3->Diff(src, dest);
     }
-    
+
   if(cmd.IsSameAs("export:release"))
     {
-      ToolRunner *tool = (event.GetExtraLong() == ToolRunner::SVN) ? (ToolRunner *) svn : (ToolRunner *) cvs;
-      
+      ToolRunner *tool = (event.GetExtraLong() == SVN) ? (ToolRunner *) svn : (ToolRunner *) cvs;
+
       wxString dest = tool->GetTarget().AfterFirst('*');
-      
+
       if(!patchFileName.IsEmpty())
         {
           wxString tarpath(wxFileName(patchFileName).GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR)); // must not Q()!
           wxString tarfile(binutils->Q(wxFileName(patchFileName).GetFullName()));
-          
+
           wxString cmd;
-          
+
           if(patchFileName.Contains(".tar"))
             {
               binutils->SetExecutable(tarbin);
@@ -1855,31 +1821,31 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
               patchFileName.Empty();
               return;
             }
-            
+
           if(patchFileName.Contains(".tar.gz"))
             cmd << "-zcf";
           else if(patchFileName.Contains(".tar.bz2"))
             cmd << "--use-compress-program" << binutils->Q(bzip2bin) << "-cf";
           else if(patchFileName.Contains(".tar"))
             cmd << "-cf";
-            
+
           //Log::Instance()->Add(tarpath);
           //Log::Instance()->Add(cmd +  tarfile + "-C" + binutils->Q(dest) + ".");
-          
+
           binutils->Run(cmd +  tarfile + "-C" + binutils->Q(dest) + ".", tarpath);
           patchFileName.Empty();
         }
-        
+
     }
-    
-    
+
+
   // Know nothing, assume the best :)
   if(svn->IsIdle())
     Log::Instance()->Blue("All transactions finished.");
-    
+
   if(cmd.IsSameAs("checkout") || cmd.IsSameAs("update") || cmd.IsSameAs("revert"))
     ResetCheckExternals();
-    
+
   svn->RunQueue();
 }
 
@@ -1887,7 +1853,7 @@ void SubversionPlugin::TransactionSuccess(wxCommandEvent& event)
 void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
 {
   wxString cmd(event.GetString());
-  if(event.GetExtraLong() == ToolRunner::SVN)
+  if(event.GetExtraLong() == SVN)
     {
       // svn:run 'svn cleanup' to remove locks (type 'svn help cleanup' for details)
       if(svn->blob.Contains("svn cleanup"))
@@ -1897,8 +1863,8 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
           svn->Run("cleanup" + svn->Q(svn->GetTarget()));
           return;
         }
-        
-        
+
+
       // svn: Out of date: 'main.cpp' in transaction '43-1'
       if(avoid_out_of_date && svn->blob.Contains("Out of date"))
         {
@@ -1907,7 +1873,7 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
           svn->Update(svn->GetTarget());
           return;
         }
-        
+
       // svn: Server doesn't support the lock command
       // svn: Unknown command 'lock'
       if(svn->blob.Contains("Unknown command 'lock'"))
@@ -1916,13 +1882,13 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
                                "You need at least version 1.2.0 both on the server and on the client side.");
         }
     }
-    
-  if(event.GetExtraLong() == ToolRunner::CVS)
+
+  if(event.GetExtraLong() == CVS)
     {
       /*
       *  Now tell me that CVS does not suck...
       *  CVS exits with error if diff finds differences in files.
-      *  Seriously, what do you expect if the user runs "diff"? 
+      *  Seriously, what do you expect if the user runs "diff"?
       */
       if(cmd.IsSameAs("CVS-diff"))
         {
@@ -1939,10 +1905,10 @@ void SubversionPlugin::TransactionFailure(wxCommandEvent& event)
             Log::Instance()->Blue("All transactions finished.");
           return;
         }
-        
+
       NotImplemented("Error handler for CVS.");
     }
-    
+
   // We were not able to handle whatever errors occurred
   Log::Instance()->Red("Transaction failed.");
   svn->EmptyQueue();
@@ -1952,7 +1918,7 @@ void SubversionPlugin::ReRun(wxCommandEvent& event)
 {
   int id = event.GetId();
   assert(id == RUN_AGAIN || id == RUN_NEXT_IN_QUEUE);
-  
+
   if(id = RUN_AGAIN)
     svn->RunAgain();
   else
@@ -1961,15 +1927,15 @@ void SubversionPlugin::ReRun(wxCommandEvent& event)
 
 void SubversionPlugin::DoResolve(const wxString& conflicting)
 {
-  if(tortoise)
+  if(tortoise.Valid())
     tortoise->ConflictEditor(conflicting);
-  else if(diff3)
+  else if(diff3.Valid())
     {
       /*
       * tkdiff.tcl does not understand the -m switch that is mandatory for all others.
       * Luckily, it has a much easier way to handle conflict files
       */
-      if(diff3->Type() == ToolRunner::TKDIFF)
+      if(diff3->Type() == TKDIFF)
         {
           diff3->Merge(conflicting);
         }
@@ -1992,7 +1958,7 @@ void SubversionPlugin::DoResolve(const wxString& conflicting)
 void SubversionPlugin::Resolved(wxCommandEvent& event)
 {
   wxString target(GetSelection());
-  
+
   if(never_ask || (show_resolved == false) || (wxMessageDialog(Manager::Get()->GetAppWindow(),
           "Do you want to issue a 'svn resolved' command?\n\n"
           "This command does NOT resolve any conflicts, instead it tells the revision control system that you have been "
@@ -2041,7 +2007,7 @@ void SubversionPlugin::Resolved(wxCommandEvent& event)
 /*-----------------------------------------------------------------------------------------------------------------
 *
 *  DO NOT LOOK ANY FURTHER. BEYOND THIS POINT, THINGS ARE REALLY EVIL. YOU HAVE BEEN WARNED.
-* 
+*
 */
 
 
@@ -2084,9 +2050,9 @@ void SubversionPlugin::SearchBinaries()
   if(!wxFile::Exists(plink))
     plink  = NastyFind("Plink.exe");
   plink.Replace("\\", "/");
-  
+
 #else
-  
+
   if(!wxFile::Exists(svnbinary))
     svnbinary  = NastyFind("svn");
   if(!wxFile::Exists(cvsbinary))
@@ -2098,48 +2064,98 @@ void SubversionPlugin::SearchBinaries()
   if(!wxFile::Exists(zipbin))
     zipbin  = NastyFind("zip");
   has_tar_or_zip = !(tarbin.IsEmpty() && zipbin.IsEmpty());
-  
+
   extdiff  = NastyFind("kdiff3");
   if(extdiff.IsEmpty())
     extdiff = NastyFind("tkdiff.tcl");
-  
+
   if(!wxFile::Exists(plink))
     plink  = NastyFind("ssh");
-  
+
 #endif
-  
+
 #ifdef SCO
-  
+
   long* ptr = 0;
   *ptr = 1L;
 #endif
-  
+
   WriteConfig();
 }
 
 void SubversionPlugin::TamperWithWindowsRegistry()
 {
 #ifdef __WIN32__
-  wxRegKey* rKey;
+  smart<wxRegKey> rKey;
   wxString bin;
-  
+
+  wxArrayString installPaths;
+
+
+  rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Subversion_is1");
+  if( rKey->Exists() )
+    if(rKey->QueryValue("InstallLocation", bin))
+      installPaths.Add(bin);
+
+  rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\TortoiseCVS_is1");
+  if( rKey->Exists() )
+    if(rKey->QueryValue("InstallLocation", bin))
+      installPaths.Add(bin);
+
+  rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\TortoiseSVN_is1");
+  if( rKey->Exists() )
+    if(rKey->QueryValue("InstallLocation", bin))
+      installPaths.Add(bin);
+
+  rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\TortoiseCVS");
+  if( rKey->Exists() )
+    if(rKey->QueryValue("RootDir", bin))
+      installPaths.Add(bin);
+
+  rKey = new wxRegKey("HKEY_CURRENT_USER\\Software\\Code::Blocks\\Code::Blocks v1.0");
+  if( rKey->Exists() )
+    if(rKey->QueryValue("app_path", bin))
+      installPaths.Add(bin);
+
+
   rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\TortoiseSVN");
   if( rKey->Exists() )
     {
-      rKey->QueryValue("ProcPath", bin);
-      
-      if(wxFile::Exists(bin))
+      if(rKey->QueryValue("Directory", bin))
+        installPaths.Add(bin);
+      if(rKey->QueryValue("ProcPath", bin) && wxFile::Exists(bin))
         tortoiseproc = bin;
     }
-  delete rKey;
-  
+
+
+  for(unsigned int i = 0; i < installPaths.Count(); ++i)
+    {
+      if(svnbinary.IsEmpty() && wxFile::Exists(installPaths[i] + "/svn.exe"))
+        svnbinary = installPaths[i] + "/svn.exe";
+      if(svnbinary.IsEmpty() && wxFile::Exists(installPaths[i] + "/bin/svn.exe"))
+        svnbinary = installPaths[i] + "/bin/svn.exe";
+      if(cvsbinary.IsEmpty() && wxFile::Exists(installPaths[i] + "/cvs.exe"))
+        cvsbinary = installPaths[i] + "/cvs.exe";
+      if(cvsbinary.IsEmpty() && wxFile::Exists(installPaths[i] + "/bin/cvs.exe"))
+        cvsbinary = installPaths[i] + "/bin/cvs.exe";
+      if(tortoiseproc.IsEmpty() && wxFile::Exists(installPaths[i] + "/TortoiseProc.exe"))
+        tortoiseproc = installPaths[i] + "/TortoiseProc.exe";
+      if(tortoiseproc.IsEmpty() && wxFile::Exists(installPaths[i] + "/bin/TortoiseProc.exe"))
+        tortoiseproc = installPaths[i] + "/bin/TortoiseProc.exe";
+      if(tortoiseact.IsEmpty() && wxFile::Exists(installPaths[i] + "/TortoiseAct.exe"))
+        tortoiseact = installPaths[i] + "/TortoiseAct.exe";
+      if(tortoiseact.IsEmpty() && wxFile::Exists(installPaths[i] + "/bin/TortoiseAct.exe"))
+        tortoiseact = installPaths[i] + "/bin/TortoiseAct.exe";
+    }
+
+
   rKey = new wxRegKey("HKEY_CURRENT_USER\\Software\\TortoiseSVN\\History\\repoURLS");
   if( rKey->Exists() )
     {
       long index;
       wxString val;
       wxString result;
-      
+
       if(rKey->GetFirstValue(val, index))
         do
           {
@@ -2148,15 +2164,15 @@ void SubversionPlugin::TamperWithWindowsRegistry()
           }
         while ( rKey->GetNextValue(val, index) );
     }
-  delete rKey;
-  
+
+
   if(tortoiseproc.IsEmpty())
     {
       if(verbose)
         Log::Instance()->Add("No working installation of TortoiseSVN was found. Although TortoiseSVN is not strictly necessary to use this plugin,\n"
                              "it offers valuable additional functionality and is highly recommended.\n"
                              "TortoiseSVN is available under http://tortoisesvn.tigris.org\n");
-                             
+
       rKey = new wxRegKey("HKEY_CURRENT_USER\\Software\\KDiff3");
       if( rKey->Exists() )
         {
@@ -2169,7 +2185,7 @@ void SubversionPlugin::TamperWithWindowsRegistry()
                 Log::Instance()->Add("KDiff3 detected.");
             }
         }
-      delete rKey;
+
       if(extdiff.IsEmpty())
         {
           rKey = new wxRegKey("HKEY_CURRENT_USER\\Software\\Thingamahoochie\\WinMerge");
@@ -2183,21 +2199,10 @@ void SubversionPlugin::TamperWithWindowsRegistry()
                     Log::Instance()->Add("WinMerge detected.");
                 }
             }
-          delete rKey;
         }
     }
-    
-  rKey = new wxRegKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\TortoiseCVS");
-  if( rKey->Exists() )
-    {
-      rKey->QueryValue("RootDir", bin);
-      bin << "TortoiseAct.exe";
-      
-      if(wxFile::Exists(bin))
-        tortoiseact = bin;
-    }
-  delete rKey;
-  
+
+
   if(verbose)
     {
       if(!tortoiseproc.IsEmpty())
@@ -2206,14 +2211,14 @@ void SubversionPlugin::TamperWithWindowsRegistry()
         Log::Instance()->Add("Successfully imported TortoiseSVN history from registry.");
       if(!tortoiseact.IsEmpty())
         Log::Instance()->Add("TortoiseCVS detected.");
-        
+
       clearTimer.Start(12000);
       Log::lastLogTime = 0;
       Log::Instance()->fg();
     }
-    
+
 #endif
-    
+
 }
 
 
@@ -2221,23 +2226,22 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
 {
   // NOTE : This hideous beast could maybe be implemented more elegantly using wxPathList
 #ifdef __WIN32__
-  
+
   wxArrayString prefix;
   wxArrayString location;
-  
+
   TCHAR szPath[MAX_PATH];
   SHGetFolderPath(NULL, CSIDL_PROGRAM_FILES, NULL, 0, szPath);
   prefix.Add(szPath);
   prefix.Add("C:");
-  prefix.Add("D:");
   prefix.Add("C:\\Program Files");
   prefix.Add("C:\\Programme");
   prefix.Add("C:\\Programa");
   prefix.Add("C:\\Programmes");
   prefix.Add("C:\\Apps");
   prefix.Add("C:\\Tools");
-  prefix.Add("E:");
-  
+  prefix.Add("D:");
+
   location.Add("");
   location.Add("\\subversion\\bin");
   location.Add("\\TortoiseSVN\\bin");
@@ -2252,11 +2256,11 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
   location.Add("\\TortoiseCVS");
   location.Add("\\mingw\\bin");
   location.Add("\\cygwin\\bin");
-  
-  
+
+
   int lc = location.GetCount();  // I never trust these are really inline, are they...?
   int pc = prefix.GetCount();
-  
+
   for(int i = 0; i < lc; i++)
     {
       for(int j = 0; j < pc; j++)
@@ -2278,9 +2282,9 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
       return(name);
     }
 #endif
-    
+
 #ifdef __linux__
-    
+
   wxArrayString location;
   location.Add("/usr/bin");   // this is probably it, anyway
   location.Add("/usr/local/bin");
@@ -2295,7 +2299,7 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
       if(wxFile::Exists(loc))
         return loc;
     }
-    
+
   // similar to above - if we can't find svn, we will assume (hope) it is in $PATH and just call "svn"
   // - if the user actually works with svn at all, this should be the case
   if(name.IsSameAs("svn"))
@@ -2307,7 +2311,7 @@ wxString SubversionPlugin::NastyFind(const wxString& name)
       return(name);
     }
 #endif
-    
+
   return wxEmptyString;
 }
 

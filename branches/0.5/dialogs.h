@@ -1,21 +1,16 @@
-/*
-* This file is part of the Code::Blocks SVN Plugin
-* Copyright (C) 2005 Thomas Denk
-*
-* This program is licensed under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 of the License,
-* or (at your option) any later version.
-*
-* $HeadURL$
-* $Id$
-*/
+// This file is part of the Code::Blocks SVN Plugin
+// Copyright (C) 2005 Thomas Denk
+//
+// This program is licensed under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2 of the License,
+// or (at your option) any later version.
+//
+// $HeadURL$
+// $Id$
+
 
 #ifndef CHECKOUT_DIALOG_H
 #define CHECKOUT_DIALOG_H
-
-
-#include <wx/wx.h>
-
 
 
 enum {  ID_MENU_USER = 32000,
@@ -88,7 +83,8 @@ enum {  ID_MENU_USER = 32000,
         
         ID_PROCESS,
         ID_BLIP,
-        ID_FORCEKILL
+        ID_FORCEKILL,
+        ID_LOG_CLEAR
      };
 
 
@@ -105,8 +101,8 @@ public:
     
     wxString checkoutDir;  // too lazy to write accessor funcs, so these be public, not much harm really
     wxString repoURL;
-    wxString username;
-    wxString password;
+//    wxString username;
+//    wxString password;
     wxString revision;
     bool  autoOpen;
     bool  noExternals;
@@ -117,8 +113,8 @@ public:
     wxString cvs_repo;
     wxString cvs_proto;
     wxString cvs_module;
-    wxString cvs_user;
-    wxString cvs_pass;
+//    wxString cvs_user;
+//    wxString cvs_pass;
     bool  cvs_auto_open;
     wxString cvs_revision;
     
@@ -140,8 +136,8 @@ public:
     
     wxString importDir;
     wxString repoURL;
-    wxString username;
-    wxString password;
+//    wxString username;
+//    wxString password;
     wxString comment;
     bool  trunkify;
     
