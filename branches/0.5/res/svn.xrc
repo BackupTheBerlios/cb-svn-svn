@@ -1,0 +1,1375 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<resource>
+<object class="wxDialog" name="Checkout">
+<title>Checkout</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxNotebook" name="notebook">
+<usenotebooksizer>1</usenotebooksizer>
+<size>600,160</size>
+<object class="notebookpage">
+<label>Subversion</label>
+<object class="wxPanel">
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Working directory:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>0</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="working dir">
+<tooltip>Enter the directory where you want your local copy to be created. The specified directory does not need to exists as long as this plugin can create it.</tooltip>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="fileselect">
+<size>20,-1</size>
+<label>...</label>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Repository:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALL</flag>
+<border>5</border>
+<object class="wxComboBox" name="repository url">
+<style>wxCB_DROPDOWN</style>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="auto_open">
+<label>Automatically open code::blocks projects</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT</flag>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Revision:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxComboBox" name="revision">
+<size>100,-1</size>
+<style>wxCB_DROPDOWN</style>
+<content>
+<item>HEAD</item>
+<item>PREVIOUS</item>
+<item>COMMITTED</item>
+</content>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxCheckBox" name="ignore ext">
+<label>Ignore svn:externals attribute</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="notebookpage">
+<label>CVS</label>
+<object class="wxPanel">
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Working directory:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>0</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_workingdir">
+<tooltip>Enter the directory where you want your local copy to be created. The specified directory does not need to exists as long as this plugin can create it.</tooltip>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="cvs_fileselect">
+<size>20,-1</size>
+<label>...</label>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Repository:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALL</flag>
+<border>5</border>
+<object class="wxComboBox" name="cvs_repo">
+<style>wxCB_DROPDOWN</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Module:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_module">
+<size>160,-1</size>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="cvs_auto_open">
+<label>Automatically open code::blocks projects</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Revision tag:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs_revision">
+<size>110,-1</size>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+<default>1</default>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="Commit">
+<title>Commit</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Enter a description / comment for the new revision:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>10</border>
+<object class="wxTextCtrl" name="comment">
+<size>620,120</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+<default>1</default>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="wxDialog" name="Preferences">
+<title>Preferences</title>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<label>Installation paths</label>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>svn :</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="svn binary path">
+<size>260,-1</size>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>cvs :</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="cvs binary path">
+<size>260,-1</size>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticBoxSizer">
+<orient>wxVERTICAL</orient>
+<label>Warnings / Confirmations</label>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="no confirm revertable">
+<label>Do not make me confirm things that I can revert</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="warn revert">
+<label>Warn me before reverting local modifications</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="never ask">
+<fg>#FF0000</fg>
+<label>I know what I am doing. Heat up the superlaser, and fire at will.</label>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticBoxSizer">
+<orient>wxVERTICAL</orient>
+<label>Automations</label>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="auto add">
+<label>On commit, automatically add unversioned files without asking</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>20</border>
+<object class="wxCheckBox" name="autoadd only project">
+<label>Only if they are in a project, though</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="spacer">
+<flag>wxALIGN_CENTER</flag>
+<border>5</border>
+<size>10,10</size>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="auto remove missing">
+<label>On commit, automatically remove missing files from version control</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="up after co">
+<label>After sucessful commit, reload sources to realize keyword changes</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="auto merge">
+<label>Prevent commit from failing due to being "out of date"</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="no emtpy comments">
+<label>Do not allow empty comment fields</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT</flag>
+<border>20</border>
+<object class="wxCheckBox" name="prefill comments">
+<label>Pre-fill comment field</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="spacer">
+<flag>wxALIGN_CENTER</flag>
+<border>5</border>
+<size>10,10</size>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="forceclean">
+<enabled>0</enabled>
+<label>Require clean build prior to committing</label>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticBoxSizer">
+<orient>wxVERTICAL</orient>
+<label>General</label>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="cascade">
+<label>Cascade popup menu</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="full status">
+<enabled>0</enabled>
+<label>On opening project, fetch a full status ("--show-updates")</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="no props">
+<label>Disable property handling (for really slow machines)</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="show resolved">
+<label>Warn me before issuing a "resolved" command</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="prompt reload">
+<label>Prompt to reload updated files</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Default checkout path:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="std checkout">
+<size>180,-1</size>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="svn_ssh">
+<label>Set SVN_SSH</label>
+</object>
+</object>
+
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="cvs_rsh">
+<label>Set CVS_RSH</label>
+</object>
+</object>
+</object>
+</object>
+<object class="spacer">
+<flag>wxALIGN_CENTER</flag>
+<border>5</border>
+<size>10,10</size>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_BOTTOM|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+<default>1</default>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="Import">
+<title>Import</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Source directory:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxRIGHT</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="source dir">
+<size>320,-1</size>
+<tooltip>Enter the directory to be imported to revision control.</tooltip>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Repository:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxRIGHT</flag>
+<border>5</border>
+<object class="wxComboBox" name="repository url">
+<size>320,-1</size>
+<style>wxCB_DROPDOWN</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Username:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="username">
+<size>120,-1</size>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Password:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="password">
+<size>120,-1</size>
+<style>wxTE_PASSWORD</style>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT</flag>
+<border>15</border>
+<object class="wxCheckBox" name="trunkify">
+<enabled>0</enabled>
+<label>Trunkify the project before importing</label>
+</object>
+</object>
+<object class="spacer">
+<flag>wxALIGN_CENTER|wxTOP</flag>
+<size>10,10</size>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Enter an description / comment for the base revision:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxTextCtrl" name="comment">
+<size>-1,80</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>10</border>
+<object class="wxStaticBoxSizer">
+<orient>wxVERTICAL</orient>
+<label>Properties</label>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxNotebook" name="notebook">
+<usenotebooksizer>1</usenotebooksizer>
+<object class="notebookpage">
+<label>SVN</label>
+<object class="wxPanel">
+<object class="wxFlexGridSizer">
+<cols>0</cols>
+<rows>2</rows>
+<growablecols>0</growablecols>
+<object class="sizeritem">
+<flag>wxALL</flag>
+<border>5</border>
+<object class="wxStaticBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<label>svn:keywords [recursive]</label>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="kw_revision">
+<label>Revision</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="kw_author">
+<label>Author</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="kw_headurl">
+<label>HeadURL</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="kw_date">
+<label>Date</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxCheckBox" name="kw_id">
+<label>Id</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="spacer">
+<flag>wxALIGN_CENTER</flag>
+<size>20,20</size>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>1</cols>
+<rows>0</rows>
+<growablecols>0,1</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>5</border>
+<object class="wxStaticText">
+<fg>#0000FF</fg>
+<label>svn:ignore</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="ignore">
+<size>-1,60</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>5</border>
+<object class="wxStaticText">
+<fg>#0000FF</fg>
+<label>svn:externals</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="externals">
+<size>-1,60</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="notebookpage">
+<label>Project</label>
+<object class="wxPanel">
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>1</cols>
+<rows>0</rows>
+<growablecols>0</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Copyright:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="copy">
+<size>80,40</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Project Homepage:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="home">
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Documentation:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="docs">
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Contact:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="contact">
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Architecture:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxComboBox" name="arch">
+<size>140,-1</size>
+<style>wxCB_DROPDOWN</style>
+<content>
+<item>Windows / x86</item>
+<item>Linux / x86</item>
+<item>Linux / AMD64</item>
+<item>Linux / PowerPC</item>
+<item>MacOS / PowerPC</item>
+<item>Cross-Platform</item>
+<item>Sun / Alpha</item>
+</content>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+<default>1</default>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="Password">
+<title>Authentication</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Username:  </label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL</flag>
+<border>20</border>
+<object class="wxTextCtrl" name="username">
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Password:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="password">
+<style>wxTE_PASSWORD</style>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+<default>1</default>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="CommitAdd">
+<title>Commit</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>The following files are currently not under version control.
+Please select the ones you wish to add:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxCheckListBox" name="listcontrol">
+<size>140,200</size>
+<style>wxSUNKEN_BORDER</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL</flag>
+<object class="wxFlexGridSizer">
+<cols>3</cols>
+<rows>0</rows>
+<growablecols>2</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxCheckBox" name="select all">
+<label>Select all</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxCheckBox" name="select none">
+<label>Select none</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxCheckBox" name="ignore">
+<label>Put non-selected onto ignore list</label>
+<enabled>0</enabled>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxTOP</flag>
+<border>15</border>
+<object class="wxStaticLine">
+<size>20,-1</size>
+<style>wxLI_HORIZONTAL</style>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxLEFT|wxRIGHT|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Enter a description / comment for the new revision:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>10</border>
+<object class="wxTextCtrl" name="comment">
+<size>620,120</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="PropertyConflict">
+<title>Property Conflict</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP|wxBOTTOM</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Property:  </label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxRadioButton" name="use mine">
+<style>wxRB_GROUP</style>
+<label>Use mine (or an edited version):</label>
+<value>1</value>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="mine">
+<size>300,80</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxRadioButton" name="use theirs">
+<label>Use theirs (or an edited version):</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="theirs">
+<size>300,80</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+<default>1</default>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="PropertyEditor">
+<title>Propertites for </title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Property:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="property">
+<size>100,-1</size>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>5</border>
+<object class="wxStaticText">
+<label>Value:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxTextCtrl" name="value">
+<size>300,160</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxButton" name="delete">
+<label>Delete</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxLEFT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="svnIgnore">
+<title>svn:ignore Property</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>svn:ignore takes a list of ignore patterns (one per line):</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxTextCtrl" name="value">
+<size>300,160</size>
+<style>wxTE_MULTILINE</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>5</border>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>1</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxButton" name="select">
+<label>Select...</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxLEFT|wxTOP|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+<object class="wxDialog" name="Revert">
+<title>Revert changes</title>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER_VERTICAL|wxLEFT</flag>
+<border>10</border>
+<object class="wxStaticText">
+<label>Please select the changes you wish to revert:</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>10</border>
+<object class="wxCheckListBox" name="listcontrol">
+<size>520,300</size>
+<style>wxSUNKEN_BORDER</style>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL</flag>
+<object class="wxFlexGridSizer">
+<cols>2</cols>
+<rows>0</rows>
+<growablecols>2</growablecols>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxCheckBox" name="select all">
+<label>Select all</label>
+<checked>1</checked>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT</flag>
+<border>10</border>
+<object class="wxCheckBox" name="select none">
+<label>Select none</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxGROW|wxLEFT|wxRIGHT|wxBOTTOM</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxVERTICAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+<border>5</border>
+<object class="wxBoxSizer">
+<orient>wxHORIZONTAL</orient>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_CANCEL">
+<label>Cancel</label>
+</object>
+</object>
+<object class="sizeritem">
+<flag>wxALIGN_CENTER|wxALL</flag>
+<border>5</border>
+<object class="wxButton" name="wxID_OK">
+<label>OK</label>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+</object>
+
+</resource>

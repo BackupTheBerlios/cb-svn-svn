@@ -1,0 +1,9 @@
+png2ico is copyright Matthias Benkmann (http://www.winterdrache.de/freeware/png2ico/)
+and distributed under the GNU general public license (http://www.gnu.org/copyleft/gpl.html).
+
+The png2ico executable in this directory is not part of my work, neither is it meant for your use or distribution.
+It is merely in the project folder as a product of my lazyness (so I don't need to manually copy it around, don't need
+to care about PATH on different PCs, and can have it automatically run during pre-compilation).
+
+If you want a version of this program for your use (you probably do because it is great), please get a pristine copy
+from the author (see above URL).
